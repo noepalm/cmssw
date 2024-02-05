@@ -280,25 +280,16 @@ namespace {
       return res;
     };
 
-    #ifdef EDM_ML_DEBUG
-    LogTrace("TrackExtenderWithMTD") << "Pion:";
-    #endif
     tofpid.gammasq_pi = 1.f + magp2 * m_pi_inv2;
     tofpid.beta_pi = std::sqrt(1.f - 1.f / tofpid.gammasq_pi);
     tofpid.dt_pi = deltat(m_pi_inv2, tofpid.beta_pi);
     tofpid.sigma_dt_pi = sigmadeltat(m_pi_inv2);
 
-    #ifdef EDM_ML_DEBUG
-    LogTrace("TrackExtenderWithMTD") << "Kaon:";
-    #endif
     tofpid.gammasq_k = 1.f + magp2 * m_k_inv2;
     tofpid.beta_k = std::sqrt(1.f - 1.f / tofpid.gammasq_k);
     tofpid.dt_k = deltat(m_k_inv2, tofpid.beta_k);
     tofpid.sigma_dt_k = sigmadeltat(m_k_inv2);
 
-    #ifdef EDM_ML_DEBUG
-    LogTrace("TrackExtenderWithMTD") << "Proton:";
-    #endif
     tofpid.gammasq_p = 1.f + magp2 * m_p_inv2;
     tofpid.beta_p = std::sqrt(1.f - 1.f / tofpid.gammasq_p);
     tofpid.dt_p = deltat(m_p_inv2, tofpid.beta_p);
