@@ -96,7 +96,9 @@ namespace {
 
   class TrackSegments {
   public:
-    TrackSegments() = default;
+    TrackSegments() {
+      sigmaTofs_.reserve(30); // observed upper limit on nSegments
+    };
 
     inline uint32_t addSegment(float tPath, float tMom2, float sigmaMom) {
       segmentPathOvc_.emplace_back(tPath * c_inv);
@@ -104,10 +106,12 @@ namespace {
       segmentSigmaMom_.emplace_back(sigmaMom);
       nSegment_++;
 
+      #ifdef EDM_ML_DEBUG
       LogTrace("TrackExtenderWithMTD") << "addSegment # " << nSegment_ << " s = " << tPath
                                        << " p = " << std::sqrt(tMom2)
                                        << " sigma_p = " << sigmaMom
                                        << " sigma_p/p = " << sigmaMom / std::sqrt(tMom2) * 100 << " %";
+      #endif
 
       return nSegment_;
     }
@@ -119,9 +123,14 @@ namespace {
         float beta = std::sqrt(1.f - 1.f / gammasq);
         tof += segmentPathOvc_[iSeg] / beta;
 
+        #ifdef EDM_ML_DEBUG
         float sigma_tof = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] / (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1/mass_inv2) * mass_inv2);
-        LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << " p = " << std::sqrt(segmentMom2_[iSeg]) << "\t1/gamma_sq = " << 1/gammasq
-                                         << "\tdelta(tof) = " << segmentPathOvc_[iSeg] / beta << "\tsigma_delta(tof) = " << sigma_tof << "\tsigma_tof/delta(tof) = " << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100 << "%\ttof = " << tof;
+        
+        LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << std::fixed << std::setw(6) << " p = " << std::sqrt(segmentMom2_[iSeg])
+                                         << "\tdelta(tof) = " << segmentPathOvc_[iSeg] / beta
+                                         << "\tsigma_delta(tof) = " << sigma_tof << "\tsigma_tof/delta(tof) = " << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100
+                                         << "%\ttof = " << tof;
+        #endif
       }
 
       return tof;
@@ -129,13 +138,24 @@ namespace {
     
     inline float computeSigmaTof(float mass_inv2) const {
       float sigmatof = 0.;
-      for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
 
-        float sigma_i = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] / (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1/mass_inv2) * mass_inv2);
-        
-        for (uint32_t jSeg = 0; jSeg < nSegment_; jSeg++) {
-          float sigma_j = segmentPathOvc_[jSeg] * segmentSigmaMom_[jSeg] / (segmentMom2_[jSeg] * sqrt(segmentMom2_[jSeg] + 1/mass_inv2) * mass_inv2);
-          sigmatof += sigma_i * sigma_j;
+      // remove previously calculated sigmaTofs
+      sigmaTofs_.clear();
+
+      // compute sigma of each segment first by propagating sigma(p)
+      // also add diagonal terms to sigmatof
+      float sigma = 0.;
+      for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
+        sigma = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] / (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1/mass_inv2) * mass_inv2);
+        sigmaTofs_.push_back(sigma);
+
+        sigmatof += sigma * sigma;
+      }
+
+      // compute sigma of sum assuming full correlation between segments
+      for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
+        for (uint32_t jSeg = iSeg + 1; jSeg < nSegment_; jSeg++) {
+          sigmatof += 2 * sigmaTofs_[iSeg] * sigmaTofs_[jSeg];
         }
       }
 
@@ -164,6 +184,8 @@ namespace {
     std::vector<float> segmentPathOvc_;
     std::vector<float> segmentMom2_;
     std::vector<float> segmentSigmaMom_;
+    
+    std::vector<float> sigmaTofs_;
   };
 
   struct TrackTofPidInfo {
@@ -258,19 +280,16 @@ namespace {
       return res;
     };
 
-    LogTrace("TrackExtenderWithMTD") << "Pion:";
     tofpid.gammasq_pi = 1.f + magp2 * m_pi_inv2;
     tofpid.beta_pi = std::sqrt(1.f - 1.f / tofpid.gammasq_pi);
     tofpid.dt_pi = deltat(m_pi_inv2, tofpid.beta_pi);
     tofpid.sigma_dt_pi = sigmadeltat(m_pi_inv2);
 
-    LogTrace("TrackExtenderWithMTD") << "Kaon:";
     tofpid.gammasq_k = 1.f + magp2 * m_k_inv2;
     tofpid.beta_k = std::sqrt(1.f - 1.f / tofpid.gammasq_k);
     tofpid.dt_k = deltat(m_k_inv2, tofpid.beta_k);
     tofpid.sigma_dt_k = sigmadeltat(m_k_inv2);
 
-    LogTrace("TrackExtenderWithMTD") << "Proton:";
     tofpid.gammasq_p = 1.f + magp2 * m_p_inv2;
     tofpid.beta_p = std::sqrt(1.f - 1.f / tofpid.gammasq_p);
     tofpid.dt_p = deltat(m_p_inv2, tofpid.beta_p);
@@ -399,14 +418,7 @@ namespace {
                                        << std::setw(14) << (it + 1)->updatedState().globalPosition().z() << " p "
                                        << std::fixed << std::setw(14) << (it + 1)->updatedState().globalMomentum().mag()
                                        << " dp " << std::fixed << std::setw(14)
-                                       << (it + 1)->updatedState().globalMomentum().mag() - oldp
-                                       << " sigma_p (from curvilinear) = " << std::fixed << std::setw(14)
-                                       << sigma_p 
-                                      //  << " sigma_p (cartesian) = " << std::fixed << std::setw(14)
-                                      //  << sigma_p_cartesian                                        
-                                       << " sigma_p/p = " << std::fixed << std::setw(14)
-                                       << sigma_p / (it + 1)->updatedState().globalMomentum().mag() * 100 << " %";
-
+                                       << (it + 1)->updatedState().globalMomentum().mag() - oldp;
       oldp = (it + 1)->updatedState().globalMomentum().mag();
     }
 
@@ -1427,6 +1439,7 @@ reco::Track TrackExtenderWithMTDT<TrackCollection>::buildTrack(const reco::Track
       //here add the PID uncertainty for later use in the 1st step of 4D vtx reconstruction
       TrackTofPidInfo tofInfo =
           computeTrackTofPidInfo(p.mag2(), pathlength, trs, thit, thiterror, 0.f, 0.f, true, TofCalc::kSegm, SigmaTofCalc::kCost);
+
       pathLengthOut = pathlength;  // set path length if we've got a timing hit
       tmtdOut = thit;
       sigmatmtdOut = thiterror;
