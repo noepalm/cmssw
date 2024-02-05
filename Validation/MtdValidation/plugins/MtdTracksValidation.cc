@@ -72,6 +72,17 @@
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "MTDHit.h"
 
+std::vector<Float_t> create_log_binning(int nbins, Float_t xmin, Float_t xmax){
+  std::vector<Float_t> binning;
+  Float_t logmin = log10(xmin);
+  Float_t logmax = log10(xmax);
+  Float_t binwidth = (logmax - logmin) / nbins;
+  for(int i=0; i<nbins+1; i++){
+      binning.push_back(pow(10, logmin + i*binwidth));
+  }
+  return binning;
+}
+
 class MtdTracksValidation : public DQMEDAnalyzer {
 public:
   explicit MtdTracksValidation(const edm::ParameterSet&);
@@ -115,7 +126,8 @@ private:
 
   static constexpr double etacutGEN_ = 4.;               // |eta| < 4;
   static constexpr double etacutREC_ = 3.;               // |eta| < 3;
-  static constexpr double pTcut_ = 0.7;                  // PT > 0.7 GeV
+  // static constexpr double pTcut_ = 0.7;                  // PT > 0.7 GeV
+  static constexpr double pTcut_ = 0.0;                  // PT > 0.1 GeV
   static constexpr double deltaZcut_ = 0.1;              // dz separation 1 mm
   static constexpr double deltaPTcut_ = 0.05;            // dPT < 5%
   static constexpr double deltaDRcut_ = 0.03;            // DeltaR separation
@@ -147,6 +159,17 @@ private:
 
   edm::EDGetTokenT<edm::ValueMap<float>> tmtdToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> SigmatmtdToken_;
+
+  edm::EDGetTokenT<edm::ValueMap<float>> probPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> probKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> probPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofPiSegmToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofKSegmToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofPSegmToken_;
+
   edm::EDGetTokenT<edm::ValueMap<float>> t0SrcToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> Sigmat0SrcToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> t0PidToken_;
@@ -194,6 +217,50 @@ private:
   MonitorElement* meTrackNumHitsNT_;
   MonitorElement* meTrackMVAQual_;
   MonitorElement* meTrackPathLenghtvsEta_;
+
+  // ------- sigma(TOF) histograms ------- //
+
+  // Sigma(TOF)
+  MonitorElement* meTrackSigmaTofConstVsSegm_[3];
+  MonitorElement* meTrackSigmaTof_BTL_[3];
+  MonitorElement* meTrackSigmaTof_ETL_[3];
+  MonitorElement* meTrackSigmaTof_BTL_PID_[4];
+  MonitorElement* meTrackSigmaTof_ETL_PID_[4];
+  MonitorElement* meTrackSigmaTofVsEta_[3];
+  MonitorElement* meTrackSigmaPVsEta_[3];
+  MonitorElement* meTrackSigmaTofVsP_BTL_[3];
+  MonitorElement* meTrackSigmaTofVsP_ETL_[3];
+  MonitorElement* meTrackSigmaTofVsP_BTL_PID_[4];
+  MonitorElement* meTrackSigmaTofVsP_ETL_PID_[4];
+
+  // Sigmat0Pid (needed to compare)
+  MonitorElement* meTrackSigmat0Pid_BTL_[3];
+  MonitorElement* meTrackSigmat0Pid_ETL_[3];
+  MonitorElement* meTrackSigmat0Pid_BTL_PID_[4];
+  MonitorElement* meTrackSigmat0Pid_ETL_PID_[4];
+  
+  MonitorElement* meTrackSigmaPOverPVsP_[3];
+  MonitorElement* meTrackSigmat0PidVsP_BTL_[3];
+  MonitorElement* meTrackSigmat0PidVsP_ETL_[3];
+  MonitorElement* meTrackSigmat0PidVsEta_[3];
+  MonitorElement* meTrackSigmat0PidVsP_BTL_PID_[4];
+  MonitorElement* meTrackSigmat0PidVsP_ETL_PID_[4];
+
+  // track pulls w/ and w/o Sigma(TOF)
+  MonitorElement* meMVATrackPullSigmat0Pid_;
+  MonitorElement* meMVATrackPullTotWithSigmaTof_;
+  MonitorElement* meMVATrackPullLowP_;
+  MonitorElement* meMVATrackPullLowPWithSigmaTof_;
+
+  // p distribution for pions, kaons, protons
+  MonitorElement* meTrackP_BTL_[3];
+  MonitorElement* meTrackP_ETL_[3];
+  MonitorElement* meTrackEta_[3];
+
+  // confusion matrix
+  MonitorElement* meTrackConfusionMatrix_;
+
+  // ----------------------------------- //
 
   MonitorElement* meTrackPtTot_;
   MonitorElement* meMVATrackEffPtTot_;
@@ -253,6 +320,17 @@ MtdTracksValidation::MtdTracksValidation(const edm::ParameterSet& iConfig)
   pathLengthToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("pathLengthSrc"));
   tmtdToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("tmtd"));
   SigmatmtdToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatmtd"));
+
+  probPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probPi"));
+  probKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probK"));
+  probPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probP"));
+  SigmaTofPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofPi"));
+  SigmaTofKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofK"));
+  SigmaTofPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofP"));
+  SigmaTofPiSegmToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofPiSegm"));
+  SigmaTofKSegmToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofKSegm"));
+  SigmaTofPSegmToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmaTofPSegm"));
+
   t0SrcToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("t0Src"));
   Sigmat0SrcToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmat0Src"));
   t0PidToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("t0PID"));
@@ -287,6 +365,15 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   const auto& tMtd = iEvent.get(tmtdToken_);
   const auto& SigmatMtd = iEvent.get(SigmatmtdToken_);
+  const auto& probPi = iEvent.get(probPiToken_);
+  const auto& probK = iEvent.get(probKToken_);
+  const auto& probP = iEvent.get(probPToken_);
+  const auto& SigmaTofPi = iEvent.get(SigmaTofPiToken_);
+  const auto& SigmaTofK = iEvent.get(SigmaTofKToken_);
+  const auto& SigmaTofP = iEvent.get(SigmaTofPToken_);
+  const auto& SigmaTofPiSegm = iEvent.get(SigmaTofPiSegmToken_);
+  const auto& SigmaTofKSegm = iEvent.get(SigmaTofKSegmToken_);
+  const auto& SigmaTofPSegm = iEvent.get(SigmaTofPSegmToken_);
   const auto& t0Src = iEvent.get(t0SrcToken_);
   const auto& Sigmat0Src = iEvent.get(Sigmat0SrcToken_);
   const auto& t0Pid = iEvent.get(t0PidToken_);
@@ -404,8 +491,17 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
     bool twoETLdiscs = false;
     bool noCrack = std::abs(trackGen.eta()) < trackMaxBtlEta_ || std::abs(trackGen.eta()) > trackMinEtlEta_;
 
-    if (track.pt() >= trackMinPt_ && std::abs(track.eta()) <= trackMaxEtlEta_) {
+    // float probabilities[3];
+    float sigmas[3];
+    float sigmasSegm[3];
+
+    int pidIndex = -1; // pions = 0, kaons = 1, protons = 2
+    int pidIndex_withPID = -1; // pion PID = 0, kaon PID = 1, proton PID = 2, no PID = 3
+
+    // if (track.pt() >= trackMinPt_ && std::abs(track.eta()) <= trackMaxEtlEta_) {
+    if (track.pt() >= 0 && std::abs(track.eta()) <= trackMaxEtlEta_) {
       meTracktmtd_->Fill(tMtd[trackref]);
+      
       if (std::round(SigmatMtd[trackref] - Sigmat0Pid[trackref]) != 0) {
         LogWarning("mtdTracks")
             << "TimeError associated to refitted track is different from TimeError stored in tofPID "
@@ -422,7 +518,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
 
       meTrackPathLenghtvsEta_->Fill(std::abs(track.eta()), pathLength[trackref]);
-
+      
       if (std::abs(track.eta()) < trackMaxBtlEta_) {
         // --- all BTL tracks (with and without hit in MTD) ---
         meBTLTrackEffEtaTot_->Fill(track.eta());
@@ -543,11 +639,17 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
         }
       }
 
+      // sigma(TOF) for different mass hypotheses
+      // float probabilities[3] = {probPi[trackref], probK[trackref], probP[trackref]};
+      // float sigmas[3] = {SigmaTofPi[trackref], SigmaTofK[trackref], SigmaTofP[trackref]};
+      // float sigmasSegm[3] = {SigmaTofPiSegm[trackref], SigmaTofKSegm[trackref], SigmaTofPSegm[trackref]};
+
+      //  insert code for sigma(TOF)
+      
       LogDebug("MtdTracksValidation") << "Track p/pt = " << track.p() << " " << track.pt() << " eta " << track.eta()
                                       << " BTL " << isBTL << " ETL " << isETL << " 2disks " << twoETLdiscs;
 
       // TrackingParticle based matching
-
       const reco::TrackBaseRef trkrefb(trackref);
       auto tp_info = getMatchedTP(trkrefb);
 
@@ -636,10 +738,10 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
         double dZ = trackGen.vz() - zsim;
         double dT(-9999.);
-        double pullT(-9999.);
+        double pullT(-9999.), pullTWithSigmaTof(-9999.);
         if (Sigmat0Safe[trackref] != -1.) {
           dT = t0Safe[trackref] - tsim;
-          pullT = dT / Sigmat0Safe[trackref];
+          pullT = dT / Sigmat0Safe[trackref];          
         }
         for (const auto& genP : mc->particle_range()) {
           // select status 1 genParticles and match them to the reconstructed track
@@ -657,10 +759,113 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               if (isBTL || isETL) {
                 meMVATrackResTot_->Fill(dT);
                 meMVATrackPullTot_->Fill(pullT);
+
                 if (noCrack) {
                   meMVATrackMatchedEffPtMtd_->Fill(trackGen.pt());
                 }
                 meMVATrackMatchedEffEtaMtd_->Fill(std::abs(trackGen.eta()));
+
+
+                // ---- begin sigma(TOF) ----//
+
+                // probabilities[0] = probPi[trackref]; 
+                sigmas[0] = SigmaTofPi[trackref]; sigmasSegm[0] = SigmaTofPiSegm[trackref];
+                // probabilities[1] = probK[trackref]; 
+                sigmas[1] = SigmaTofK[trackref]; sigmasSegm[1] = SigmaTofKSegm[trackref];
+                // probabilities[2] = probP[trackref]; 
+                sigmas[2] = SigmaTofP[trackref]; sigmasSegm[2] = SigmaTofPSegm[trackref];
+                
+                // MC true mass hypothesis
+                bool isPi = std::abs(genP->pdg_id()) == 211;
+                bool isK  = std::abs(genP->pdg_id()) == 321;
+                bool isP  = std::abs(genP->pdg_id()) == 2212;
+
+                // only save sigma_TOF(mass hp) for most likely mass hypothesis
+                // maxIndex = std::max_element(probabilities, probabilities + 3) - probabilities;
+                if(isPi)      pidIndex = 0; // pion
+                else if(isK)  pidIndex = 1; // kaon
+                else if(isP)  pidIndex = 2; // proton
+
+                // TOF PID assignment
+                Float_t minProbHeavy_ = 0.75; //TODO: value should be passed as argument, not hardcoded 
+                unsigned int noPIDtype = 0;
+                if (probPi[trackref] == -1) {
+                  noPIDtype = 1;
+                } else if (std::isnan(probPi[trackref])) {
+                  noPIDtype = 2;
+                } else if (probPi[trackref] == 1 && probK[trackref] == 0 && probP[trackref] == 0) {
+                  noPIDtype = 3;
+                }
+                bool noPID     = noPIDtype > 0;
+                bool isPiPID   = !noPID && 1. - probPi[trackref] < minProbHeavy_;
+                bool isKPID    = !noPID && !isPi && probK[trackref] > probP[trackref];
+                bool isPPID    = !noPID && !isPi && !isK;
+
+                if(isPiPID) pidIndex_withPID = 0;
+                if(isKPID)  pidIndex_withPID = 1;
+                if(isPPID)  pidIndex_withPID = 2;
+                if(noPID)   pidIndex_withPID = 3;
+
+                // fill confusion matrix
+                meTrackConfusionMatrix_->Fill(pidIndex, pidIndex_withPID);
+
+                if(pidIndex >= 0) { // if track is pion, kaon or proton
+                  meTrackSigmaTofConstVsSegm_[pidIndex]->Fill(sigmas[pidIndex] * 1e3, sigmasSegm[pidIndex] * 1e3);
+                  meTrackSigmaTofVsEta_[pidIndex]->Fill(std::abs(track.eta()), sigmas[pidIndex] * 1e3);
+                  meTrackSigmaPVsEta_[pidIndex]->Fill(std::abs(track.eta()), track.qoverpError() * track.p2());
+                  meTrackSigmat0PidVsEta_[pidIndex]->Fill(std::abs(track.eta()), Sigmat0Pid[trackref] * 1e3);
+                  meTrackEta_[pidIndex]->Fill(track.eta());
+
+                  meTrackSigmaPOverPVsP_[pidIndex]->Fill(track.p(), track.qoverpError() * track.p());
+
+                  if (isBTL) {
+                    // using MC true mass hypothesis
+                    meTrackSigmaTof_BTL_[pidIndex]->Fill(sigmas[pidIndex] * 1e3);
+                    meTrackSigmat0Pid_BTL_[pidIndex]->Fill(Sigmat0Pid[trackref] * 1e3);
+                    meTrackSigmaTofVsP_BTL_[pidIndex]->Fill(track.p(), sigmas[pidIndex] * 1e3);
+                    meTrackSigmat0PidVsP_BTL_[pidIndex]->Fill(track.p(), Sigmat0Pid[trackref] * 1e3);
+                    meTrackP_BTL_[pidIndex]->Fill(track.p());
+
+                    // using PID mass hypothesis
+                    if(pidIndex_withPID >= 0){
+                      meTrackSigmaTof_BTL_PID_[pidIndex_withPID]->Fill(sigmas[pidIndex] * 1e3);
+                      meTrackSigmat0Pid_BTL_PID_[pidIndex_withPID]->Fill(Sigmat0Pid[trackref] * 1e3);
+                      meTrackSigmaTofVsP_BTL_PID_[pidIndex_withPID]->Fill(track.p(), sigmas[pidIndex] * 1e3);
+                      meTrackSigmat0PidVsP_BTL_PID_[pidIndex_withPID]->Fill(track.p(), Sigmat0Pid[trackref] * 1e3);
+                    }
+
+                  } else if (isETL) {
+                    // using MC true mass hypothesis
+                    meTrackSigmaTof_ETL_[pidIndex]->Fill(sigmas[pidIndex] * 1e3);
+                    meTrackSigmat0Pid_ETL_[pidIndex]->Fill(Sigmat0Pid[trackref] * 1e3);
+                    meTrackSigmaTofVsP_ETL_[pidIndex]->Fill(track.p(), sigmas[pidIndex] * 1e3);
+                    meTrackSigmat0PidVsP_ETL_[pidIndex]->Fill(track.p(), Sigmat0Pid[trackref] * 1e3);
+                    meTrackP_ETL_[pidIndex]->Fill(track.p());
+                    
+                    // using PID mass hypothesis
+                    if(pidIndex_withPID >= 0){
+                      meTrackSigmaTof_ETL_PID_[pidIndex_withPID]->Fill(sigmas[pidIndex] * 1e3);
+                      meTrackSigmat0Pid_ETL_PID_[pidIndex_withPID]->Fill(Sigmat0Pid[trackref] * 1e3);
+                      meTrackSigmaTofVsP_ETL_PID_[pidIndex_withPID]->Fill(track.p(), sigmas[pidIndex] * 1e3);
+                      meTrackSigmat0PidVsP_ETL_PID_[pidIndex_withPID]->Fill(track.p(), Sigmat0Pid[trackref] * 1e3);
+                    }
+                  }
+
+                  // saving track pull
+                  double pull_pid = dT/Sigmat0Pid[trackref];
+                  meMVATrackPullSigmat0Pid_->Fill(pull_pid);
+                  pullTWithSigmaTof = dT / std::sqrt(Sigmat0Pid[trackref] * Sigmat0Pid[trackref] + sigmas[pidIndex] * sigmas[pidIndex]);
+                  meMVATrackPullTotWithSigmaTof_->Fill(pullTWithSigmaTof);
+
+                  if(track.p() < 2){
+                    meMVATrackPullLowP_->Fill(pull_pid);
+                    meMVATrackPullLowPWithSigmaTof_->Fill(pullTWithSigmaTof);                  
+                  }
+                }
+                
+                // ---- end sigma(TOF) ---- //      
+
+
               }
               break;
             }
@@ -919,6 +1124,171 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meTrackSigmat0Src_ =
       ibook.book1D("TrackSigmat0Src", "Time Error from TrackExtenderWithMTD; #sigma_{t0Src} [ns]", 100, 0, 0.1);
 
+  // ----------- sigma(TOF) histograms ------------ //
+
+  meTrackSigmaTof_BTL_[0] = ibook.book1D("TrackSigmaTof_BTL_Pion", "BTL pions #sigma_TOF(#pi);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_BTL_[1] = ibook.book1D("TrackSigmaTof_BTL_Kaon", "BTL kaons #sigma_TOF(K);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_BTL_[2] = ibook.book1D("TrackSigmaTof_BTL_Proton", "BTL protons #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_[0] = ibook.book1D("TrackSigmaTof_ETL_Pion", "ETL pions #sigma_TOF(#pi);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_[1] = ibook.book1D("TrackSigmaTof_ETL_Kaon", "ETL kaons #sigma_TOF(K);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_[2] = ibook.book1D("TrackSigmaTof_ETL_Proton", "ETL protons #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+
+  meTrackSigmaTof_BTL_PID_[0] = ibook.book1D("TrackSigmaTof_BTL_PionPID", "BTL pions (PID) #sigma_TOF(#pi);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_BTL_PID_[1] = ibook.book1D("TrackSigmaTof_BTL_KaonPID", "BTL kaons (PID) #sigma_TOF(K);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_BTL_PID_[2] = ibook.book1D("TrackSigmaTof_BTL_ProtonPID", "BTL protons (PID) #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_BTL_PID_[3] = ibook.book1D("TrackSigmaTof_BTL_noPID", "BTL tracks (no PID) #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_PID_[0] = ibook.book1D("TrackSigmaTof_ETL_PionPID", "ETL pions (PID) #sigma_TOF(#pi);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_PID_[1] = ibook.book1D("TrackSigmaTof_ETL_KaonPID", "ETL kaons (PID) #sigma_TOF(K);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_PID_[2] = ibook.book1D("TrackSigmaTof_ETL_ProtonPID", "ETL protons (PID) #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+  meTrackSigmaTof_ETL_PID_[3] = ibook.book1D("TrackSigmaTof_ETL_noPID", "ETL tracks (no PID) #sigma_TOF(p);#sigma [ps]", 100, 0, 50);
+
+  Float_t* logbins = &create_log_binning(100, 1e-4, 100)[0];
+
+  // meTrackSigmaTofConstVsSegm_[0] = ibook.book2D("TrackSigmaTofConstVsSegm_Pion", "Track #sigma_TOF(#pi), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+  //                                              100, 0, 50, 100, 0, 50);
+  // meTrackSigmaTofConstVsSegm_[1] = ibook.book2D("TrackSigmaTofConstVsSegm_Kaon", "Track #sigma_TOF(K), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+  //                                               100, 0, 50, 100, 0, 50);
+  // meTrackSigmaTofConstVsSegm_[2] = ibook.book2D("TrackSigmaTofConstVsSegm_Proton", "Track #sigma_TOF(p), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+  //                                               100, 0, 50, 100, 0, 50);
+
+  meTrackSigmaTofConstVsSegm_[0] = ibook.book2D("TrackSigmaTofConstVsSegm_Pion", "Track #sigma_TOF(#pi), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+                                               100, logbins, 100, logbins);
+  meTrackSigmaTofConstVsSegm_[1] = ibook.book2D("TrackSigmaTofConstVsSegm_Kaon", "Track #sigma_TOF(K), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+                                                100, logbins, 100, logbins);
+  meTrackSigmaTofConstVsSegm_[2] = ibook.book2D("TrackSigmaTofConstVsSegm_Proton", "Track #sigma_TOF(p), const. vs segmented calc.;#sigma_const [ps];#sigma_segm [ps]",
+                                                100, logbins, 100, logbins);
+
+  meTrackSigmaTofVsEta_[0] = ibook.bookProfile(
+      "TrackSigmaTofVsEta_Pion", "Track #sigma_{TOF}(#pi) vs MTD track Eta;|#eta|;#sigma_{TOF}(#pi)", 50, 0, 3.2, 0, 50., "S");
+  meTrackSigmaTofVsEta_[1] = ibook.bookProfile(
+      "TrackSigmaTofVsEta_Kaon", "Track #sigma_{TOF}(K) vs MTD track Eta;|#eta|;#sigma_{TOF}(#pi)", 50, 0, 3.2, 0, 50., "S");
+  meTrackSigmaTofVsEta_[2] = ibook.bookProfile(
+      "TrackSigmaTofVsEta_Proton", "Track #sigma_{TOF}(p) vs MTD track Eta;|#eta|;#sigma_{TOF}(#pi)", 50, 0, 3.2, 0, 50., "S");
+
+  meTrackSigmaPVsEta_[0] = ibook.bookProfile(
+      "TrackSigmaPVsEta_Pion", "Track #sigma_{P} vs pion #eta;|#eta|;#sigma_{P} [GeV]", 50, 0, 3.2, 0, 10., "S");
+  meTrackSigmaPVsEta_[1] = ibook.bookProfile(
+      "TrackSigmaPVsEta_Kaon", "Track #sigma_{P} vs kaon #eta;|#eta|;#sigma_{P} [GeV]", 50, 0, 3.2, 0, 10., "S");
+  meTrackSigmaPVsEta_[2] = ibook.bookProfile(
+      "TrackSigmaPVsEta_Proton", "Track #sigma_{P} vs proton #eta;|#eta|;#sigma_{P} [GeV]", 50, 0, 3.2, 0, 10., "S");
+
+  meTrackSigmaPOverPVsP_[0] = ibook.bookProfile(
+      "TrackSigmaPOverPVsP_Pion", "Track #sigma_{P}/P vs pion p;P [GeV];#sigma_{P}/P", 100, 0, 100., 0, 5., "S");
+  meTrackSigmaPOverPVsP_[1] = ibook.bookProfile(
+      "TrackSigmaPOverPVsP_Kaon", "Track #sigma_{P}/P vs kaon p;P [GeV];#sigma_{P}/P", 100, 0, 100., 0, 5., "S");
+  meTrackSigmaPOverPVsP_[2] = ibook.bookProfile(
+      "TrackSigmaPOverPVsP_Proton", "Track #sigma_{P}/P vs proton p;P [GeV];#sigma_{P}/P", 100, 0, 100., 0, 5., "S");
+
+  meTrackSigmaTofVsP_BTL_[0] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_Pion", "Track #sigma_{TOF}(#pi) vs track p for pions hitting BTL;P [GeV];#sigma_{TOF}(#pi)", 100, 0, 100., 0, 50., "S");                                     
+  meTrackSigmaTofVsP_BTL_[1] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_Kaon", "Track #sigma_{TOF}(K) vs track p for kaons hitting BTL;P [GeV];#sigma_{TOF}(K)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_BTL_[2] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_Proton", "Track #sigma_{TOF}(p) vs track p for protons hitting BTL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+
+  meTrackSigmaTofVsP_ETL_[0] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_Pion", "Track #sigma_{TOF}(#pi) vs track p for pions hitting ETL;P [GeV];#sigma_{TOF}(#pi)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_ETL_[1] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_Kaon", "Track #sigma_{TOF}(K) vs track p for kaons hitting ETL;P [GeV];#sigma_{TOF}(K)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_ETL_[2] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_Proton", "Track #sigma_{TOF}(p) vs track p for protons hitting ETL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+
+  meTrackSigmaTofVsP_BTL_PID_[0] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_PionPID", "Track #sigma_{TOF}(#pi) vs track p for tracks (pion PID) hitting BTL;P [GeV];#sigma_{TOF}(#pi)", 100, 0, 100., 0, 50., "S");                                     
+  meTrackSigmaTofVsP_BTL_PID_[1] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_KaonPID", "Track #sigma_{TOF}(K) vs track p for tracks (kaon PID) hitting BTL;P [GeV];#sigma_{TOF}(K)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_BTL_PID_[2] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_ProtonPID", "Track #sigma_{TOF}(p) vs track p for tracks (proton PID) hitting BTL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_BTL_PID_[3] = ibook.bookProfile(
+      "TrackSigmaTofVsP_BTL_noPID", "Track #sigma_{TOF}(p) vs track p for tracks (no PID) hitting BTL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+
+  meTrackSigmaTofVsP_ETL_PID_[0] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_PionPID", "Track #sigma_{TOF}(#pi) vs track p for tracks (pion PID) hitting ETL;P [GeV];#sigma_{TOF}(#pi)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_ETL_PID_[1] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_KaonPID", "Track #sigma_{TOF}(K) vs track p for tracks (kaon PID) hitting ETL;P [GeV];#sigma_{TOF}(K)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_ETL_PID_[2] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_ProtonPID", "Track #sigma_{TOF}(p) vs track p for tracks (proton PID) hitting ETL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+  meTrackSigmaTofVsP_ETL_PID_[3] = ibook.bookProfile(
+      "TrackSigmaTofVsP_ETL_noPID", "Track #sigma_{TOF}(p) vs track p for tracks (no PID) hitting ETL;P [GeV];#sigma_{TOF}(p)", 100, 0, 100., 0, 50., "S");
+
+  meMVATrackPullSigmat0Pid_ = 
+    ibook.book1D("MVATrackPullSigmat0Pid", "Pull for associated tracks with time uncertainty using sigma_MTD; (t_{rec}-t_{sim})/#sigma_{t}", 50, -5., 5.);
+  meMVATrackPullTotWithSigmaTof_ = 
+    ibook.book1D("MVATrackPullWithSigmaTof", "Pull for associated tracks with time uncertainty including #sigma_{TOF}; (t_{rec}-t_{sim})/#sigma_{t}", 50, -5., 5.);
+  meMVATrackPullLowP_ =
+    ibook.book1D("MVATrackPullLowP", "Pull for low p (< 2 GeV) tracks; (t_{rec}-t_{sim})/#sigma_{t}", 50, -5., 5.);
+  meMVATrackPullLowPWithSigmaTof_ =
+    ibook.book1D("MVATrackPullLowPWithSigmaTof", "Pull for low p (< 2 GeV) tracks with time uncertainty including #sigma_{TOF}; (t_{rec}-t_{sim})/#sigma_{t}", 50, -5., 5.);
+
+  meTrackSigmat0Pid_BTL_[0] = ibook.book1D("TrackSigmat0Pid_BTL_Pion", "Sigmat0Pid as stored in TofPid for BTL pions; #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_BTL_[1] = ibook.book1D("TrackSigmat0Pid_BTL_Kaon", "Sigmat0Pid as stored in TofPid for BTL kaons; #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_BTL_[2] = ibook.book1D("TrackSigmat0Pid_BTL_Proton", "Sigmat0Pid as stored in TofPid for BTL protons; #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_[0] = ibook.book1D("TrackSigmat0Pid_ETL_Pion", "Sigmat0Pid as stored in TofPid for ETL pions; #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_[1] = ibook.book1D("TrackSigmat0Pid_ETL_Kaon", "Sigmat0Pid as stored in TofPid for ETL kaons; #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_[2] = ibook.book1D("TrackSigmat0Pid_ETL_Proton", "Sigmat0Pid as stored in TofPid for ETL protons; #sigma_{t0} [ps]", 100, 0, 100);
+
+  meTrackSigmat0Pid_BTL_PID_[0] = ibook.book1D("TrackSigmat0Pid_BTL_PionPID", "Sigmat0Pid as stored in TofPid for BTL pions (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_BTL_PID_[1] = ibook.book1D("TrackSigmat0Pid_BTL_KaonPID", "Sigmat0Pid as stored in TofPid for BTL kaons (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_BTL_PID_[2] = ibook.book1D("TrackSigmat0Pid_BTL_ProtonPID", "Sigmat0Pid as stored in TofPid for BTL protons (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_BTL_PID_[3] = ibook.book1D("TrackSigmat0Pid_BTL_noPID", "Sigmat0Pid as stored in TofPid for BTL tracks (no PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_PID_[0] = ibook.book1D("TrackSigmat0Pid_ETL_PionPID", "Sigmat0Pid as stored in TofPid for ETL pions (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_PID_[1] = ibook.book1D("TrackSigmat0Pid_ETL_KaonPID", "Sigmat0Pid as stored in TofPid for ETL kaons (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_PID_[2] = ibook.book1D("TrackSigmat0Pid_ETL_ProtonPID", "Sigmat0Pid as stored in TofPid for ETL protons (PID); #sigma_{t0} [ps]", 100, 0, 100);
+  meTrackSigmat0Pid_ETL_PID_[3] = ibook.book1D("TrackSigmat0Pid_ETL_ProtonPID", "Sigmat0Pid as stored in TofPid for ETL tracks (no PID); #sigma_{t0} [ps]", 100, 0, 100);
+
+  meTrackSigmat0PidVsP_BTL_[0] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_Pion", "Track #sigma_{MTD}(#pi) vs track p for pions hitting BTL;P [GeV];#sigma_{MTD}(#pi)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_BTL_[1] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_Kaon", "Track #sigma_{MTD}(K) vs track p for kaons hitting BTL;P [GeV];#sigma_{MTD}(K)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_BTL_[2] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_Proton", "Track #sigma_{MTD}(p) vs track p for protons hitting BTL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_[0] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_Pion", "Track #sigma_{MTD}(#pi) vs track p for pions hitting ETL;P [GeV];#sigma_{MTD}(#pi)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_[1] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_Kaon", "Track #sigma_{MTD}(K) vs track p for kaons hitting ETL;P [GeV];#sigma_{MTD}(K)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_[2] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_Proton", "Track #sigma_{MTD}(p) vs track p for protons hitting ETL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+  
+  meTrackSigmat0PidVsP_BTL_PID_[0] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_PionPID", "Track #sigma_{MTD}(#pi) vs track p for pions (PID) hitting BTL;P [GeV];#sigma_{MTD}(#pi)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_BTL_PID_[1] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_KaonPID", "Track #sigma_{MTD}(K) vs track p for kaons (PID) hitting BTL;P [GeV];#sigma_{MTD}(K)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_BTL_PID_[2] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_ProtonPID", "Track #sigma_{MTD}(p) vs track p for protons (PID) hitting BTL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_BTL_PID_[3] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_BTL_noPID", "Track #sigma_{MTD}(p) vs track p for tracks (no PID) hitting BTL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+
+  meTrackSigmat0PidVsP_ETL_PID_[0] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_PionPID", "Track #sigma_{MTD}(#pi) vs track p for pions (PID) hitting ETL;P [GeV];#sigma_{MTD}(#pi)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_PID_[1] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_KaonPID", "Track #sigma_{MTD}(K) vs track p for kaons (PID) hitting ETL;P [GeV];#sigma_{MTD}(K)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_PID_[2] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_ProtonPID", "Track #sigma_{MTD}(p) vs track p for protons (PID) hitting ETL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+  meTrackSigmat0PidVsP_ETL_PID_[3] = ibook.bookProfile(
+      "TrackSigmat0PidVsP_ETL_noPID", "Track #sigma_{MTD}(p) vs track p for tracks (no PID) hitting ETL;P [GeV];#sigma_{MTD}(p)", 100, 0, 100., 0, 100., "S");
+    
+  meTrackSigmat0PidVsEta_[0] = ibook.bookProfile(
+        "TrackSigmat0PidVsEta_Pion", "Track #sigma_{MTD}(#pi) vs track Eta, pions;|#eta|;#sigma_{MTD}(#pi)", 50, 0, 3.2, 0, 100., "S");
+  meTrackSigmat0PidVsEta_[1] = ibook.bookProfile(
+        "TrackSigmat0PidVsEta_Kaon", "Track #sigma_{MTD}(K) vs track Eta, kaons;|#eta|;#sigma_{MTD}(K)", 50, 0, 3.2, 0, 100., "S"); 
+  meTrackSigmat0PidVsEta_[2] = ibook.bookProfile(
+        "TrackSigmat0PidVsEta_Proton", "Track #sigma_{MTD}(K) vs track Eta, protons;|#eta|;#sigma_{MTD}(p)", 50, 0, 3.2, 0, 100., "S"); 
+
+  meTrackConfusionMatrix_ = ibook.book2D("TrackConfusionMatrix", "Track confusion matrix;MC ID;PID", 4, -1, 3, 4, 0, 4);
+
+  meTrackP_BTL_[0] = ibook.book1D("TrackP_BTL_Pion", "Track momentum for BTL pions;P [GeV]", 100, 0, 100);
+  meTrackP_BTL_[1] = ibook.book1D("TrackP_BTL_Kaon", "Track momentum for BTL kaons;P [GeV]", 100, 0, 100);
+  meTrackP_BTL_[2] = ibook.book1D("TrackP_BTL_Proton", "Track momentum for BTL protons;P [GeV]", 100, 0, 100);
+  meTrackP_ETL_[0] = ibook.book1D("TrackP_ETL_Pion", "Track momentum for ETL pions;P [GeV]", 100, 0, 100);
+  meTrackP_ETL_[1] = ibook.book1D("TrackP_ETL_Kaon", "Track momentum for ETL kaons;P [GeV]", 100, 0, 100);
+  meTrackP_ETL_[2] = ibook.book1D("TrackP_ETL_Proton", "Track momentum for ETL protons;P [GeV]", 100, 0, 100);
+
+  meTrackEta_[0] = ibook.book1D("TrackEta_Pion", "Track #eta for pions;|#eta|", 50, 0, 3.2);
+  meTrackEta_[1] = ibook.book1D("TrackEta_Kaon", "Track #eta for kaons;|#eta|", 50, 0, 3.2);
+  meTrackEta_[2] = ibook.book1D("TrackEta_Proton", "Track #eta for protons;|#eta|", 50, 0, 3.2);
+
+  // ------------------------------------------- //
+
   meTrackt0Pid_ = ibook.book1D("Trackt0Pid", "Track t0 as stored in TofPid;t0 [ns]", 100, -1, 1);
   meTrackSigmat0Pid_ = ibook.book1D("TrackSigmat0Pid", "Sigmat0 as stored in TofPid; #sigma_{t0} [ns]", 100, 0, 0.1);
   meTrackt0SafePid_ = ibook.book1D("Trackt0SafePID", "Track t0 Safe as stored in TofPid;t0 [ns]", 100, -1, 1);
@@ -1027,6 +1397,15 @@ void MtdTracksValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<edm::InputTag>("etlRecHits", edm::InputTag("mtdRecHits", "FTLEndcap"));
   desc.add<edm::InputTag>("tmtd", edm::InputTag("trackExtenderWithMTD:generalTracktmtd"));
   desc.add<edm::InputTag>("sigmatmtd", edm::InputTag("trackExtenderWithMTD:generalTracksigmatmtd"));
+  desc.add<edm::InputTag>("probPi", edm::InputTag("tofPID:probPi"));
+  desc.add<edm::InputTag>("probK", edm::InputTag("tofPID:probK"));
+  desc.add<edm::InputTag>("probP", edm::InputTag("tofPID:probP"));
+  desc.add<edm::InputTag>("sigmaTofPi", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"));
+  desc.add<edm::InputTag>("sigmaTofK", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"));
+  desc.add<edm::InputTag>("sigmaTofP", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"));
+  desc.add<edm::InputTag>("sigmaTofPiSegm", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPiSegm"));
+  desc.add<edm::InputTag>("sigmaTofKSegm", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofKSegm"));
+  desc.add<edm::InputTag>("sigmaTofPSegm", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPSegm"));
   desc.add<edm::InputTag>("t0Src", edm::InputTag("trackExtenderWithMTD:generalTrackt0"));
   desc.add<edm::InputTag>("sigmat0Src", edm::InputTag("trackExtenderWithMTD:generalTracksigmat0"));
   desc.add<edm::InputTag>("trackAssocSrc", edm::InputTag("trackExtenderWithMTD:generalTrackassoc"))
@@ -1037,7 +1416,8 @@ void MtdTracksValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<edm::InputTag>("sigmat0PID", edm::InputTag("tofPID:sigmat0"));
   desc.add<edm::InputTag>("t0PID", edm::InputTag("tofPID:t0"));
   desc.add<edm::InputTag>("trackMVAQual", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"));
-  desc.add<double>("trackMinimumPt", 0.7);  // [GeV]
+  // desc.add<double>("trackMinimumPt", 0.7);  // [GeV]
+  desc.add<double>("trackMinimumPt", 0.0);  // [GeV]
   desc.add<double>("trackMaximumBtlEta", 1.5);
   desc.add<double>("trackMinimumEtlEta", 1.6);
   desc.add<double>("trackMaximumEtlEta", 3.);
