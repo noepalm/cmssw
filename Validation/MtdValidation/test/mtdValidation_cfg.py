@@ -20,6 +20,14 @@ process.load("Configuration.StandardSequences.Reconstruction_cff")
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
+# [DEBUG] MY FLAG
+is_minbias = False
+# if passed argument == "minbias", set is_minbias = True
+import sys
+if len(sys.argv) > 1:
+    if sys.argv[1] == "-minbias":
+        is_minbias = True
+ 
 #Setup FWK for multithreaded
 process.options.numberOfThreads = 4
 process.options.numberOfStreams = 0
@@ -30,11 +38,20 @@ process.MessageLogger.cerr.FwkReport  = cms.untracked.PSet(
     reportEvery = cms.untracked.int32(10),
 )
 
-process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(
-        'file:step3.root'
+if is_minbias:
+    process.source = cms.Source("PoolSource",
+        fileNames = cms.untracked.vstring(
+            'file:/eos/home-n/npalmeri/MTD_sigmaTof/MinBias/step3.root'
+        )
     )
-)
+# else TTbar
+else: 
+    process.source = cms.Source("PoolSource",
+        fileNames = cms.untracked.vstring(
+            'file:/eos/home-n/npalmeri/MTD_sigmaTof/TTbar/step3.root'
+        )
+    )
+
 
 process.mix.digitizers = cms.PSet()
 for a in process.aliases: delattr(process, a)
@@ -65,12 +82,16 @@ process.load("Validation.MtdValidation.vertices4DValid_cfi")
 
 process.validation = cms.Sequence(btlValidation + etlValidation + process.mtdTracksValid + process.mtdEleIsoValid + process.vertices4DValid)
 
+outfile_name = "step3_inDQM_TTbar.root"
+if is_minbias:
+    outfile_name = "step3_inDQM_MinBias.root"
+
 process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
     dataset = cms.untracked.PSet(
         dataTier = cms.untracked.string('DQMIO'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:step3_inDQM.root'),
+    fileName = cms.untracked.string('file:' + outfile_name),
     outputCommands = process.DQMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
