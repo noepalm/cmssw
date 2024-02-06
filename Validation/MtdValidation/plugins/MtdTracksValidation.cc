@@ -433,6 +433,13 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
 
+      meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3); //save as ps
+      meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1e3);
+      meTrackSigmaTof_[2]->Fill(SigmaTofP[trackref] * 1e3);
+      meTrackSigmaTofvsP_[0]->Fill(track.p(), SigmaTofPi[trackref] * 1e3);
+      meTrackSigmaTofvsP_[1]->Fill(track.p(), SigmaTofK[trackref] * 1e3);
+      meTrackSigmaTofvsP_[2]->Fill(track.p(), SigmaTofP[trackref] * 1e3);
+
       meTrackPathLenghtvsEta_->Fill(std::abs(track.eta()), pathLength[trackref]);
 
       if (std::abs(track.eta()) < trackMaxBtlEta_) {
@@ -595,13 +602,6 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
           if (withMTD) {
             meTrackMatchedTPmtdEffEtaMtd_->Fill(std::abs(trackGen.eta()));
           }
-
-          meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1000); //save as ps
-          meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1000);
-          meTrackSigmaTof_[2]->Fill(SigmaTofP[trackref] * 1000);
-          meTrackSigmaTofvsP_[0]->Fill(track.p(), SigmaTofPi[trackref] * 1000);
-          meTrackSigmaTofvsP_[1]->Fill(track.p(), SigmaTofK[trackref] * 1000);
-          meTrackSigmaTofvsP_[2]->Fill(track.p(), SigmaTofP[trackref] * 1000);
         }
 
         size_t nlayers(0);
