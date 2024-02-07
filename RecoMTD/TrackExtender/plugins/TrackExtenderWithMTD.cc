@@ -122,16 +122,18 @@ namespace {
         float beta = std::sqrt(1.f - 1.f / gammasq);
         tof += segmentPathOvc_[iSeg] / beta;
 
+        LogTrace("TrackExtenderWithMTD") << " TOF Segment # " << iSeg + 1 << " p = " << std::sqrt(segmentMom2_[iSeg])
+                                         << " tof = " << tof;
+
 #ifdef EDM_ML_DEBUG
         float sigma_tof = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] /
                           (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1 / mass_inv2) * mass_inv2);
 
         LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << std::fixed << std::setw(6)
-                                         << " p = " << std::sqrt(segmentMom2_[iSeg])
-                                         << "\tdelta(tof) = " << segmentPathOvc_[iSeg] / beta << std::scientific
-                                         << "\tsigma_delta(tof) = " << sigma_tof << std::fixed
-                                         << "\tsigma_tof/delta(tof) = "
-                                         << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100 << "%\ttof = " << tof;
+                                         << " tof segment = " << segmentPathOvc_[iSeg] / beta << std::scientific
+                                         << "+/- " << sigma_tof << std::fixed
+                                         << "(rel. err. = "
+                                         << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100 << " %)";
 #endif
       }
 
@@ -393,23 +395,7 @@ namespace {
       }
       pathlength1 += layerpathlength;
 
-      // // sigma(p) using cartesian error
-      // float sigma_p_cartesian = 0;
-      // float p[3] = {(it + 1)->updatedState().globalMomentum().x(), (it + 1)->updatedState().globalMomentum().y(),
-      //               (it + 1)->updatedState().globalMomentum().z()};
-      // // calculate sigma_p on p = sqrt(p_x^2 + p_y^2 + p_z^2) as:
-      // // sigma_p = sqrt(sigma_px^2 * p_x^2 + [same for y, z] + cov(px, py) * px * py + [same for x-z, y-z]) / p
-      // for(int i = 3; i < 6; i++){
-      //   for(int j = 3; j < 6; j++){
-      //     // summing 2 * sigma_pij * p_i * p_j / p^2
-      //     // std::cout << "sigma_p_" << i << j << " = " << (it + 1)->updatedState().cartesianError().matrix()(i, j) << " " << "p_" << i << " = " << p[i-3] << " " << "p_" << j << " = " << p[j-3] << " ";
-      //     sigma_p_cartesian += (it + 1)->updatedState().cartesianError().matrix()(i, j) * p[i-3] * p[j-3] / (it + 1)->updatedState().globalMomentum().mag2();
-      //   }
-      // }
-
-      // sigma_p_cartesian = sqrt(sigma_p_cartesian);
-
-      // sigma(p) using curvilinear error (on q/p)
+      // sigma(p) from curvilinear error (on q/p)
       float sigma_p = sqrt((it + 1)->updatedState().curvilinearError().matrix()(0, 0)) *
                       (it + 1)->updatedState().globalMomentum().mag2();
 
