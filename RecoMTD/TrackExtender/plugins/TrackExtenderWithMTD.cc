@@ -130,8 +130,8 @@ namespace {
         LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << std::fixed << std::setw(6)
                                          << " tof segment = " << segmentPathOvc_[iSeg] / beta << std::scientific
                                          << "+/- " << sigma_tof << std::fixed
-                                         << "(rel. err. = "
-                                         << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100 << " %)";
+                                         << "(rel. err. = " << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100
+                                         << " %)";
 #endif
       }
 
