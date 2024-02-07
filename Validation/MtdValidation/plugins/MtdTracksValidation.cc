@@ -433,7 +433,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
 
-      meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3); //save as ps
+      meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3);  //save as ps
       meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1e3);
       meTrackSigmaTof_[2]->Fill(SigmaTofP[trackref] * 1e3);
       meTrackSigmaTofvsP_[0]->Fill(track.p(), SigmaTofPi[trackref] * 1e3);
@@ -950,13 +950,37 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meTrackPathLenghtvsEta_ = ibook.bookProfile(
       "TrackPathLenghtvsEta", "MTD Track pathlength vs MTD track Eta;|#eta|;Pathlength", 100, 0, 3.2, 100.0, 400.0, "S");
 
-  meTrackSigmaTof_[0] = ibook.book1D("TrackSigmaTof_Pion", "Sigma(TOF) for pion hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
-  meTrackSigmaTof_[1] = ibook.book1D("TrackSigmaTof_Kaon", "Sigma(TOF) for kaon hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
-  meTrackSigmaTof_[2] = ibook.book1D("TrackSigmaTof_Proton", "Sigma(TOF) for proton hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
-  
-  meTrackSigmaTofvsP_[0] = ibook.bookProfile("TrackSigmaTofvsP_Pion", "Sigma(TOF) for pion hypothesis vs p; p [GeV]; #sigma_{t0} [ps]", 20, 0, 10, 0, 50, "S");
-  meTrackSigmaTofvsP_[1] = ibook.bookProfile("TrackSigmaTofvsP_Kaon", "Sigma(TOF) for kaon hypothesis vs p; p [GeV]; #sigma_{t0} [ps]", 20, 0, 10, 0, 50, "S");
-  meTrackSigmaTofvsP_[2] = ibook.bookProfile("TrackSigmaTofvsP_Proton", "Sigma(TOF) for proton hypothesis vs p; p [GeV]; #sigma_{t0} [ps]", 20, 0, 10, 0, 50, "S");
+  meTrackSigmaTof_[0] =
+      ibook.book1D("TrackSigmaTof_Pion", "Sigma(TOF) for pion hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+  meTrackSigmaTof_[1] =
+      ibook.book1D("TrackSigmaTof_Kaon", "Sigma(TOF) for kaon hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+  meTrackSigmaTof_[2] =
+      ibook.book1D("TrackSigmaTof_Proton", "Sigma(TOF) for proton hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+
+  meTrackSigmaTofvsP_[0] = ibook.bookProfile("TrackSigmaTofvsP_Pion",
+                                             "Sigma(TOF) for pion hypothesis vs p; p [GeV]; #sigma_{t0} [ps]",
+                                             20,
+                                             0,
+                                             10.,
+                                             0,
+                                             50.,
+                                             "S");
+  meTrackSigmaTofvsP_[1] = ibook.bookProfile("TrackSigmaTofvsP_Kaon",
+                                             "Sigma(TOF) for kaon hypothesis vs p; p [GeV]; #sigma_{t0} [ps]",
+                                             20,
+                                             0,
+                                             10.,
+                                             0,
+                                             50.,
+                                             "S");
+  meTrackSigmaTofvsP_[2] = ibook.bookProfile("TrackSigmaTofvsP_Proton",
+                                             "Sigma(TOF) for proton hypothesis vs p; p [GeV]; #sigma_{t0} [ps]",
+                                             20,
+                                             0,
+                                             10.,
+                                             0,
+                                             50.,
+                                             "S");
 
   meMVATrackEffPtTot_ = ibook.book1D("MVAEffPtTot", "Pt of tracks associated to LV; track pt [GeV] ", 110, 0., 11.);
   meMVATrackMatchedEffPtTot_ =

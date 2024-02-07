@@ -97,7 +97,7 @@ namespace {
   class TrackSegments {
   public:
     TrackSegments() {
-      sigmaTofs_.reserve(30); // observed upper limit on nSegments
+      sigmaTofs_.reserve(30);  // observed upper limit on nSegments
     };
 
     inline uint32_t addSegment(float tPath, float tMom2, float sigmaMom) {
@@ -106,12 +106,11 @@ namespace {
       segmentSigmaMom_.emplace_back(sigmaMom);
       nSegment_++;
 
-      #ifdef EDM_ML_DEBUG
+#ifdef EDM_ML_DEBUG
       LogTrace("TrackExtenderWithMTD") << "addSegment # " << nSegment_ << " s = " << tPath
-                                       << " p = " << std::sqrt(tMom2)
-                                       << " sigma_p = " << sigmaMom
+                                       << " p = " << std::sqrt(tMom2) << " sigma_p = " << sigmaMom
                                        << " sigma_p/p = " << sigmaMom / std::sqrt(tMom2) * 100 << " %";
-      #endif
+#endif
 
       return nSegment_;
     }
@@ -123,20 +122,23 @@ namespace {
         float beta = std::sqrt(1.f - 1.f / gammasq);
         tof += segmentPathOvc_[iSeg] / beta;
 
-        #ifdef EDM_ML_DEBUG
-        float sigma_tof = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] / (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1/mass_inv2) * mass_inv2);
-        
-        LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << std::fixed << std::setw(6) << " p = " << std::sqrt(segmentMom2_[iSeg])
-                                         << "\tdelta(tof) = " << segmentPathOvc_[iSeg] / beta
-                                         << "\tsigma_delta(tof) = " << sigma_tof << "\tsigma_tof/delta(tof) = " << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100
-                                         << "%\ttof = " << tof;
-        #endif
+#ifdef EDM_ML_DEBUG
+        float sigma_tof = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] /
+                          (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1 / mass_inv2) * mass_inv2);
+
+        LogTrace("TrackExtenderWithMTD") << "TOF Segment # " << iSeg + 1 << std::fixed << std::setw(6)
+                                         << " p = " << std::sqrt(segmentMom2_[iSeg])
+                                         << "\tdelta(tof) = " << segmentPathOvc_[iSeg] / beta << std::scientific
+                                         << "\tsigma_delta(tof) = " << sigma_tof << std::fixed
+                                         << "\tsigma_tof/delta(tof) = "
+                                         << sigma_tof / (segmentPathOvc_[iSeg] / beta) * 100 << "%\ttof = " << tof;
+#endif
       }
 
       return tof;
     }
-    
-    inline float computeSigmaTof(float mass_inv2) const {
+
+    inline float computeSigmaTof(float mass_inv2) {
       float sigmatof = 0.;
 
       // remove previously calculated sigmaTofs
@@ -146,7 +148,8 @@ namespace {
       // also add diagonal terms to sigmatof
       float sigma = 0.;
       for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
-        sigma = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] / (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1/mass_inv2) * mass_inv2);
+        sigma = segmentPathOvc_[iSeg] * segmentSigmaMom_[iSeg] /
+                (segmentMom2_[iSeg] * sqrt(segmentMom2_[iSeg] + 1 / mass_inv2) * mass_inv2);
         sigmaTofs_.push_back(sigma);
 
         sigmatof += sigma * sigma;
@@ -184,7 +187,7 @@ namespace {
     std::vector<float> segmentPathOvc_;
     std::vector<float> segmentMom2_;
     std::vector<float> segmentSigmaMom_;
-    
+
     std::vector<float> sigmaTofs_;
   };
 
@@ -270,7 +273,8 @@ namespace {
       switch (sigma_choice) {
         case SigmaTofCalc::kCost:
           // sigma(t) = sigma(p) * |dt/dp| = sigma(p) * DeltaL/c * m^2 / (p^2 * E)
-          res = tofpid.pathlength * c_inv * trs.segmentSigmaMom_[trs.nSegment_ - 1] / (magp2 * sqrt(magp2 + 1/mass_inv2) * mass_inv2);
+          res = tofpid.pathlength * c_inv * trs.segmentSigmaMom_[trs.nSegment_ - 1] /
+                (magp2 * sqrt(magp2 + 1 / mass_inv2) * mass_inv2);
           break;
         case SigmaTofCalc::kSegm:
           res = trs.computeSigmaTof(mass_inv2);
@@ -388,7 +392,7 @@ namespace {
         validpropagation = false;
       }
       pathlength1 += layerpathlength;
-      
+
       // // sigma(p) using cartesian error
       // float sigma_p_cartesian = 0;
       // float p[3] = {(it + 1)->updatedState().globalMomentum().x(), (it + 1)->updatedState().globalMomentum().y(),
@@ -406,7 +410,8 @@ namespace {
       // sigma_p_cartesian = sqrt(sigma_p_cartesian);
 
       // sigma(p) using curvilinear error (on q/p)
-      float sigma_p = sqrt((it + 1)->updatedState().curvilinearError().matrix()(0, 0)) * (it + 1)->updatedState().globalMomentum().mag2();
+      float sigma_p = sqrt((it + 1)->updatedState().curvilinearError().matrix()(0, 0)) *
+                      (it + 1)->updatedState().globalMomentum().mag2();
 
       trs.addSegment(layerpathlength, (it + 1)->updatedState().globalMomentum().mag2(), sigma_p);
 
@@ -440,12 +445,10 @@ namespace {
                                      << std::setw(14) << tscblPCA.position().perp() << " z_e " << std::fixed
                                      << std::setw(14) << tscblPCA.position().z() << " p " << std::fixed << std::setw(14)
                                      << tscblPCA.momentum().mag() << " dp " << std::fixed << std::setw(14)
-                                     << tscblPCA.momentum().mag() - oldp
-                                     << " sigma_p = " << std::fixed << std::setw(14)
-                                     << sigma_p 
-                                     << " sigma_p/p = " << std::fixed << std::setw(14)
+                                     << tscblPCA.momentum().mag() - oldp << " sigma_p = " << std::fixed << std::setw(14)
+                                     << sigma_p << " sigma_p/p = " << std::fixed << std::setw(14)
                                      << sigma_p / tscblPCA.momentum().mag() * 100 << " %";
-                                     
+
     return validpropagation;
   }
 
@@ -835,8 +838,8 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
     LogTrace("TrackExtenderWithMTD") << "TrackExtenderWithMTD: extrapolating track " << itrack
                                      << " p/pT = " << track->p() << " " << track->pt() << " eta = " << track->eta();
     LogTrace("TrackExtenderWithMTD") << "TrackExtenderWithMTD: sigma_p = "
-                                     << sqrt(track->covariance()(0,0)) * track->p2()
-                                     << " sigma_p/p = " << sqrt(track->covariance()(0,0)) * track->p() * 100 << " %";
+                                     << sqrt(track->covariance()(0, 0)) * track->p2()
+                                     << " sigma_p/p = " << sqrt(track->covariance()(0, 0)) * track->p() * 100 << " %";
 
     float trackVtxTime = 0.f;
     if (useVertex_) {
@@ -913,8 +916,8 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
     const auto& trajwithmtd =
         mtdthits.empty() ? std::vector<Trajectory>(1, trajs) : theTransformer->transform(ttrack, thits);
     float pMap = 0.f, betaMap = 0.f, t0Map = 0.f, sigmat0Map = -1.f, pathLengthMap = -1.f, tmtdMap = 0.f,
-          sigmatmtdMap = -1.f, tofpiMap = 0.f, tofkMap = 0.f, tofpMap = 0.f, sigmatofpiMap = -1.f,
-          sigmatofkMap = -1.f, sigmatofpMap = -1.f;
+          sigmatmtdMap = -1.f, tofpiMap = 0.f, tofkMap = 0.f, tofpMap = 0.f, sigmatofpiMap = -1.f, sigmatofkMap = -1.f,
+          sigmatofpMap = -1.f;
     int iMap = -1;
 
     for (const auto& trj : trajwithmtd) {
@@ -982,10 +985,13 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
         npixBarrel.push_back(backtrack.hitPattern().numberOfValidPixelBarrelHits());
         npixEndcap.push_back(backtrack.hitPattern().numberOfValidPixelEndcapHits());
         LogTrace("TrackExtenderWithMTD") << "TrackExtenderWithMTD: tmtd " << tmtdMap << " +/- " << sigmatmtdMap
-                                         << " t0 " << t0Map << " +/- " << sigmat0Map << " tof pi/K/p "
-                                         << tofpiMap  << "+/-" << fmt::format("{:0.2g}", sigmatofpiMap) << " (" << fmt::format("{:0.2g}", sigmatofpiMap/tofpiMap*100) << "%) "
-                                         << tofkMap   << "+/-" << fmt::format("{:0.2g}", sigmatofkMap)  << " (" << fmt::format("{:0.2g}", sigmatofkMap/tofkMap*100) << "%) "                                                                                  
-                                         << tofpMap   << "+/-" << fmt::format("{:0.2g}", sigmatofpMap)  << " (" << fmt::format("{:0.2g}", sigmatofpMap/tofpMap*100) << "%) ";
+                                         << " t0 " << t0Map << " +/- " << sigmat0Map << " tof pi/K/p " << tofpiMap
+                                         << "+/-" << fmt::format("{:0.2g}", sigmatofpiMap) << " ("
+                                         << fmt::format("{:0.2g}", sigmatofpiMap / tofpiMap * 100) << "%) " << tofkMap
+                                         << "+/-" << fmt::format("{:0.2g}", sigmatofkMap) << " ("
+                                         << fmt::format("{:0.2g}", sigmatofkMap / tofkMap * 100) << "%) " << tofpMap
+                                         << "+/-" << fmt::format("{:0.2g}", sigmatofpMap) << " ("
+                                         << fmt::format("{:0.2g}", sigmatofpMap / tofpMap * 100) << "%) ";
       } else {
         LogTrace("TrackExtenderWithMTD") << "Error in the MTD track refitting. This should not happen";
       }
@@ -1305,8 +1311,7 @@ reco::Track TrackExtenderWithMTDT<TrackCollection>::buildTrack(const reco::Track
                                                                float& tofp,
                                                                float& sigmatofpi,
                                                                float& sigmatofk,
-                                                               float& sigmatofp
-                                                               ) const {
+                                                               float& sigmatofp) const {
   TrajectoryStateClosestToBeamLine tscbl;
   bool tsbcl_status = getTrajectoryStateClosestToBeamLine(traj, bs, thePropagator, tscbl);
 
@@ -1437,8 +1442,8 @@ reco::Track TrackExtenderWithMTDT<TrackCollection>::buildTrack(const reco::Track
 
     if (validmtd && validpropagation) {
       //here add the PID uncertainty for later use in the 1st step of 4D vtx reconstruction
-      TrackTofPidInfo tofInfo =
-          computeTrackTofPidInfo(p.mag2(), pathlength, trs, thit, thiterror, 0.f, 0.f, true, TofCalc::kSegm, SigmaTofCalc::kCost);
+      TrackTofPidInfo tofInfo = computeTrackTofPidInfo(
+          p.mag2(), pathlength, trs, thit, thiterror, 0.f, 0.f, true, TofCalc::kSegm, SigmaTofCalc::kCost);
 
       pathLengthOut = pathlength;  // set path length if we've got a timing hit
       tmtdOut = thit;
