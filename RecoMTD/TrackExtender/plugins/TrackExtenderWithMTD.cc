@@ -106,11 +106,9 @@ namespace {
       segmentSigmaMom_.emplace_back(sigmaMom);
       nSegment_++;
 
-#ifdef EDM_ML_DEBUG
       LogTrace("TrackExtenderWithMTD") << "addSegment # " << nSegment_ << " s = " << tPath
                                        << " p = " << std::sqrt(tMom2) << " sigma_p = " << sigmaMom
                                        << " sigma_p/p = " << sigmaMom / std::sqrt(tMom2) * 100 << " %";
-#endif
 
       return nSegment_;
     }
@@ -146,7 +144,7 @@ namespace {
       // remove previously calculated sigmaTofs
       sigmaTofs_.clear();
 
-      // compute sigma of each segment first by propagating sigma(p)
+      // compute sigma(tof) on each segment first by propagating sigma(p)
       // also add diagonal terms to sigmatof
       float sigma = 0.;
       for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
@@ -157,7 +155,7 @@ namespace {
         sigmatof += sigma * sigma;
       }
 
-      // compute sigma of sum assuming full correlation between segments
+      // compute sigma on sum of tofs assuming full correlation between segments
       for (uint32_t iSeg = 0; iSeg < nSegment_; iSeg++) {
         for (uint32_t jSeg = iSeg + 1; jSeg < nSegment_; jSeg++) {
           sigmatof += 2 * sigmaTofs_[iSeg] * sigmaTofs_[jSeg];
