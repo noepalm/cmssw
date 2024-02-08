@@ -771,6 +771,12 @@ class ConfigBuilder(object):
         if self._options.pileup:
             pileupSpec=self._options.pileup.split(',')[0]
 
+            #make sure there is a set of pileup files specified when needed
+            pileups_without_input=[defaultOptions.pileup,"Cosmics","default","HiMixNoPU",None]
+            if self._options.pileup not in pileups_without_input and self._options.pileup_input==None:
+                message = "Pileup scenerio requires input files. Please add an appropriate --pileup_input option"
+                raise Exception(message)
+
             # Does the requested pile-up scenario exist?
             from Configuration.StandardSequences.Mixing import Mixing,defineMixing
             if not pileupSpec in Mixing and '.' not in pileupSpec and 'file:' not in pileupSpec:
@@ -1463,7 +1469,7 @@ class ConfigBuilder(object):
                     elif isinstance(theObject, cms.Sequence) or isinstance(theObject, cmstypes.ESProducer):
                         self._options.inlineObjects+=','+name
 
-            if stepSpec == self.GENDefaultSeq or stepSpec == 'pgen_genonly' or stepSpec == 'pgen_smear':
+            if stepSpec == self.GENDefaultSeq or stepSpec == 'pgen_genonly':
                 if 'ProductionFilterSequence' in genModules and ('generator' in genModules):
                     self.productionFilterSequence = 'ProductionFilterSequence'
                 elif 'generator' in genModules:
@@ -1494,7 +1500,7 @@ class ConfigBuilder(object):
         #register to the genstepfilter the name of the path (static right now, but might evolve)
         self.executeAndRemember('process.genstepfilter.triggerConditions=cms.vstring("generation_step")')
 
-        if 'reGEN' in self.stepMap:
+        if 'reGEN' in self.stepMap or stepSpec == 'pgen_smear':
             #stop here
             return
 
@@ -1830,7 +1836,15 @@ class ConfigBuilder(object):
         # build and inject the sequence
         if len(_nanoSeq) < 1 and '@' in stepSpec:
             raise Exception(f'The specified mapping: {stepSpec} generates an empty NANO sequence. Please provide a valid mappign')
-        self.scheduleSequence('+'.join(_nanoSeq), 'nanoAOD_step')
+        _seqToSchedule = []
+        for _subSeq in _nanoSeq:
+            if '.' in _subSeq:
+                _cff,_seq = _subSeq.split('.')
+                self.loadAndRemember(_cff)
+                _seqToSchedule.append(_seq)
+            else:
+                _seqToSchedule.append(_subSeq)
+        self.scheduleSequence('+'.join(_seqToSchedule), 'nanoAOD_step')
         
         # add the customisations
         for custom in _nanoCustoms:
