@@ -233,7 +233,6 @@ def customiseForOffline(process):
 
     return process
 
-
 def customizeHLTfor43025(process):
 
     for producer in producers_by_type(process, "PFClusterProducer"):
@@ -250,15 +249,42 @@ def customizeHLTfor43025(process):
 
     return process
 
+def customizeHLTfor43549(process):
+    """ This customization is related to ticket https://its.cern.ch/jira/browse/CMSHLT-2975
+        If all 3 input tags L1CandTag, InpuLinks and inputMuonCollection are null (hence not consumed)
+        it means that the HLTMuonL3PreFilter should be configured such that the flag requireL3MuonTrajectorySeed is true
+    """
+    for filter in filters_by_type(process, "HLTMuonL3PreFilter"):
+        if (filter.L1CandTag == cms.InputTag("") and filter.InputLinks == cms.InputTag("") and filter.inputMuonCollection == cms.InputTag("")):
+            filter.requireL3MuonTrajectorySeed = cms.bool(True)
+
+    return process
+
+def customizeHLTfor43774(process):
+    filt_types = ["HLTEgammaGenericFilter","HLTEgammaGenericQuadraticEtaFilter","HLTEgammaGenericQuadraticFilter","HLTElectronGenericFilter"]
+    absAbleVar = ["DEta","deta","DetaSeed","Dphi","OneOESuperMinusOneOP","OneOESeedMinusOneOP"]
+    for filt_type in filt_types:
+        for filt in filters_by_type(process, filt_type):
+            if filt.varTag.productInstanceLabel in absAbleVar:
+                filt.useAbs = cms.bool(True)
+            
+    return process
 
 # CMSSW version specific customizations
 def customizeHLTforCMSSW(process, menuType="GRun"):
 
     process = customiseForOffline(process)
 
+    # Alpaka HLT
+    from Configuration.ProcessModifiers.alpaka_cff import alpaka 
+    from Configuration.Eras.Modifier_run3_common_cff import run3_common
+    from HLTrigger.Configuration.customizeHLTforAlpaka import customizeHLTforAlpaka
+    (alpaka & run3_common).makeProcessModifier(customizeHLTforAlpaka).apply(process)
+
     # add call to action function in proper order: newest last!
     # process = customiseFor12718(process)
 
     process = customizeHLTfor43025(process)
-    
+    process = customizeHLTfor43549(process)
+    process = customizeHLTfor43774(process)
     return process
