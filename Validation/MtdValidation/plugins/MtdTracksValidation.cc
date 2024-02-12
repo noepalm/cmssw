@@ -1,4 +1,3 @@
-#define EDM_ML_DEBUG
 #include <string>
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -453,6 +452,11 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackt0SafePid_->Fill(t0Safe[trackref]);
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
+
+      if((SigmaTofPi[trackref] * 1e3) < 0. || (SigmaTofK[trackref] * 1e3) < 0. || (SigmaTofP[trackref] * 1e3) < 0.){
+        LogWarning("mtdTracks") << "Negative time resolution for track " << trackref.key();
+        LogWarning("mtdTracks") << "SigmaTof(pi) = " << SigmaTofPi[trackref] * 1e3 << " ps" << "; SigmaTof(K) = " << SigmaTofK[trackref] * 1e3 << " ps" << "; SigmaTof(P) = " << SigmaTofP[trackref] * 1e3 << " ps";
+      }
 
       meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3);  //save as ps
       meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1e3);
@@ -1009,11 +1013,11 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
       "TrackPathLenghtvsEta", "MTD Track pathlength vs MTD track Eta;|#eta|;Pathlength", 100, 0, 3.2, 100.0, 400.0, "S");
 
   meTrackSigmaTof_[0] =
-      ibook.book1D("TrackSigmaTof_Pion", "Sigma(TOF) for pion hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+      ibook.book1D("TrackSigmaTof_Pion", "Sigma(TOF) for pion hypothesis; #sigma_{t0} [ps]", 10, 0, 5);
   meTrackSigmaTof_[1] =
-      ibook.book1D("TrackSigmaTof_Kaon", "Sigma(TOF) for kaon hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+      ibook.book1D("TrackSigmaTof_Kaon", "Sigma(TOF) for kaon hypothesis; #sigma_{t0} [ps]", 25, 0, 25);
   meTrackSigmaTof_[2] =
-      ibook.book1D("TrackSigmaTof_Proton", "Sigma(TOF) for proton hypothesis; #sigma_{t0} [ps]", 100, 0, 50);
+      ibook.book1D("TrackSigmaTof_Proton", "Sigma(TOF) for proton hypothesis; #sigma_{t0} [ps]", 50, 0, 50);
 
   meTrackSigmaTofvsP_[0] = ibook.bookProfile("TrackSigmaTofvsP_Pion",
                                              "Sigma(TOF) for pion hypothesis vs p; p [GeV]; #sigma_{t0} [ps]",
