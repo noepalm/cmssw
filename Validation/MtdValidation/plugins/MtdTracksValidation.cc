@@ -452,12 +452,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackt0SafePid_->Fill(t0Safe[trackref]);
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
-
-      if((SigmaTofPi[trackref] * 1e3) < 0. || (SigmaTofK[trackref] * 1e3) < 0. || (SigmaTofP[trackref] * 1e3) < 0.){
-        LogWarning("mtdTracks") << "Negative time resolution for track " << trackref.key();
-        LogWarning("mtdTracks") << "SigmaTof(pi) = " << SigmaTofPi[trackref] * 1e3 << " ps" << "; SigmaTof(K) = " << SigmaTofK[trackref] * 1e3 << " ps" << "; SigmaTof(P) = " << SigmaTofP[trackref] * 1e3 << " ps";
-      }
-
+      
       meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3);  //save as ps
       meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1e3);
       meTrackSigmaTof_[2]->Fill(SigmaTofP[trackref] * 1e3);
