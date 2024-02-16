@@ -28,13 +28,15 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   double sumwt = 0.;
   double sumwt2 = 0.;
   double sumw = 0.;
-  double vartime = 0.;
+  // double vartime = 0.;
 
   for (const auto& trk : vtx.originalTracks()) {
     const double time = trk.timeExt();
     const double err = trk.dtErrorExt();
     if ((time == 0) && (err > TransientTrackBuilder::defaultInvalidTrackTimeReso))
       continue;  // tracks with no time information, as implemented in TransientTrackBuilder.cc l.17
+
+    //TODO: update module to input all weight information and calc as TracksPID
     const double inverr = err > 0. ? 1.0 / err : 0.;
     const double w = inverr * inverr;
     sumwt += w * time;
@@ -45,10 +47,15 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   if (sumw > 0) {
     double sumsq = sumwt2 - sumwt * sumwt / sumw;
     double chisq = num_track > 1 ? sumsq / double(num_track - 1) : sumsq / double(num_track);
-    vartime = chisq / sumw;
+    // vartime = chisq / sumw;
 
     vtxTime = sumwt / sumw;
-    vtxTimeError = sqrt(vartime);
+    // vtxTimeError = sqrt(vartime);
+    vtxTimeError = 1/sqrt(sumw);
+
+    std::cout << "VertexTimeAlgorithmLegacy4D: t_vtx = " << std::fixed << std::setprecision(6) << vtxTime << " +/- " << 1/sqrt(sumw) << " ns"
+    << std::endl;
+
     return true;
   }
 

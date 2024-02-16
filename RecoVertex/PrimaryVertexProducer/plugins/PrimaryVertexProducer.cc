@@ -155,6 +155,8 @@ PrimaryVertexProducer::~PrimaryVertexProducer() {
 }
 
 void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  fVerbose = true;
+
   // get the BeamSpot, it will always be needed, even when not used as a constraint
   reco::BeamSpot beamSpot;
   edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
@@ -278,12 +280,12 @@ void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
       pvs = clusters;
     } else {
       pvs = algorithm->pv_fitter->fit(seltks, clusters, beamSpot, algorithm->useBeamConstraint);
-    }
+    } 
 
     if (algorithm->pv_time_estimator != nullptr) {
       algorithm->pv_time_estimator->fill_vertex_times(pvs);
     }
-
+    
     // sort vertices by pt**2  vertex
     if (pvs.size() > 1) {
       sort(pvs.begin(), pvs.end(), VertexHigherPtSquared());

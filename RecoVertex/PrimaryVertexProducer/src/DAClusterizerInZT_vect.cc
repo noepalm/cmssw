@@ -13,9 +13,9 @@
 
 using namespace std;
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
-#define DEBUGLEVEL 0
+#define DEBUGLEVEL 3
 #endif
 
 DAClusterizerInZT_vect::DAClusterizerInZT_vect(const edm::ParameterSet& conf) {
@@ -238,7 +238,7 @@ DAClusterizerInZT_vect::track_t DAClusterizerInZT_vect::fill(const vector<reco::
     double t_dt2 =
         std::pow(tk.dtErrorExt(), 2.) +
         std::pow(vertexSizeTime_, 2.);  // the ~injected~ timing error, need to add a small minimum vertex size in time
-    if ((tk.dtErrorExt() > TransientTrackBuilder::defaultInvalidTrackTimeReso) || (std::abs(t_t) > t0Max_)) {
+    if ((tk.dtErrorExt() >= TransientTrackBuilder::defaultInvalidTrackTimeReso) || (std::abs(t_t) > t0Max_)) {
       t_dt2 = 0;  // tracks with no time measurement
     } else {
       t_dt2 = 1. / t_dt2;
@@ -416,7 +416,10 @@ double DAClusterizerInZT_vect::update(
         const auto wz = w * o_trk_err_z;
         const auto wt = w * o_trk_err_t;
 #ifdef USEVTXDT2
-        vertices.sumw[k] += w;  // for vtxdt2
+        vertices.sumw[k] += wt;  // for vtxdt2
+        if(o_trk_err_t > 0) vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
+
+        std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
         vertices.nut[k] += wt;
@@ -437,7 +440,14 @@ double DAClusterizerInZT_vect::update(
         const auto wz = w * o_trk_err_z;
         const auto wt = w * o_trk_err_t;
 #ifdef USEVTXDT2
-        vertices.sumw[k] += w;  // for vtxdt2
+        vertices.sumw[k] += wt;  // for vtxdt2
+        if(o_trk_err_t > 0){
+          vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
+          vertices.sumInvSigma[k] += o_trk_err_t;
+        } 
+
+
+        std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
         vertices.nut[k] += wt;
@@ -458,6 +468,8 @@ double DAClusterizerInZT_vect::update(
     gvertices.szt[ivertex] = 0.0;
 #ifdef USEVTXDT2
     gvertices.sumw[ivertex] = 0.0;
+    gvertices.sumw2dt2[ivertex] = 0.0;
+    gvertices.sumInvSigma[ivertex] = 0.0;
 #endif
   }
 
@@ -471,6 +483,7 @@ double DAClusterizerInZT_vect::update(
     assert(itrack < gtracks.sum_Z_vec.size());
 #endif
 
+    std::cout << "track_i = " << itrack << "  kmin = " << kmin << "  kmax = " << kmax << std::endl;
     kernel_calc_exp_arg_range(itrack, gtracks, gvertices, kmin, kmax);
     local_exp_list_range(gvertices.exp_arg, gvertices.exp, kmin, kmax);
     gtracks.sum_Z[itrack] = kernel_add_Z_range(gvertices, kmin, kmax);
@@ -500,7 +513,14 @@ double DAClusterizerInZT_vect::update(
         //delta = max(std::abs(vertices.t[ ivertex ] - tnew), delta); // FIXME
         vertices.tvtx[ivertex] = tnew;
 #ifdef USEVTXDT2
-        vertices.dt2[ivertex] = vertices.nut[ivertex] / vertices.sumw[ivertex];
+        if(vertices.sumw[ivertex] > 0){
+          vertices.dt2[ivertex] = vertices.sumw2dt2[ivertex] / (vertices.sumw[ivertex] * vertices.sumw[ivertex]);
+          if(vertices.dt2[ivertex] < 0.1){
+            std::cout << "Suspiciously low error: dt = " << std::sqrt(vertices.dt2[ivertex]) << ", standard weighted = " << 1./std::sqrt(vertices.sumInvSigma[ivertex]) << std::endl;
+          }
+        } else {
+          std::cout << "#ERROR: vertex sumw = " << vertices.sumw[ivertex] << ", tvtx = " << tnew << std::endl;
+        }
 #endif
       } else {
         // FIXME
@@ -1414,6 +1434,11 @@ void DAClusterizerInZT_vect::dump(const double beta, const vertex_t& y, const tr
   for (unsigned int ivertex = 0; ivertex < nv; ++ivertex) {
     if (std::fabs(y.zvtx[ivertex] - zdumpcenter_) < zdumpwidth_) {
       std::cout << setw(8) << fixed << y.tvtx[ivertex];
+      if(y.dt2[ivertex] > 0) {
+        std::cout << " +/- " << std::sqrt(y.dt2[ivertex]) << endl;
+      } else {
+        std::cout << "\nERROR: dt2 = " << y.dt2[ivertex] << endl;
+      } 
     }
   }
   std::cout << endl;
