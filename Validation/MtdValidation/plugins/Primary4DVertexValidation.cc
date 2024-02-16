@@ -303,6 +303,9 @@ private:
   MonitorElement* meDeltaTrealreal_;
   MonitorElement* meDeltaTfakefake_;
   MonitorElement* meDeltaTfakereal_;
+
+  MonitorElement* meSigmaTVtx_;
+
   MonitorElement* meRecoPosInSimCollection_;
   MonitorElement* meRecoPosInRecoOrigCollection_;
   MonitorElement* meSimPosInSimOrigCollection_;
@@ -514,6 +517,9 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
   meDeltaTrealreal_ = ibook.book1D("DeltaTrealreal", "#Delta T real-real; |#Delta T (r-r)| [sigma]", 60, 0., 30.);
   meDeltaTfakefake_ = ibook.book1D("DeltaTfakefake", "#Delta T fake-fake; |#Delta T (f-f)| [sigma]", 60, 0., 30.);
   meDeltaTfakereal_ = ibook.book1D("DeltaTfakereal", "#Delta T fake-real; |#Delta T (f-r)| [sigma]", 60, 0., 30.);
+
+  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ns]", 100, 0., 0.2);
+
   if (optionalPlots_) {
     meRecoPosInSimCollection_ = ibook.book1D(
         "RecoPosInSimCollection", "Sim signal vertex index associated to Reco signal vertex; Sim PV index", 200, 0, 200);
@@ -1709,6 +1715,10 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
           }
         }
       }
+
+      // ---- TESTING SIGMA(T_VTX) FOR SIGMA(TOF) INTEGRATION ----
+      meSigmaTVtx_->Fill(recVtxs->at(iv).tError());
+
     }  //ndof
   }
 

@@ -21,7 +21,7 @@
 
 #include <memory>
 
-//#define USEVTXDT2
+#define USEVTXDT2
 
 class DAClusterizerInZT_vect final : public TrackClusterizerInZ {
 public:
@@ -234,6 +234,8 @@ public:
 #ifdef USEVTXDT2
     double *__restrict__ dt2;
     double *__restrict__ sumw;
+    double *__restrict__ sumw2dt2;
+    double *__restrict__ sumInvSigma;
 #endif
 
     // has to be called everytime the items are modified
