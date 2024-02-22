@@ -40,6 +40,12 @@ private:
   static constexpr char probPiName[] = "probPi";
   static constexpr char probKName[] = "probK";
   static constexpr char probPName[] = "probP";
+  static constexpr char dtSignPiName[] = "dtSignPi";
+  static constexpr char dtSignKName[] = "dtSignK";
+  static constexpr char dtSignPName[] = "dtSignP";
+  static constexpr char timeChisqPiName[] = "timeChisqPi";
+  static constexpr char timeChisqKName[] = "timeChisqK";
+  static constexpr char timeChisqPName[] = "timeChisqP";
 
   edm::EDGetTokenT<reco::TrackCollection> tracksToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> t0Token_;
@@ -98,6 +104,12 @@ TOFPIDProducer::TOFPIDProducer(const ParameterSet& iConfig)
   produces<edm::ValueMap<float>>(probPiName);
   produces<edm::ValueMap<float>>(probKName);
   produces<edm::ValueMap<float>>(probPName);
+  produces<edm::ValueMap<float>>(dtSignPiName);
+  produces<edm::ValueMap<float>>(dtSignKName);
+  produces<edm::ValueMap<float>>(dtSignPName);
+  produces<edm::ValueMap<float>>(timeChisqPiName);
+  produces<edm::ValueMap<float>>(timeChisqKName);
+  produces<edm::ValueMap<float>>(timeChisqPName);
 }
 
 // Configuration descriptions
@@ -159,6 +171,7 @@ void TOFPIDProducer::fillValueMap(edm::Event& iEvent,
 }
 
 void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
+
   edm::Handle<reco::TrackCollection> tracksH;
   ev.getByToken(tracksToken_, tracksH);
   const auto& tracks = *tracksH;
@@ -193,6 +206,12 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
   std::vector<float> probPiOutRaw;
   std::vector<float> probKOutRaw;
   std::vector<float> probPOutRaw;
+  std::vector<float> dtsignPiOutRaw;
+  std::vector<float> dtsignKOutRaw;
+  std::vector<float> dtsignPOutRaw;
+  std::vector<float> chisqPiOutRaw;
+  std::vector<float> chisqKOutRaw;
+  std::vector<float> chisqPOutRaw;
 
   //Do work here
   for (unsigned int itrack = 0; itrack < tracks.size(); ++itrack) {
@@ -204,16 +223,21 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     float sigmatmtd = (sigmatmtdIn[trackref] > 0. && fixedT0Error_ > 0.) ? fixedT0Error_ : sigmatmtdIn[trackref];
     float sigmat0 = sigmatmtd;
 
-    // float sigmatofpi = sigmatofpiIn[trackref];
-    // float sigmatofk = sigmatofkIn[trackref];
-    // float sigmatofp = sigmatofpIn[trackref];
-    float sigmatofpi = 0;
-    float sigmatofk = 0;
-    float sigmatofp = 0;
+    float sigmatofpi = sigmatofpiIn[trackref];
+    float sigmatofk = sigmatofkIn[trackref];
+    float sigmatofp = sigmatofpIn[trackref];
 
     float prob_pi = -1.;
     float prob_k = -1.;
     float prob_p = -1.;
+
+    float dtsign_pi_out = -1.;
+    float dtsign_k_out = -1.;
+    float dtsign_p_out = -1.;
+
+    float chisqmin_pi_out = -1.;
+    float chisqmin_k_out = -1.;
+    float chisqmin_p_out = -1.;
 
     float trackMVAQual = trackMVAQualIn[trackref];
 
@@ -275,6 +299,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         double dznom = std::abs(track.dz(vtxnom.position()));
         double dtnom = std::abs(t0 - vtxnom.t());
         double dtsignom = dtnom * rsigmat[0];
+        dtsign_pi_out = dtsignom;
         double chisqnom = dznom * dznom * rsigmazsq + dtsignom * dtsignom;
 
         //recompute t0 for alternate mass hypotheses
@@ -282,7 +307,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
         //reliable match, revert to raw mtd time uncertainty + tof uncertainty for pion hp
         if (dtsignom < maxDtSignificance_) {
-          sigmat0safe = std::sqrt(sigmatmtd*sigmatmtd + sigmatofpi);
+          sigmat0safe = 1./rsigmat[0];
         }
 
         double tmtd = tmtdIn[trackref];
@@ -314,6 +339,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
           double dt_k = std::abs(t0_k - vtx.t());
           double dtsig_k = dt_k * rsigmat[1];
+          dtsign_k_out = dtsig_k;
           double chisq_k = chisqdz + dtsig_k * dtsig_k;
 
           if (dtsig_k < maxDtSignificance_ && chisq_k < chisqmin_k) {
@@ -322,6 +348,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
           double dt_p = std::abs(t0_p - vtx.t());
           double dtsig_p = dt_p * rsigmat[2];
+          dtsign_p_out = dtsig_p;
           double chisq_p = chisqdz + dtsig_p * dtsig_p;
 
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin_p) {
@@ -332,14 +359,16 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
             chisqmin = chisq_k;
             t0_best = t0_k;
             t0safe = t0_k;
-            sigmat0safe = std::sqrt(sigmatmtd*sigmatmtd + sigmatofk*sigmatofk);
+            sigmat0safe = 1./rsigmat[1];
           }
+
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin) {
             chisqmin = chisq_p;
             t0_best = t0_p;
             t0safe = t0_p;
-            sigmat0safe = std::sqrt(sigmatmtd*sigmatmtd + sigmatofp*sigmatofp);
+            sigmat0safe = 1./rsigmat[2];
           }
+
         }
 
         //compute PID probabilities
@@ -359,6 +388,10 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         if (prob_heavy > minProbHeavy_) {
           t0 = t0_best;
         }
+
+        chisqmin_pi_out = chisqmin_pi;
+        chisqmin_k_out = chisqmin_k;
+        chisqmin_p_out = chisqmin_p;
       }
     }
 
@@ -369,6 +402,12 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     probPiOutRaw.push_back(prob_pi);
     probKOutRaw.push_back(prob_k);
     probPOutRaw.push_back(prob_p);
+    dtsignPiOutRaw.push_back(dtsign_pi_out);
+    dtsignKOutRaw.push_back(dtsign_k_out);
+    dtsignPOutRaw.push_back(dtsign_p_out);
+    chisqPiOutRaw.push_back(chisqmin_pi_out);
+    chisqKOutRaw.push_back(chisqmin_k_out);
+    chisqPOutRaw.push_back(chisqmin_p_out);
   }
 
   fillValueMap(ev, tracksH, t0OutRaw, t0Name);
@@ -378,6 +417,12 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
   fillValueMap(ev, tracksH, probPiOutRaw, probPiName);
   fillValueMap(ev, tracksH, probKOutRaw, probKName);
   fillValueMap(ev, tracksH, probPOutRaw, probPName);
+  fillValueMap(ev, tracksH, dtsignPiOutRaw, dtSignPiName);
+  fillValueMap(ev, tracksH, dtsignKOutRaw, dtSignKName);
+  fillValueMap(ev, tracksH, dtsignPOutRaw, dtSignPName);
+  fillValueMap(ev, tracksH, chisqPiOutRaw, timeChisqPiName);
+  fillValueMap(ev, tracksH, chisqKOutRaw, timeChisqKName);
+  fillValueMap(ev, tracksH, chisqPOutRaw, timeChisqPName);
 }
 
 //define this as a plug-in

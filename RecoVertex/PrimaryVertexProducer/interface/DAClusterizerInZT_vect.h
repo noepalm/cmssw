@@ -103,6 +103,7 @@ public:
 #ifdef USEVTXDT2
     std::vector<double> dt2_vec;   // only used with vertex time uncertainties
     std::vector<double> sumw_vec;  // only used with vertex time uncertainties
+    std::vector<double> sumw2dt2_vec;  // only used with vertex time uncertainties
 #endif
     // --- temporary numbers, used during update
     std::vector<double> exp_arg_vec;
@@ -136,6 +137,7 @@ public:
 #ifdef USEVTXDT2
       dt2_vec.push_back(0.0);
       sumw_vec.push_back(0.0);
+      sumw2dt2_vec.push_back(0.0);
 #endif
 
       extractRaw();
@@ -158,6 +160,7 @@ public:
 #ifdef USEVTXDT2
       dt2_vec.insert(dt2_vec.begin() + k, 0.0);
       sumw_vec.insert(sumw_vec.begin() + k, 0.0);
+      sumw2dt2_vec.insert(sumw2dt2_vec.begin() + k, 0.0);
 #endif
 
       // adjust vertex lists of tracks
@@ -190,6 +193,7 @@ public:
 #ifdef USEVTXDT2
       dt2_vec.erase(dt2_vec.begin() + k);
       sumw_vec.erase(sumw_vec.begin() + k);
+      sumw2dt2_vec.erase(sumw2dt2_vec.begin() + k);
 #endif
 
       // adjust vertex lists of tracks
@@ -256,6 +260,7 @@ public:
 #ifdef USEVTXDT2
       dt2 = &dt2_vec.front();
       sumw = &sumw_vec.front();
+      sumw2dt2 = &sumw2dt2_vec.front();
 #endif
     }
   };

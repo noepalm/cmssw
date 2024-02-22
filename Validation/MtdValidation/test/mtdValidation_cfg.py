@@ -32,7 +32,7 @@ process.MessageLogger.cerr.FwkReport  = cms.untracked.PSet(
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:step3.root'
+        'file:/eos/home-n/npalmeri/MTD_sigmaTof_propagation/24834.0_TTbar_14TeV+2026D98/step3.root'
     )
 )
 
@@ -70,7 +70,7 @@ process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
         dataTier = cms.untracked.string('DQMIO'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:step3_inDQM.root'),
+    fileName = cms.untracked.string('file:/eos/home-n/npalmeri/MTD_sigmaTof_propagation/24834.0_TTbar_14TeV+2026D98/step3_inDQM.root'),
     outputCommands = process.DQMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )

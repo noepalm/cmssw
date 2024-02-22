@@ -154,6 +154,19 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> Sigmat0PidToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> t0SafePidToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> Sigmat0SafePidToken_;
+
+  edm::EDGetTokenT<edm::ValueMap<float>> DtSignPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> DtSignKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> DtSignPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> TimeChisqPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> TimeChisqKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> TimeChisqPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> BtlMatchTimeChi2Token_;
+  edm::EDGetTokenT<edm::ValueMap<float>> EtlMatchTimeChi2Token_;
+
   edm::EDGetTokenT<edm::ValueMap<float>> trackMVAQualToken_;
 
   edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
@@ -191,6 +204,45 @@ private:
   MonitorElement* meTrackSigmat0Pid_;
   MonitorElement* meTrackt0SafePid_;
   MonitorElement* meTrackSigmat0SafePid_;
+
+  MonitorElement* meTrackDtSign_[3]; 
+  MonitorElement* meTrackProb_[3];
+  MonitorElement* meTrackTimeChi2_PionTrack_[3]; 
+  MonitorElement* meTrackTimeChi2_KaonTrack_[3];
+  MonitorElement* meTrackTimeChi2_ProtonTrack_[3];
+  MonitorElement* meTrackBtlMatchChi2_[3];
+  MonitorElement* meTrackEtlMatchChi2_[3];
+
+  MonitorElement* meTruePi_;
+  MonitorElement* meTrueK_;
+  MonitorElement* meTrueP_;
+
+  MonitorElement* mePIDPi_;
+  MonitorElement* mePIDK_;
+  MonitorElement* mePIDP_;
+
+  MonitorElement* meTruePiNoPID_;
+  MonitorElement* meTruePiAsPi_;
+  MonitorElement* meTruePiAsK_;
+  MonitorElement* meTruePiAsP_;
+
+  MonitorElement* meTrueKNoPID_;
+  MonitorElement* meTrueKAsPi_;
+  MonitorElement* meTrueKAsK_;
+  MonitorElement* meTrueKAsP_;
+
+  MonitorElement* meTruePNoPID_;
+  MonitorElement* meTruePAsPi_;
+  MonitorElement* meTruePAsK_;
+  MonitorElement* meTruePAsP_;  
+
+  MonitorElement* meDeltaChisq_truePion_vsKaon_;
+  MonitorElement* meDeltaChisq_truePion_vsProton_;
+  MonitorElement* meDeltaChisq_trueKaon_vsPion_;
+  MonitorElement* meDeltaChisq_trueKaon_vsProton_;
+  MonitorElement* meDeltaChisq_trueProton_vsPion_;
+  MonitorElement* meDeltaChisq_trueProton_vsKaon_;
+
   MonitorElement* meTrackNumHits_;
   MonitorElement* meTrackNumHitsNT_;
   MonitorElement* meTrackMVAQual_;
@@ -280,6 +332,19 @@ MtdTracksValidation::MtdTracksValidation(const edm::ParameterSet& iConfig)
   Sigmat0PidToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmat0PID"));
   t0SafePidToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("t0SafePID"));
   Sigmat0SafePidToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmat0SafePID"));
+
+  DtSignPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("dtSignPi"));
+  DtSignKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("dtSignK"));
+  DtSignPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("dtSignP"));
+  ProbPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probPi"));
+  ProbKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probK"));
+  ProbPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probP"));
+  TimeChisqPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("timeChisqPi"));
+  TimeChisqKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("timeChisqK"));
+  TimeChisqPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("timeChisqP"));
+  BtlMatchTimeChi2Token_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("btlMatchTimeChi2"));
+  EtlMatchTimeChi2Token_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("etlMatchTimeChi2"));
+
   trackMVAQualToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("trackMVAQual"));
   mtdgeoToken_ = esConsumes<MTDGeometry, MTDDigiGeometryRecord>();
   mtdtopoToken_ = esConsumes<MTDTopology, MTDTopologyRcd>();
@@ -314,6 +379,22 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   const auto& Sigmat0Pid = iEvent.get(Sigmat0PidToken_);
   const auto& t0Safe = iEvent.get(t0SafePidToken_);
   const auto& Sigmat0Safe = iEvent.get(Sigmat0SafePidToken_);
+
+  const auto& dtSignPi = iEvent.get(DtSignPiToken_);
+  const auto& dtSignK = iEvent.get(DtSignKToken_);
+  const auto& dtSignP = iEvent.get(DtSignPToken_);
+
+  const auto& probPi  = iEvent.get(ProbPiToken_);
+  const auto& probK   = iEvent.get(ProbKToken_);
+  const auto& probP   = iEvent.get(ProbPToken_);
+
+  const auto& timeChisqPi = iEvent.get(TimeChisqPiToken_);
+  const auto& timeChisqK = iEvent.get(TimeChisqKToken_);
+  const auto& timeChisqP = iEvent.get(TimeChisqPToken_);
+
+  const auto& btlMatchTimeChi2 = iEvent.get(BtlMatchTimeChi2Token_);
+  const auto& etlMatchTimeChi2 = iEvent.get(EtlMatchTimeChi2Token_);
+
   const auto& mtdQualMVA = iEvent.get(trackMVAQualToken_);
   const auto& trackAssoc = iEvent.get(trackAssocToken_);
   const auto& pathLength = iEvent.get(pathLengthToken_);
@@ -441,6 +522,119 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackt0SafePid_->Fill(t0Safe[trackref]);
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
+
+      // ---------------------------------------------
+      // ----------- SIGMA(TOF) VALIDATION -----------
+      // ---------------------------------------------
+
+      double dtSigns[3] = {dtSignPi[trackref], dtSignK[trackref], dtSignP[trackref]};
+      for (int i = 0; i < 3; i++) meTrackDtSign_[i]->Fill(dtSigns[i]);
+
+      double probs[3] = {probPi[trackref], probK[trackref], probP[trackref]};
+      for(int i = 0; i < 3; i++) meTrackProb_[i]->Fill(probs[i]);
+
+      double timeChisqs[3] = {timeChisqPi[trackref], timeChisqK[trackref], timeChisqP[trackref]};
+
+      int imax = std::max_element(probs, probs + 3) - probs; //find most likely hypothesis
+
+      //--- defining PID status
+      unsigned int noPIDtype = 0;
+      if (probPi[trackref] == -1) {
+        noPIDtype = 1;
+      } else if (isnan(probPi[trackref])) {
+        noPIDtype = 2;
+      } else if (probPi[trackref] == 1 && probK[trackref] == 0 && probP[trackref] == 0) {
+        noPIDtype = 3;
+      }
+      bool noPID = noPIDtype > 0;
+      bool isPi = !noPID && 1. - probPi[trackref] < 0.75;
+      bool isK = !noPID && !isPi && probK[trackref] > probP[trackref];
+      bool isP = !noPID && !isPi && !isK;
+      //--- end PID status      
+
+      meTrackBtlMatchChi2_[imax]->Fill(btlMatchTimeChi2[trackref]);
+      meTrackEtlMatchChi2_[imax]->Fill(etlMatchTimeChi2[trackref]);
+
+      const reco::TrackBaseRef mytrkrefb(trackref);
+      auto mytp_info = getMatchedTP(mytrkrefb);
+
+      // --- PID PURITY/EFFICIENCY STUDIES
+
+      if(imax == 0){ //if track identified as pion
+        mePIDPi_->Fill(track.p());
+      } else if(imax == 1) { //track ID as kaon
+        mePIDK_->Fill(track.p());
+      } else { // track ID as proton
+        mePIDP_->Fill(track.p());
+      }
+
+      if(mytp_info){
+        if (std::abs((*mytp_info)->pdgId()) == 211) {
+          meTruePi_->Fill(track.p());
+
+          meDeltaChisq_truePion_vsKaon_->Fill(timeChisqs[0] - timeChisqs[1]);
+          meDeltaChisq_truePion_vsProton_->Fill(timeChisqs[0] - timeChisqs[2]);
+
+          for (int i = 0; i < 3; i++) {
+            meTrackTimeChi2_PionTrack_[i]->Fill(timeChisqs[i]);
+          }
+
+          if (noPID) {
+            meTruePiNoPID_->Fill(track.p());
+          } else if (isPi) {
+            meTruePiAsPi_->Fill(track.p());
+          } else if (isK) {
+            meTruePiAsK_->Fill(track.p());
+          } else if (isP) {
+            meTruePiAsP_->Fill(track.p());
+          }
+
+        } else if (std::abs((*mytp_info)->pdgId()) == 321) {
+          meTrueK_->Fill(track.p());
+
+          meDeltaChisq_trueKaon_vsPion_->Fill(timeChisqs[1] - timeChisqs[0]);
+          meDeltaChisq_trueKaon_vsProton_->Fill(timeChisqs[1] - timeChisqs[2]);
+
+          for (int i = 0; i < 3; i++) {
+            meTrackTimeChi2_KaonTrack_[i]->Fill(timeChisqs[i]);
+          }
+
+          if (noPID) {
+            meTrueKNoPID_->Fill(track.p());
+          } else if (isPi) {
+            meTrueKAsPi_->Fill(track.p());
+          } else if (isK) {
+            meTrueKAsK_->Fill(track.p());
+          } else if (isP) {
+            meTrueKAsP_->Fill(track.p());
+          }
+
+        } else if (std::abs((*mytp_info)->pdgId()) == 2212) {
+          meTrueP_->Fill(track.p());
+
+          meDeltaChisq_trueProton_vsPion_->Fill(timeChisqs[2] - timeChisqs[0]);
+          meDeltaChisq_trueProton_vsKaon_->Fill(timeChisqs[2] - timeChisqs[1]);
+
+          for (int i = 0; i < 3; i++) {
+            meTrackTimeChi2_ProtonTrack_[i]->Fill(timeChisqs[i]);
+          }
+
+          if (noPID) {
+            meTruePNoPID_->Fill(track.p());
+          } else if (isPi) {
+            meTruePAsPi_->Fill(track.p());
+          } else if (isK) {
+            meTruePAsK_->Fill(track.p());
+          } else if (isP) {
+            meTruePAsP_->Fill(track.p());
+          }
+
+        }
+      }
+
+      // --------------------------------------------------------------
+      // --------------------------------------------------------------
+
 
       meTrackPathLenghtvsEta_->Fill(std::abs(track.eta()), pathLength[trackref]);
 
@@ -982,6 +1176,76 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meTrackt0SafePid_ = ibook.book1D("Trackt0SafePID", "Track t0 Safe as stored in TofPid;t0 [ns]", 100, -1, 1);
   meTrackSigmat0SafePid_ =
       ibook.book1D("TrackSigmat0SafePID", "Sigmat0 Safe as stored in TofPid; #sigma_{t0} [ns]", 100, 0, 0.1);
+  
+  meTrackDtSign_[0] = ibook.book1D("TrackDtSign_Pion", "DeltaT(trk, vtx) significance under pion hypothesis;sign(t_0) [ns]", 40, 0, 20);
+  meTrackDtSign_[1] = ibook.book1D("TrackDtSign_Kaon", "DeltaT(trk, vtx) significance under kaon hypothesis;sign(t_0) [ns]", 40, 0, 20);
+  meTrackDtSign_[2] = ibook.book1D("TrackDtSign_Proton", "DeltaT(trk, vtx) significance under proton hypothesis;sign(t_0) [ns]", 40, 0, 20);
+
+  meTrackProb_[0] = ibook.book1D("TrackProb_Pion", "Probability of pion hp from vertex time compatibility;P", 100, 0, 1);
+  meTrackProb_[1] = ibook.book1D("TrackProb_Kaon", "Probability of kaon hp from vertex time compatibility;P", 100, 0, 1);
+  meTrackProb_[2] = ibook.book1D("TrackProb_Proton", "Probability of proton hp from vertex time compatibility;P", 100, 0, 1);
+
+  meTrackTimeChi2_PionTrack_[0] = ibook.book1D("TrackTimeChi2_PionTrack_PionHp", "Time Chi2 under pion hypothesis for pion-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_PionTrack_[1] = ibook.book1D("TrackTimeChi2_PionTrack_KaonHp", "Time Chi2 under kaon hypothesis for pion-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_PionTrack_[2] = ibook.book1D("TrackTimeChi2_PionTrack_ProtonHp", "Time Chi2 under proton hypothesis for pion-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_KaonTrack_[0] = ibook.book1D("TrackTimeChi2_KaonTrack_PionHp", "Time Chi2 under pion hypothesis for kaon-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_KaonTrack_[1] = ibook.book1D("TrackTimeChi2_KaonTrack_KaonHp", "Time Chi2 under kaon hypothesis for kaon-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_KaonTrack_[2] = ibook.book1D("TrackTimeChi2_KaonTrack_ProtonHp", "Time Chi2 under proton hypothesis for kaon-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_ProtonTrack_[0] = ibook.book1D("TrackTimeChi2_ProtonTrack_PionHp", "Time Chi2 under pion hypothesis for proton-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_ProtonTrack_[1] = ibook.book1D("TrackTimeChi2_ProtonTrack_KaonHp", "Time Chi2 under kaon hypothesis for proton-ID track;#chi^{2}_t", 100, 0, 100);
+  meTrackTimeChi2_ProtonTrack_[2] = ibook.book1D("TrackTimeChi2_ProtonTrack_ProtonHp", "Time Chi2 under proton hypothesis for proton-ID track;#chi^{2}_t", 100, 0, 100);
+
+  meDeltaChisq_truePion_vsKaon_   = ibook.book1D("DeltaChisq_truePion_vsKaon", "Delta Chi2 between pion and kaon hypothesis for pion track;#chi^{2}_{#pi} - #chi^{2}_{K}", 80, -20, 20);
+  meDeltaChisq_truePion_vsProton_ = ibook.book1D("DeltaChisq_truePion_vsProton", "Delta Chi2 between pion and proton hypothesis for pion track;#chi^{2}_{#pi} - #chi^{2}_{p}", 80, -20, 20);
+
+  meDeltaChisq_trueKaon_vsPion_   = ibook.book1D("DeltaChisq_trueKaon_vsPion", "Delta Chi2 between kaon and pion hypothesis for kaon track;#chi^{2}_{K} - #chi^{2}_{#pi}", 80, -20, 20);
+  meDeltaChisq_trueKaon_vsProton_ = ibook.book1D("DeltaChisq_trueKaon_vsProton", "Delta Chi2 between kaon and proton hypothesis for kaon track;#chi^{2}_{K} - #chi^{2}_{p}", 80, -20, 20);
+
+  meDeltaChisq_trueProton_vsPion_ = ibook.book1D("DeltaChisq_trueProton_vsPion", "Delta Chi2 between proton and pion hypothesis for proton track;#chi^{2}_{p} - #chi^{2}_{#pi}", 80, -20, 20);
+  meDeltaChisq_trueProton_vsKaon_ = ibook.book1D("DeltaChisq_trueProton_vsKaon", "Delta Chi2 between proton and kaon hypothesis for proton track;#chi^{2}_{p} - #chi^{2}_{K}", 80, -20, 20);
+
+  meTrackBtlMatchChi2_[0] = ibook.book1D("TrackBtlMatchChi2_Pion", "Time chi2 with BTL hit match under pion hp.;#chi^{2}_t", 30, 0 , 15);
+  meTrackBtlMatchChi2_[1] = ibook.book1D("TrackBtlMatchChi2_Kaon", "Time chi2 with BTL hit match under kaon hp.;#chi^{2}_t", 30, 0 , 15);
+  meTrackBtlMatchChi2_[2] = ibook.book1D("TrackBtlMatchChi2_Proton", "Time chi2 with BTL hit match under proton hp.;#chi^{2}_t", 30, 0 , 15);
+  meTrackEtlMatchChi2_[0] = ibook.book1D("TrackEtlMatchChi2_Pion", "Time chi2 with ETL hit match under pion hp.;#chi^{2}_t", 30, 0 , 15);  
+  meTrackEtlMatchChi2_[1] = ibook.book1D("TrackEtlMatchChi2_Kaon", "Time chi2 with ETL hit match under kaon hp.;#chi^{2}_t", 30, 0 , 15);
+  meTrackEtlMatchChi2_[2] = ibook.book1D("TrackEtlMatchChi2_Proton", "Time chi2 with ETL hit match under proton hp.;#chi^{2}_t", 30, 0 , 15);
+
+  meTruePi_ = ibook.book1D("TruePi", "True pi momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTrueK_ = ibook.book1D("TrueK", "True K momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTrueP_ = ibook.book1D("TrueP", "True P momentum spectrum;p [GeV]", 25, 0., 10.);
+
+  mePIDPi_ = ibook.book1D("PDIPi", "PID-pi momentum spectrum;p [GeV]", 25, 0., 10.);
+  mePIDK_ = ibook.book1D("PDIK", "PID-K momentum spectrum;p [GeV]", 25, 0., 10.);
+  mePIDP_ = ibook.book1D("PDIP", "PID-P momentum spectrum;p [GeV]", 25, 0., 10.);
+
+  meTruePiNoPID_ =
+      ibook.book1D("TruePiNoPID", "True pi NoPID momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePiAsPi_ =
+      ibook.book1D("TruePiAsPi", "True pi as pi momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePiAsK_ =
+      ibook.book1D("TruePiAsK", "True pi as k momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePiAsP_ =
+      ibook.book1D("TruePiAsP", "True pi as p momentum spectrum;p [GeV]", 25, 0., 10.);
+
+  meTrueKNoPID_ =
+      ibook.book1D("TrueKNoPID", "True k NoPID momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTrueKAsPi_ =
+      ibook.book1D("TrueKAsPi", "True k as pi momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTrueKAsK_ =
+      ibook.book1D("TrueKAsK", "True k as k momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTrueKAsP_ =
+      ibook.book1D("TrueKAsP", "True k as p momentum spectrum;p [GeV]", 25, 0., 10.);
+
+  meTruePNoPID_ =
+      ibook.book1D("TruePNoPID", "True p NoPID momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePAsPi_ =
+      ibook.book1D("TruePAsPi", "True p as pi momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePAsK_ =
+      ibook.book1D("TruePAsK", "True p as k momentum spectrum;p [GeV]", 25, 0., 10.);
+  meTruePAsP_ =
+      ibook.book1D("TruePAsP", "True p as p momentum spectrum;p [GeV]", 25, 0., 10.);
+
   meTrackNumHits_ = ibook.book1D("TrackNumHits", "Number of valid MTD hits per track ; Number of hits", 10, -5, 5);
   meTrackNumHitsNT_ = ibook.book1D(
       "TrackNumHitsNT", "Number of valid MTD hits per track no time associated; Number of hits", 10, -5, 5);
@@ -1217,6 +1481,19 @@ void MtdTracksValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<edm::InputTag>("sigmat0SafePID", edm::InputTag("tofPID:sigmat0safe"));
   desc.add<edm::InputTag>("sigmat0PID", edm::InputTag("tofPID:sigmat0"));
   desc.add<edm::InputTag>("t0PID", edm::InputTag("tofPID:t0"));
+
+  desc.add<edm::InputTag>("dtSignPi", edm::InputTag("tofPID:dtSignPi"));
+  desc.add<edm::InputTag>("dtSignK", edm::InputTag("tofPID:dtSignK"));
+  desc.add<edm::InputTag>("dtSignP", edm::InputTag("tofPID:dtSignP"));
+  desc.add<edm::InputTag>("probPi", edm::InputTag("tofPID:probPi"));
+  desc.add<edm::InputTag>("probK", edm::InputTag("tofPID:probK"));
+  desc.add<edm::InputTag>("probP", edm::InputTag("tofPID:probP"));
+  desc.add<edm::InputTag>("timeChisqPi", edm::InputTag("tofPID:timeChisqPi"));
+  desc.add<edm::InputTag>("timeChisqK", edm::InputTag("tofPID:timeChisqK"));
+  desc.add<edm::InputTag>("timeChisqP", edm::InputTag("tofPID:timeChisqP"));
+  desc.add<edm::InputTag>("btlMatchTimeChi2", edm::InputTag("trackExtenderWithMTD:btlMatchTimeChi2"));
+  desc.add<edm::InputTag>("etlMatchTimeChi2", edm::InputTag("trackExtenderWithMTD:etlMatchTimeChi2"));
+
   desc.add<edm::InputTag>("trackMVAQual", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"));
   desc.add<double>("trackMinimumPt", 0.7);  // [GeV]
   desc.add<double>("trackMaximumBtlEta", 1.5);

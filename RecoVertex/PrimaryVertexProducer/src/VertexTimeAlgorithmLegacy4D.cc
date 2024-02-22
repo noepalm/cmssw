@@ -28,7 +28,7 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   double sumwt = 0.;
   double sumwt2 = 0.;
   double sumw = 0.;
-  // double vartime = 0.;
+  double vartime = 0.;
 
   for (const auto& trk : vtx.originalTracks()) {
     const double time = trk.timeExt();
@@ -47,14 +47,13 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   if (sumw > 0) {
     double sumsq = sumwt2 - sumwt * sumwt / sumw;
     double chisq = num_track > 1 ? sumsq / double(num_track - 1) : sumsq / double(num_track);
-    // vartime = chisq / sumw;
+    vartime = chisq / sumw;
 
     vtxTime = sumwt / sumw;
-    // vtxTimeError = sqrt(vartime);
+    vtxTimeError = sqrt(vartime);
     vtxTimeError = 1/sqrt(sumw);
 
-    std::cout << "VertexTimeAlgorithmLegacy4D: t_vtx = " << std::fixed << std::setprecision(6) << vtxTime << " +/- " << 1/sqrt(sumw) << " ns"
-    << std::endl;
+    std::cout << "VertexTimeAlgorithmLegacy4D: t_vtx = " << std::fixed << std::setprecision(6) << vtxTime << " +/- " << vtxTimeError << " ns" << std::endl;
 
     return true;
   }

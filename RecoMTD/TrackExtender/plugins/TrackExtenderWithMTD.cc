@@ -302,6 +302,9 @@ namespace {
       tofpid.dterror =
           sqrt(tofpid.dterror * tofpid.dterror + (tofpid.dt_p - tofpid.dt_pi) * (tofpid.dt_p - tofpid.dt_pi));
       tofpid.betaerror = tofpid.beta_p - tofpid.beta_pi;
+    } else {
+      // only add sigma(TOF) if not considering mass hp. uncertainty
+      tofpid.dterror = sqrt(tofpid.dterror * tofpid.dterror + tofpid.sigma_dt_p * tofpid.sigma_dt_p);
     }
 
     tofpid.dtchi2 = (tofpid.dt * tofpid.dt) / (tofpid.dterror * tofpid.dterror);
@@ -318,9 +321,9 @@ namespace {
       //*TODO* deal with heavier nucleons and/or BSM case here?
       float chi2_pi = tofpid.dtchi2;
       float chi2_k =
-          (tofpid.tmtd - tofpid.dt_k - t_vtx) * (tofpid.tmtd - tofpid.dt_k - t_vtx) / (tofpid.dterror * tofpid.dterror);
+          (tofpid.tmtd - tofpid.dt_k - t_vtx) * (tofpid.tmtd - tofpid.dt_k - t_vtx) / (tofpid.dterror * tofpid.dterror - tofpid.sigma_dt_pi*tofpid.sigma_dt_pi + tofpid.sigma_dt_k * tofpid.sigma_dt_k);
       float chi2_p =
-          (tofpid.tmtd - tofpid.dt_p - t_vtx) * (tofpid.tmtd - tofpid.dt_p - t_vtx) / (tofpid.dterror * tofpid.dterror);
+          (tofpid.tmtd - tofpid.dt_p - t_vtx) * (tofpid.tmtd - tofpid.dt_p - t_vtx) / (tofpid.dterror * tofpid.dterror - tofpid.sigma_dt_pi*tofpid.sigma_dt_pi + tofpid.sigma_dt_p * tofpid.sigma_dt_p);
 
       float rawprob_pi = exp(-0.5f * chi2_pi);
       float rawprob_k = exp(-0.5f * chi2_k);
@@ -1255,7 +1258,19 @@ void TrackExtenderWithMTDT<TrackCollection>::fillMatchingHits(const DetLayer* il
       output.push_back(hitbuilder_->build(firstHit.hit));
       if (firstHit < bestHit)
         bestHit = firstHit;
+    } 
+#ifdef EDM_ML_DEBUG
+    else {
+      LogTrace("TrackExtenderWithMTD") << "HIT MATCHING FAILED";
+      if(firstHit.estChi2 > spaceChi2Cut){
+        LogTrace("TrackExtenderWithMTD") << " for space incompatibility: chi2(space) = " << firstHit.estChi2 << " > " << spaceChi2Cut;
+      }
+      if(firstHit.timeChi2 > timeChi2Cut){
+        LogTrace("TrackExtenderWithMTD") << " for time incompatibility: chi2(time) = " << firstHit.timeChi2 << " > " << timeChi2Cut;
+      }
     }
+#endif
+    
   }
 
   if (useVertex_ && matchVertex && !hitMatched) {

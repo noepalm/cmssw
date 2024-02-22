@@ -18,7 +18,7 @@ process.MessageLogger.cerr.FwkReport  = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("DQMRootSource",
-    fileNames = cms.untracked.vstring('file:step3_inDQM.root')
+    fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD_sigmaTof_propagation/24834.0_TTbar_14TeV+2026D98/step3_inDQM.root')
 )
 
 # Path and EndPath definitions

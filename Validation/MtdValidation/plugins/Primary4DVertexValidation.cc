@@ -251,6 +251,7 @@ private:
   edm::EDGetTokenT<reco::RecoToSimCollection> recoToSimAssociationToken_;
   edm::EDGetTokenT<reco::BeamSpot> RecBeamSpotToken_;
   edm::EDGetTokenT<edm::View<reco::Vertex>> Rec4DVerToken_;
+  edm::EDGetTokenT<edm::View<reco::Vertex>> Rec3DtVerToken_;
 
   edm::EDGetTokenT<edm::ValueMap<int>> trackAssocToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> pathLengthToken_;
@@ -291,6 +292,10 @@ private:
   MonitorElement* meTrack3DposRes_[3];
   MonitorElement* meTimeRes_;
   MonitorElement* meTimePull_;
+  
+  MonitorElement* meTimeRes3Dt_;
+  MonitorElement* meTimePull3Dt_;
+
   MonitorElement* meTimeSignalRes_;
   MonitorElement* meTimeSignalPull_;
   MonitorElement* mePUvsRealV_;
@@ -305,6 +310,7 @@ private:
   MonitorElement* meDeltaTfakereal_;
 
   MonitorElement* meSigmaTVtx_;
+  MonitorElement* meSigmaTVtx3Dt_;
 
   MonitorElement* meRecoPosInSimCollection_;
   MonitorElement* meRecoPosInRecoOrigCollection_;
@@ -389,6 +395,7 @@ Primary4DVertexValidation::Primary4DVertexValidation(const edm::ParameterSet& iC
   RecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("mtdTracks"));
   RecBeamSpotToken_ = consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("offlineBS"));
   Rec4DVerToken_ = consumes<edm::View<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("offline4DPV"));
+  Rec3DtVerToken_ = consumes<edm::View<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("offline3DtPV"));
   trackAssocToken_ = consumes<edm::ValueMap<int>>(iConfig.getParameter<edm::InputTag>("trackAssocSrc"));
   pathLengthToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("pathLengthSrc"));
   momentumToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("momentumSrc"));
@@ -500,6 +507,10 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
                    0.5);
   meTimeRes_ = ibook.book1D("TimeRes", "t_{rec} - t_{sim} ;t_{rec} - t_{sim} [ns] ", 40, -0.2, 0.2);
   meTimePull_ = ibook.book1D("TimePull", "Pull; t_{rec} - t_{sim}/#sigma_{t rec}", 100, -10., 10.);
+  
+  meTimeRes3Dt_ = ibook.book1D("TimeRes3Dt", "t_{rec} - t_{sim} ;t_{rec} - t_{sim} [ns] from 3D+t vertex reco step", 40, -0.2, 0.2);
+  meTimePull3Dt_ = ibook.book1D("TimePull3Dt", "Pull; t_{rec} - t_{sim}/#sigma_{t rec} from 3D+t vertex reco step ", 100, -10., 10.);
+
   meTimeSignalRes_ =
       ibook.book1D("TimeSignalRes", "t_{rec} - t_{sim} for signal ;t_{rec} - t_{sim} [ns] ", 40, -0.2, 0.2);
   meTimeSignalPull_ =
@@ -518,7 +529,8 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
   meDeltaTfakefake_ = ibook.book1D("DeltaTfakefake", "#Delta T fake-fake; |#Delta T (f-f)| [sigma]", 60, 0., 30.);
   meDeltaTfakereal_ = ibook.book1D("DeltaTfakereal", "#Delta T fake-real; |#Delta T (f-r)| [sigma]", 60, 0., 30.);
 
-  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ns]", 100, 0., 0.2);
+  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ps]", 40, 0., 20.);
+  meSigmaTVtx3Dt_ = ibook.book1D("SigmaTVtx3Dt", "Sigma_{t} for vertices as produced in 3D+t vertex reco step; #sigma_{t} [ps]", 40, 0., 20.);
 
   if (optionalPlots_) {
     meRecoPosInSimCollection_ = ibook.book1D(
@@ -1227,6 +1239,15 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
     edm::LogWarning("Primary4DVertexValidation") << "recVtxs is not valid";
   recopv = getRecoPVs(recVtxs);
 
+  std::vector<recoPrimaryVertex> recopv_3Dt;  // a list of reconstructed primary MC vertices
+  edm::Handle<edm::View<reco::Vertex>> recVtxs_3Dt;
+  iEvent.getByToken(Rec3DtVerToken_, recVtxs_3Dt);
+  if (!recVtxs_3Dt.isValid())
+    edm::LogWarning("Primary4DVertexValidation") << "recVtxs from 3D+t is not valid";
+  recopv_3Dt = getRecoPVs(recVtxs_3Dt);
+
+  std::cout << "#vtxs reco at 3D+t step = " << recopv_3Dt.size() << " vs #vtx at 4D = " << recopv.size() << std::endl;
+
   const auto& trackAssoc = iEvent.get(trackAssocToken_);
   const auto& pathLength = iEvent.get(pathLengthToken_);
   const auto& momentum = iEvent.get(momentumToken_);
@@ -1626,8 +1647,18 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
     for (unsigned int ir = 0; ir < recopv.size(); ir++) {
       if (recopv.at(ir).ndof > selNdof_) {
         if (recopv.at(ir).sim == is && simpv.at(is).rec == ir) {
+
+          // ---- TESTING SIGMA(T_VTX) FOR SIGMA(TOF) INTEGRATION ----
+          meSigmaTVtx_->Fill(recVtxs->at(ir).tError() * 1e3); //save in ps
+          meSigmaTVtx3Dt_->Fill(recVtxs_3Dt->at(ir).tError() * 1e3); //save in ps
+          // ---------------------------------------------------------
+          
           meTimeRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
           meTimePull_->Fill((recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv.at(ir).recVtx->tError());
+
+          meTimeRes3Dt_->Fill(recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
+          meTimePull3Dt_->Fill((recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv_3Dt.at(ir).recVtx->tError());
+
           meMatchQual_->Fill(recopv.at(ir).matchQuality - 0.5);
           if (ir == 0) {  //signal vertex plots
             meTimeSignalRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
@@ -1664,6 +1695,7 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
 
   //dz histos
   for (unsigned int iv = 0; iv < recVtxs->size() - 1; iv++) {
+
     if (recVtxs->at(iv).ndof() > selNdof_) {
       double mindistance_realreal = 1e10;
 
@@ -1715,10 +1747,6 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
           }
         }
       }
-
-      // ---- TESTING SIGMA(T_VTX) FOR SIGMA(TOF) INTEGRATION ----
-      meSigmaTVtx_->Fill(recVtxs->at(iv).tError());
-
     }  //ndof
   }
 
@@ -1732,6 +1760,7 @@ void Primary4DVertexValidation::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("mtdTracks", edm::InputTag("trackExtenderWithMTD"));
   desc.add<edm::InputTag>("SimTag", edm::InputTag("mix", "MergedTrackTruth"));
   desc.add<edm::InputTag>("offlineBS", edm::InputTag("offlineBeamSpot"));
+  desc.add<edm::InputTag>("offline3DtPV", edm::InputTag("offlinePrimaryVertices"));
   desc.add<edm::InputTag>("offline4DPV", edm::InputTag("offlinePrimaryVertices4D"));
   desc.add<edm::InputTag>("trackAssocSrc", edm::InputTag("trackExtenderWithMTD:generalTrackassoc"))
       ->setComment("Association between General and MTD Extended tracks");
@@ -1750,6 +1779,7 @@ void Primary4DVertexValidation::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("probPi", edm::InputTag("tofPID:probPi"));
   desc.add<edm::InputTag>("probK", edm::InputTag("tofPID:probK"));
   desc.add<edm::InputTag>("probP", edm::InputTag("tofPID:probP"));
+
   desc.add<bool>("useOnlyChargedTracks", true);
   desc.addUntracked<bool>("debug", false);
   desc.addUntracked<bool>("optionalPlots", false);

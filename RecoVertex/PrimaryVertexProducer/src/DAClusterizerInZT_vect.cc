@@ -13,7 +13,7 @@
 
 using namespace std;
 
-#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
 #define DEBUGLEVEL 3
 #endif
@@ -419,7 +419,7 @@ double DAClusterizerInZT_vect::update(
         vertices.sumw[k] += wt;  // for vtxdt2
         if(o_trk_err_t > 0) vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
 
-        std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
+        // std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
         vertices.nut[k] += wt;
@@ -443,11 +443,8 @@ double DAClusterizerInZT_vect::update(
         vertices.sumw[k] += wt;  // for vtxdt2
         if(o_trk_err_t > 0){
           vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
-          vertices.sumInvSigma[k] += o_trk_err_t;
         } 
-
-
-        std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
+        // std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
         vertices.nut[k] += wt;
@@ -469,7 +466,6 @@ double DAClusterizerInZT_vect::update(
 #ifdef USEVTXDT2
     gvertices.sumw[ivertex] = 0.0;
     gvertices.sumw2dt2[ivertex] = 0.0;
-    gvertices.sumInvSigma[ivertex] = 0.0;
 #endif
   }
 
@@ -483,7 +479,7 @@ double DAClusterizerInZT_vect::update(
     assert(itrack < gtracks.sum_Z_vec.size());
 #endif
 
-    std::cout << "track_i = " << itrack << "  kmin = " << kmin << "  kmax = " << kmax << std::endl;
+    // std::cout << "track_i = " << itrack << "  kmin = " << kmin << "  kmax = " << kmax << std::endl;
     kernel_calc_exp_arg_range(itrack, gtracks, gvertices, kmin, kmax);
     local_exp_list_range(gvertices.exp_arg, gvertices.exp, kmin, kmax);
     gtracks.sum_Z[itrack] = kernel_add_Z_range(gvertices, kmin, kmax);
@@ -515,9 +511,6 @@ double DAClusterizerInZT_vect::update(
 #ifdef USEVTXDT2
         if(vertices.sumw[ivertex] > 0){
           vertices.dt2[ivertex] = vertices.sumw2dt2[ivertex] / (vertices.sumw[ivertex] * vertices.sumw[ivertex]);
-          if(vertices.dt2[ivertex] < 0.1){
-            std::cout << "Suspiciously low error: dt = " << std::sqrt(vertices.dt2[ivertex]) << ", standard weighted = " << 1./std::sqrt(vertices.sumInvSigma[ivertex]) << std::endl;
-          }
         } else {
           std::cout << "#ERROR: vertex sumw = " << vertices.sumw[ivertex] << ", tvtx = " << tnew << std::endl;
         }

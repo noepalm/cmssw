@@ -155,8 +155,6 @@ PrimaryVertexProducer::~PrimaryVertexProducer() {
 }
 
 void PrimaryVertexProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-  fVerbose = true;
-
   // get the BeamSpot, it will always be needed, even when not used as a constraint
   reco::BeamSpot beamSpot;
   edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
