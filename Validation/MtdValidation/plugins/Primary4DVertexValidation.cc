@@ -251,7 +251,7 @@ private:
   edm::EDGetTokenT<reco::RecoToSimCollection> recoToSimAssociationToken_;
   edm::EDGetTokenT<reco::BeamSpot> RecBeamSpotToken_;
   edm::EDGetTokenT<edm::View<reco::Vertex>> Rec4DVerToken_;
-  edm::EDGetTokenT<edm::View<reco::Vertex>> Rec3DtVerToken_;
+  // edm::EDGetTokenT<edm::View<reco::Vertex>> Rec3DtVerToken_;
 
   edm::EDGetTokenT<edm::ValueMap<int>> trackAssocToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> pathLengthToken_;
@@ -293,8 +293,8 @@ private:
   MonitorElement* meTimeRes_;
   MonitorElement* meTimePull_;
   
-  MonitorElement* meTimeRes3Dt_;
-  MonitorElement* meTimePull3Dt_;
+  // MonitorElement* meTimeRes3Dt_;
+  // MonitorElement* meTimePull3Dt_;
 
   MonitorElement* meTimeSignalRes_;
   MonitorElement* meTimeSignalPull_;
@@ -310,7 +310,21 @@ private:
   MonitorElement* meDeltaTfakereal_;
 
   MonitorElement* meSigmaTVtx_;
-  MonitorElement* meSigmaTVtx3Dt_;
+  MonitorElement* meSigmaTPVtx_;
+  // MonitorElement* meSigmaTVtx3Dt_;
+
+  MonitorElement* metVtxReco_;
+  MonitorElement* metVtxSim_;  
+  MonitorElement* metVtxSimVsZ_;
+  MonitorElement* metPVtxReco_;
+  MonitorElement* metPVtxSim_;  
+  MonitorElement* metTracksVsZ_BTL_;
+  MonitorElement* metTracksVsZ_ETL_;
+
+  MonitorElement* meNTracksPerVertex_[4];
+  MonitorElement* meNTracksPerPrimaryVertex_[4];
+  MonitorElement* meNTracksWithMTDPerVertex_[4];
+  MonitorElement* meNTracksWithMTDPerPrimaryVertex_[4];
 
   MonitorElement* meRecoPosInSimCollection_;
   MonitorElement* meRecoPosInRecoOrigCollection_;
@@ -395,7 +409,7 @@ Primary4DVertexValidation::Primary4DVertexValidation(const edm::ParameterSet& iC
   RecTrackToken_ = consumes<reco::TrackCollection>(iConfig.getParameter<edm::InputTag>("mtdTracks"));
   RecBeamSpotToken_ = consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("offlineBS"));
   Rec4DVerToken_ = consumes<edm::View<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("offline4DPV"));
-  Rec3DtVerToken_ = consumes<edm::View<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("offline3DtPV"));
+  // Rec3DtVerToken_ = consumes<edm::View<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("offline3DtPV"));
   trackAssocToken_ = consumes<edm::ValueMap<int>>(iConfig.getParameter<edm::InputTag>("trackAssocSrc"));
   pathLengthToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("pathLengthSrc"));
   momentumToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("momentumSrc"));
@@ -508,13 +522,13 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
   meTimeRes_ = ibook.book1D("TimeRes", "t_{rec} - t_{sim} ;t_{rec} - t_{sim} [ns] ", 40, -0.2, 0.2);
   meTimePull_ = ibook.book1D("TimePull", "Pull; t_{rec} - t_{sim}/#sigma_{t rec}", 100, -10., 10.);
   
-  meTimeRes3Dt_ = ibook.book1D("TimeRes3Dt", "t_{rec} - t_{sim} ;t_{rec} - t_{sim} [ns] from 3D+t vertex reco step", 40, -0.2, 0.2);
-  meTimePull3Dt_ = ibook.book1D("TimePull3Dt", "Pull; t_{rec} - t_{sim}/#sigma_{t rec} from 3D+t vertex reco step ", 100, -10., 10.);
+  // meTimeRes3Dt_ = ibook.book1D("TimeRes3Dt", "t_{rec} - t_{sim} ;t_{rec} - t_{sim} [ns] from 3D+t vertex reco step", 40, -0.2, 0.2);
+  // meTimePull3Dt_ = ibook.book1D("TimePull3Dt", "Pull; t_{rec} - t_{sim}/#sigma_{t rec} from 3D+t vertex reco step ", 100, -10., 10.);
 
   meTimeSignalRes_ =
-      ibook.book1D("TimeSignalRes", "t_{rec} - t_{sim} for signal ;t_{rec} - t_{sim} [ns] ", 40, -0.2, 0.2);
+      ibook.book1D("TimeSignalRes", "t_{rec} - t_{sim} for signal ;t_{rec} - t_{sim} [ns] ", 40, -0.1, 0.1);
   meTimeSignalPull_ =
-      ibook.book1D("TimeSignalPull", "Pull for signal; t_{rec} - t_{sim}/#sigma_{t rec}", 100, -10., 10.);
+      ibook.book1D("TimeSignalPull", "Pull for signal; t_{rec} - t_{sim}/#sigma_{t rec}", 50, -10., 10.);
   mePUvsRealV_ =
       ibook.bookProfile("PUvsReal", "#PU vertices vs #real matched vertices;#PU;#real ", 100, 0, 300, 100, 0, 200);
   mePUvsOtherFakeV_ = ibook.bookProfile(
@@ -529,8 +543,36 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
   meDeltaTfakefake_ = ibook.book1D("DeltaTfakefake", "#Delta T fake-fake; |#Delta T (f-f)| [sigma]", 60, 0., 30.);
   meDeltaTfakereal_ = ibook.book1D("DeltaTfakereal", "#Delta T fake-real; |#Delta T (f-r)| [sigma]", 60, 0., 30.);
 
-  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ps]", 40, 0., 20.);
-  meSigmaTVtx3Dt_ = ibook.book1D("SigmaTVtx3Dt", "Sigma_{t} for vertices as produced in 3D+t vertex reco step; #sigma_{t} [ps]", 40, 0., 20.);
+  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ps]", 40, 0., 30.);
+  meSigmaTPVtx_ = ibook.book1D("SigmaTPVtx", "Sigma_{t} for primary vertices; #sigma_{t} [ps]", 40, 0., 30.);
+
+  metVtxReco_ = ibook.book1D("tVtxReco", "Reco time of vertices; t [ns]", 100, -1., 1.);
+  metVtxSim_ = ibook.book1D("tVtxSim", "Sim time of vertices; t [ns]", 100, -1., 1.); 
+  metVtxSimVsZ_ = ibook.book2D("tVtxSimVsZ", "Sim time of vertices vs Z; Z [cm]; t [ns]", 100, -10, 10, 100, -1., 1.);
+  metPVtxReco_ = ibook.book1D("tPVtxReco", "Reco time of primary vertices; t [ns]", 100, -1., 1.);
+  metPVtxSim_ = ibook.book1D("tPVtxSim", "Sim time of primary vertices; t [ns]", 100, -1., 1.);
+  metTracksVsZ_BTL_ = ibook.book2D("tTrackVsZ_BTL", "t of tracks vs Z for BTL tracks; Z [cm]; t [ns]", 100, -10, 10, 100, 0, 10);
+  metTracksVsZ_ETL_ = ibook.book2D("tTrackVsZ_ETL", "t of tracks vs Z for ETL tracks; Z [cm]; t [ns]", 100, -10, 10, 100, 0, 10);
+
+  meNTracksPerVertex_[0] = ibook.book1D("NTracksPerVertex_Pion", "Number of pion tracks per reconstructed vertex", 200, 0, 200);
+  meNTracksPerVertex_[1] = ibook.book1D("NTracksPerVertex_Kaon", "Number of kaon tracks per reconstructed vertex", 50, 0, 50);
+  meNTracksPerVertex_[2] = ibook.book1D("NTracksPerVertex_Proton", "Number of proton tracks per reconstructed vertex", 50, 0, 50);
+  meNTracksPerVertex_[3] = ibook.book1D("NTracksPerVertex_Other", "Number of other tracks per reconstructed vertex", 50, 0, 50);
+
+  meNTracksPerPrimaryVertex_[0] = ibook.book1D("NTracksPerPrimaryVertex_Pion", "Number of pion tracks per reconstructed primary vertex", 100, 0, 200);
+  meNTracksPerPrimaryVertex_[1] = ibook.book1D("NTracksPerPrimaryVertex_Kaon", "Number of kaon tracks per reconstructed primary vertex", 50, 0, 50);
+  meNTracksPerPrimaryVertex_[2] = ibook.book1D("NTracksPerPrimaryVertex_Proton", "Number of proton tracks per reconstructed primary vertex", 50, 0, 50);
+  meNTracksPerPrimaryVertex_[3] = ibook.book1D("NTracksPerPrimaryVertex_Other", "Number of other tracks per reconstructed primary vertex", 50, 0, 50);
+
+  meNTracksWithMTDPerVertex_[0] = ibook.book1D("NTracksWithMTDPerVertex_Pion", "Number of pion tracks with MTD time info per reconstructed vertex", 100, 0, 200);
+  meNTracksWithMTDPerVertex_[1] = ibook.book1D("NTracksWithMTDPerVertex_Kaon", "Number of kaon tracks with MTD time info per reconstructed vertex", 50, 0, 50);
+  meNTracksWithMTDPerVertex_[2] = ibook.book1D("NTracksWithMTDPerVertex_Proton", "Number of proton tracks with MTD time info per reconstructed vertex", 50, 0, 50);
+  meNTracksWithMTDPerVertex_[3] = ibook.book1D("NTracksWithMTDPerVertex_Other", "Number of other tracks with MTD time info per reconstructed vertex", 50, 0, 50);
+
+  meNTracksWithMTDPerPrimaryVertex_[0] = ibook.book1D("NTracksWithMTDPerPrimaryVertex_Pion", "Number of pion tracks with MTD time info per reconstructed primary vertex", 100, 0, 200);
+  meNTracksWithMTDPerPrimaryVertex_[1] = ibook.book1D("NTracksWithMTDPerPrimaryVertex_Kaon", "Number of kaon tracks with MTD time info per reconstructed primary vertex", 50, 0, 50);
+  meNTracksWithMTDPerPrimaryVertex_[2] = ibook.book1D("NTracksWithMTDPerPrimaryVertex_Proton", "Number of proton tracks with MTD time info per reconstructed primary vertex", 50, 0, 50);
+  meNTracksWithMTDPerPrimaryVertex_[3] = ibook.book1D("NTracksWithMTDPerPrimaryVertex_Other", "Number of other tracks with MTD time info per reconstructed primary vertex", 50, 0, 50);
 
   if (optionalPlots_) {
     meRecoPosInSimCollection_ = ibook.book1D(
@@ -1239,14 +1281,12 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
     edm::LogWarning("Primary4DVertexValidation") << "recVtxs is not valid";
   recopv = getRecoPVs(recVtxs);
 
-  std::vector<recoPrimaryVertex> recopv_3Dt;  // a list of reconstructed primary MC vertices
-  edm::Handle<edm::View<reco::Vertex>> recVtxs_3Dt;
-  iEvent.getByToken(Rec3DtVerToken_, recVtxs_3Dt);
-  if (!recVtxs_3Dt.isValid())
-    edm::LogWarning("Primary4DVertexValidation") << "recVtxs from 3D+t is not valid";
-  recopv_3Dt = getRecoPVs(recVtxs_3Dt);
-
-  std::cout << "#vtxs reco at 3D+t step = " << recopv_3Dt.size() << " vs #vtx at 4D = " << recopv.size() << std::endl;
+  // std::vector<recoPrimaryVertex> recopv_3Dt;  // a list of reconstructed primary MC vertices
+  // edm::Handle<edm::View<reco::Vertex>> recVtxs_3Dt;
+  // iEvent.getByToken(Rec3DtVerToken_, recVtxs_3Dt);
+  // if (!recVtxs_3Dt.isValid())
+  //   edm::LogWarning("Primary4DVertexValidation") << "recVtxs from 3D+t is not valid";
+  // recopv_3Dt = getRecoPVs(recVtxs_3Dt);
 
   const auto& trackAssoc = iEvent.get(trackAssocToken_);
   const auto& pathLength = iEvent.get(pathLengthToken_);
@@ -1266,11 +1306,14 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
 
   //I have simPV and recoPV collections
   matchReco2Sim(recopv, simpv, sigmat0Safe, mtdQualMVA, BeamSpotH);
+  // matchReco2Sim(recopv_3Dt, simpv, sigmat0Safe, mtdQualMVA, BeamSpotH);
 
   //Loop on tracks
   for (unsigned int iv = 0; iv < recopv.size(); iv++) {
     if (recopv.at(iv).ndof > selNdof_) {
       const reco::Vertex* vertex = recopv.at(iv).recVtx;
+
+
 
       for (unsigned int iev = 0; iev < simpv.size(); iev++) {
         auto vsim = simpv.at(iev).sim_vertex;
@@ -1372,6 +1415,10 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
               }
 
               if (std::abs((*iTrack)->eta()) < trackMaxBtlEta_) {
+
+                metTracksVsZ_BTL_->Fill((*iTrack)->vz(), tMtd[*iTrack]);
+                std::cout << "t track = " << tMtd[*iTrack] << ", z = " << (*iTrack)->vz() << std::endl;
+
                 meBarrelPIDp_->Fill((*iTrack)->p());
                 meBarrelNoPIDtype_->Fill(noPIDtype + 0.5);
                 if (std::abs((*tp_info)->pdgId()) == 211) {
@@ -1421,6 +1468,9 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
                   }
                 }
               } else if (std::abs((*iTrack)->eta()) > trackMinEtlEta_ && std::abs((*iTrack)->eta()) < trackMaxEtlEta_) {
+
+                metTracksVsZ_ETL_->Fill((*iTrack)->vz(), tMtd[*iTrack]);
+
                 meEndcapPIDp_->Fill((*iTrack)->p());
                 meEndcapNoPIDtype_->Fill(noPIDtype + 0.5);
                 if (std::abs((*tp_info)->pdgId()) == 211) {
@@ -1646,24 +1696,70 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
 
     for (unsigned int ir = 0; ir < recopv.size(); ir++) {
       if (recopv.at(ir).ndof > selNdof_) {
+
         if (recopv.at(ir).sim == is && simpv.at(is).rec == ir) {
 
           // ---- TESTING SIGMA(T_VTX) FOR SIGMA(TOF) INTEGRATION ----
-          meSigmaTVtx_->Fill(recVtxs->at(ir).tError() * 1e3); //save in ps
-          meSigmaTVtx3Dt_->Fill(recVtxs_3Dt->at(ir).tError() * 1e3); //save in ps
+          if(recVtxs->at(ir).tError() > 0){
+            meSigmaTVtx_->Fill(recVtxs->at(ir).tError() * 1e3); //save in ps
+            if(ir == 0) meSigmaTPVtx_->Fill(recVtxs->at(ir).tError() * 1e3); //select PV
+          }
           // ---------------------------------------------------------
+
+          // meNTracksPerVertex_->Fill(recVtxs->at(ir).tracksSize());
+          metVtxReco_->Fill(recVtxs->at(ir).t());
+          metVtxSim_->Fill(simpv.at(is).t * simUnit_);
+          metVtxSimVsZ_->Fill(simpv.at(is).z, simpv.at(is).t * simUnit_);
+
+          // iterate over tracks and count how many have mtd info (Sigmat0Safe[trackref] > 0)
+          int nTracksWithMtdInfo[4] = {0,0,0,0};
+          int nTracksPerPID[4] = {0, 0, 0, 0};
+
+          for (auto iTrack = recVtxs->at(ir).tracks_begin(); iTrack != recVtxs->at(ir).tracks_end(); ++iTrack) {
+
+            auto tp_info = getMatchedTP(*iTrack, simpv.at(is).sim_vertex);
+
+            if (tp_info != nullptr) {
+              if (std::abs((*tp_info)->pdgId()) == 211) {
+                nTracksPerPID[0]++;
+                if(sigmat0Safe[*iTrack] > 0) nTracksWithMtdInfo[0]++;
+              } else if (std::abs((*tp_info)->pdgId()) == 321) {
+                nTracksPerPID[1]++;
+                if(sigmat0Safe[*iTrack] > 0) nTracksWithMtdInfo[1]++;
+              } else if (std::abs((*tp_info)->pdgId()) == 2212) {
+                nTracksPerPID[2]++;
+                if(sigmat0Safe[*iTrack] > 0) nTracksWithMtdInfo[2]++;
+              } else {
+                nTracksPerPID[3]++;
+                if(sigmat0Safe[*iTrack] > 0) nTracksWithMtdInfo[3]++;
+              }
+            }
+
+          }
+
+          for(int i = 0; i < 4; i++){
+            meNTracksPerVertex_[i]->Fill(nTracksPerPID[i]);
+            meNTracksWithMTDPerVertex_[i]->Fill(nTracksWithMtdInfo[i]);
+          }
+
           
           meTimeRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
           meTimePull_->Fill((recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv.at(ir).recVtx->tError());
-
-          meTimeRes3Dt_->Fill(recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
-          meTimePull3Dt_->Fill((recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv_3Dt.at(ir).recVtx->tError());
 
           meMatchQual_->Fill(recopv.at(ir).matchQuality - 0.5);
           if (ir == 0) {  //signal vertex plots
             meTimeSignalRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
             meTimeSignalPull_->Fill((recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) /
                                     recopv.at(ir).recVtx->tError());
+            
+            metPVtxReco_->Fill(recopv.at(ir).recVtx->t());
+            metPVtxSim_->Fill(simpv.at(is).t * simUnit_);
+
+            for(int i = 0; i < 4; i++){
+              meNTracksPerPrimaryVertex_[i]->Fill(nTracksPerPID[i]);
+              meNTracksWithMTDPerPrimaryVertex_[i]->Fill(nTracksWithMtdInfo[i]);
+            }
+
             if (optionalPlots_) {
               meRecoPosInSimCollection_->Fill(recopv.at(ir).sim);
               meRecoPosInRecoOrigCollection_->Fill(recopv.at(ir).OriginalIndex);
@@ -1691,6 +1787,18 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
         }
       }  // ndof
     }
+
+    // // saving Reco 3D vtxs
+    // for(unsigned int ir = 0; ir < recopv_3Dt.size(); ir++){
+    //   if (recopv_3Dt.at(ir).ndof > selNdof_) {
+    //     if (recopv_3Dt.at(ir).sim == is && simpv.at(is).rec == ir) {
+    //       meTimeRes3Dt_->Fill(recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
+    //       meTimePull3Dt_->Fill((recopv_3Dt.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv_3Dt.at(ir).recVtx->tError());
+    //       meSigmaTVtx3Dt_->Fill(recVtxs_3Dt->at(ir).tError() * 1e3); //save in ps
+    //     }
+    //   }
+    // }
+
   }
 
   //dz histos
@@ -1760,7 +1868,7 @@ void Primary4DVertexValidation::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("mtdTracks", edm::InputTag("trackExtenderWithMTD"));
   desc.add<edm::InputTag>("SimTag", edm::InputTag("mix", "MergedTrackTruth"));
   desc.add<edm::InputTag>("offlineBS", edm::InputTag("offlineBeamSpot"));
-  desc.add<edm::InputTag>("offline3DtPV", edm::InputTag("offlinePrimaryVertices"));
+  // desc.add<edm::InputTag>("offline3DtPV", edm::InputTag("offlinePrimaryVertices"));
   desc.add<edm::InputTag>("offline4DPV", edm::InputTag("offlinePrimaryVertices4D"));
   desc.add<edm::InputTag>("trackAssocSrc", edm::InputTag("trackExtenderWithMTD:generalTrackassoc"))
       ->setComment("Association between General and MTD Extended tracks");

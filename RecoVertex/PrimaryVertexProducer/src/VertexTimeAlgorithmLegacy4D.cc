@@ -20,6 +20,9 @@ void VertexTimeAlgorithmLegacy4D::fillPSetDescription(edm::ParameterSetDescripti
 void VertexTimeAlgorithmLegacy4D::setEvent(edm::Event& iEvent, edm::EventSetup const&){};
 
 bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError, const TransientVertex& vtx) const {
+
+  std::cout << "#### NEW VERTEX ####" << std::endl;
+
   const auto num_track = vtx.originalTracks().size();
   if (num_track == 0) {
     return false;
@@ -28,7 +31,6 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   double sumwt = 0.;
   double sumwt2 = 0.;
   double sumw = 0.;
-  double vartime = 0.;
 
   for (const auto& trk : vtx.originalTracks()) {
     const double time = trk.timeExt();
@@ -44,16 +46,24 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
     sumw += w;
   }
 
+  for (const auto& trk : vtx.originalTracks()) {
+    const double time = trk.timeExt();
+    const double err = trk.dtErrorExt();
+    if ((time == 0) && (err > TransientTrackBuilder::defaultInvalidTrackTimeReso))
+      continue;  // tracks with no time information, as implemented in TransientTrackBuilder.cc l.17
+
+    double w = 1/(err*err) / sumw;
+    if(w > 0.1){
+      std::cout << "HIGH WEIGHT TRACK: t = " << time << ", w = " << w << std::endl;
+    }
+  }
+
   if (sumw > 0) {
     double sumsq = sumwt2 - sumwt * sumwt / sumw;
     double chisq = num_track > 1 ? sumsq / double(num_track - 1) : sumsq / double(num_track);
-    vartime = chisq / sumw;
 
     vtxTime = sumwt / sumw;
-    vtxTimeError = sqrt(vartime);
     vtxTimeError = 1/sqrt(sumw);
-
-    std::cout << "VertexTimeAlgorithmLegacy4D: t_vtx = " << std::fixed << std::setprecision(6) << vtxTime << " +/- " << vtxTimeError << " ns" << std::endl;
 
     return true;
   }

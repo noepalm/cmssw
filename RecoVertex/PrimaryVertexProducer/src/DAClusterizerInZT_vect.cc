@@ -13,7 +13,7 @@
 
 using namespace std;
 
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 #define DEBUGLEVEL 3
 #endif
@@ -416,9 +416,9 @@ double DAClusterizerInZT_vect::update(
         const auto wz = w * o_trk_err_z;
         const auto wt = w * o_trk_err_t;
 #ifdef USEVTXDT2
-        vertices.sumw[k] += wt;  // for vtxdt2
-        if(o_trk_err_t > 0) vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
-
+        vertices.sumw[k] += w;  // for vtxdt2
+        // vertices.sumw[k] += wt;  // for vtxdt2
+        // if(o_trk_err_t > 0) vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
         // std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
@@ -440,10 +440,11 @@ double DAClusterizerInZT_vect::update(
         const auto wz = w * o_trk_err_z;
         const auto wt = w * o_trk_err_t;
 #ifdef USEVTXDT2
-        vertices.sumw[k] += wt;  // for vtxdt2
-        if(o_trk_err_t > 0){
-          vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
-        } 
+        vertices.sumw[k] += w;  // for vtxdt2
+        // vertices.sumw[k] += wt;  // for vtxdt2
+        // if(o_trk_err_t > 0){
+        //   vertices.sumw2dt2[k] += wt * wt / o_trk_err_t;
+        // } 
         // std::cout << "k = " << k << "  w = " << std::fixed << setprecision(6) << w << "   dt = " << std::sqrt(1./o_trk_err_t) << "   wt = " << wt << "  sumw = " << vertices.sumw[k] << "  sumw2dt2 = " << vertices.sumw2dt2[k] << std::endl;
 #endif
         vertices.nuz[k] += wz;
@@ -465,7 +466,7 @@ double DAClusterizerInZT_vect::update(
     gvertices.szt[ivertex] = 0.0;
 #ifdef USEVTXDT2
     gvertices.sumw[ivertex] = 0.0;
-    gvertices.sumw2dt2[ivertex] = 0.0;
+    // gvertices.sumw2dt2[ivertex] = 0.0;
 #endif
   }
 
@@ -509,11 +510,7 @@ double DAClusterizerInZT_vect::update(
         //delta = max(std::abs(vertices.t[ ivertex ] - tnew), delta); // FIXME
         vertices.tvtx[ivertex] = tnew;
 #ifdef USEVTXDT2
-        if(vertices.sumw[ivertex] > 0){
-          vertices.dt2[ivertex] = vertices.sumw2dt2[ivertex] / (vertices.sumw[ivertex] * vertices.sumw[ivertex]);
-        } else {
-          std::cout << "#ERROR: vertex sumw = " << vertices.sumw[ivertex] << ", tvtx = " << tnew << std::endl;
-        }
+        vertices.dt2[ivertex] = vertices.nut[ivertex] / vertices.sumw[ivertex];
 #endif
       } else {
         // FIXME

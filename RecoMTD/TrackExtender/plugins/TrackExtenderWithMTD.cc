@@ -205,16 +205,19 @@ namespace {
 
     float gammasq_pi;
     float beta_pi;
+    float sigma_beta_pi;
     float dt_pi;
     float sigma_dt_pi;
 
     float gammasq_k;
     float beta_k;
+    float sigma_beta_k;
     float dt_k;
     float sigma_dt_k;
 
     float gammasq_p;
     float beta_p;
+    float sigma_beta_p;
     float dt_p;
     float sigma_dt_p;
 
@@ -284,16 +287,19 @@ namespace {
     tofpid.beta_pi = std::sqrt(1.f - 1.f / tofpid.gammasq_pi);
     tofpid.dt_pi = deltat(m_pi_inv2, tofpid.beta_pi);
     tofpid.sigma_dt_pi = sigmadeltat(m_pi_inv2);
+    tofpid.sigma_beta_pi = tofpid.beta_pi * tofpid.sigma_dt_pi / tofpid.dt_pi; // given TOF = l/(beta*c) -> sigma(beta) = sigma(TOF)/TOF * beta
 
     tofpid.gammasq_k = 1.f + magp2 * m_k_inv2;
     tofpid.beta_k = std::sqrt(1.f - 1.f / tofpid.gammasq_k);
     tofpid.dt_k = deltat(m_k_inv2, tofpid.beta_k);
     tofpid.sigma_dt_k = sigmadeltat(m_k_inv2);
+    tofpid.sigma_beta_k = tofpid.beta_k * tofpid.sigma_dt_k / tofpid.dt_k;
 
     tofpid.gammasq_p = 1.f + magp2 * m_p_inv2;
     tofpid.beta_p = std::sqrt(1.f - 1.f / tofpid.gammasq_p);
     tofpid.dt_p = deltat(m_p_inv2, tofpid.beta_p);
     tofpid.sigma_dt_p = sigmadeltat(m_p_inv2);
+    tofpid.sigma_beta_p = tofpid.beta_p * tofpid.sigma_dt_p / tofpid.dt_p;
 
     tofpid.dt = tofpid.tmtd - tofpid.dt_pi - t_vtx;  //assume by default the pi hypothesis
     tofpid.dterror = sqrt(tofpid.tmtderror * tofpid.tmtderror + t_vtx_err * t_vtx_err);
@@ -305,6 +311,7 @@ namespace {
     } else {
       // only add sigma(TOF) if not considering mass hp. uncertainty
       tofpid.dterror = sqrt(tofpid.dterror * tofpid.dterror + tofpid.sigma_dt_p * tofpid.sigma_dt_p);
+      tofpid.betaerror = tofpid.sigma_beta_p;
     }
 
     tofpid.dtchi2 = (tofpid.dt * tofpid.dt) / (tofpid.dterror * tofpid.dterror);
@@ -560,7 +567,13 @@ public:
                          float& tofp,
                          float& sigmatofpi,
                          float& sigmatofk,
-                         float& sigmatofp) const;
+                         float& sigmatofp,
+                         float& betapi,
+                         float& betak,
+                         float& betap,
+                         float& sigmabetapi,
+                         float& sigmabetak,
+                         float& sigmabetap) const;
   reco::TrackExtra buildTrackExtra(const Trajectory& trajectory) const;
 
   string dumpLayer(const DetLayer* layer) const;
@@ -574,6 +587,12 @@ private:
   edm::EDPutToken npixEndcapToken_;
   edm::EDPutToken pOrigTrkToken_;
   edm::EDPutToken betaOrigTrkToken_;
+  edm::EDPutToken betaPiOrigTrkToken_;
+  edm::EDPutToken betaKOrigTrkToken_;
+  edm::EDPutToken betaPOrigTrkToken_;
+  edm::EDPutToken sigmabetaPiOrigTrkToken_;
+  edm::EDPutToken sigmabetaKOrigTrkToken_;
+  edm::EDPutToken sigmabetaPOrigTrkToken_;
   edm::EDPutToken t0OrigTrkToken_;
   edm::EDPutToken sigmat0OrigTrkToken_;
   edm::EDPutToken pathLengthOrigTrkToken_;
@@ -665,6 +684,12 @@ TrackExtenderWithMTDT<TrackCollection>::TrackExtenderWithMTDT(const ParameterSet
   npixEndcapToken_ = produces<edm::ValueMap<int>>("npixEndcap");
   pOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackp");
   betaOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackBeta");
+  betaPiOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackBetaPi");
+  betaKOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackBetaK");
+  betaPOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackBetaP");
+  sigmabetaPiOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackSigmaBetaPi");
+  sigmabetaKOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackSigmaBetaK");
+  sigmabetaPOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackSigmaBetaP");
   t0OrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackt0");
   sigmat0OrigTrkToken_ = produces<edm::ValueMap<float>>("generalTracksigmat0");
   pathLengthOrigTrkToken_ = produces<edm::ValueMap<float>>("generalTrackPathLength");
@@ -782,6 +807,12 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
   std::vector<int> npixEndcap;
   std::vector<float> pOrigTrkRaw;
   std::vector<float> betaOrigTrkRaw;
+  std::vector<float> betaPiOrigTrkRaw;
+  std::vector<float> betaKOrigTrkRaw;
+  std::vector<float> betaPOrigTrkRaw;
+  std::vector<float> sigmabetaPiOrigTrkRaw;
+  std::vector<float> sigmabetaKOrigTrkRaw;
+  std::vector<float> sigmabetaPOrigTrkRaw;
   std::vector<float> t0OrigTrkRaw;
   std::vector<float> sigmat0OrigTrkRaw;
   std::vector<float> pathLengthsOrigTrkRaw;
@@ -915,15 +946,16 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
 
     const auto& trajwithmtd =
         mtdthits.empty() ? std::vector<Trajectory>(1, trajs) : theTransformer->transform(ttrack, thits);
-    float pMap = 0.f, betaMap = 0.f, t0Map = 0.f, sigmat0Map = -1.f, pathLengthMap = -1.f, tmtdMap = 0.f,
+    float pMap = 0.f, betaMap = 0.f, betaPiMap = 0.f, betaKMap = 0.f, betaPMap = 0.f, t0Map = 0.f, sigmat0Map = -1.f, pathLengthMap = -1.f, tmtdMap = 0.f,
           sigmatmtdMap = -1.f, tofpiMap = 0.f, tofkMap = 0.f, tofpMap = 0.f, sigmatofpiMap = -1.f,
-          sigmatofkMap = -1.f, sigmatofpMap = -1.f;
+          sigmatofkMap = -1.f, sigmatofpMap = -1.f, sigmabetaPiMap = -1.f, sigmabetaKMap = -1.f, sigmabetaPMap = -1.f;
     int iMap = -1;
 
     for (const auto& trj : trajwithmtd) {
       const auto& thetrj = (updateTraj_ ? trj : trajs);
       float pathLength = 0.f, tmtd = 0.f, sigmatmtd = -1.f, tofpi = 0.f, tofk = 0.f, tofp = 0.f, sigmatofpi = -1.f,
-            sigmatofk = -1.f, sigmatofp = -1.f;
+            sigmatofk = -1.f, sigmatofp = -1.f, betapi = -1.f, betak = -1.f, betap = -1.f, sigmabetapi = -1.f,
+            sigmabetak = -1.f, sigmabetap = -1.f;
       LogTrace("TrackExtenderWithMTD") << "TrackExtenderWithMTD: refit track " << itrack << " p/pT = " << track->p()
                                        << " " << track->pt() << " eta = " << track->eta();
       reco::Track result = buildTrack(track,
@@ -941,7 +973,13 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
                                       tofp,
                                       sigmatofpi,
                                       sigmatofk,
-                                      sigmatofp);
+                                      sigmatofp,
+                                      betapi,
+                                      betak,
+                                      betap,
+                                      sigmabetapi,
+                                      sigmabetak,
+                                      sigmabetap);
       if (result.ndof() >= 0) {
         /// setup the track extras
         reco::TrackExtra::TrajParams trajParams;
@@ -977,6 +1015,12 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
         sigmatofpiMap = sigmatofpi;
         sigmatofkMap = sigmatofk;
         sigmatofpMap = sigmatofp;
+        betaPiMap = betapi;
+        betaKMap = betak;
+        betaPMap = betap;
+        sigmabetaPiMap = sigmabetapi;
+        sigmabetaKMap = sigmabetak;
+        sigmabetaPMap = sigmabetap;
         reco::TrackExtraRef extraRef(extrasRefProd, extras->size() - 1);
         backtrack.setExtra((updateExtra_ ? extraRef : track->extra()));
         for (unsigned ihit = hitsstart; ihit < hitsend; ++ihit) {
@@ -996,6 +1040,12 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
 
     pOrigTrkRaw.push_back(pMap);
     betaOrigTrkRaw.push_back(betaMap);
+    betaPiOrigTrkRaw.push_back(betaPiMap);
+    betaKOrigTrkRaw.push_back(betaKMap);
+    betaPOrigTrkRaw.push_back(betaPMap);
+    sigmabetaPiOrigTrkRaw.push_back(sigmabetaPiMap);
+    sigmabetaKOrigTrkRaw.push_back(sigmabetaKMap);
+    sigmabetaPOrigTrkRaw.push_back(sigmabetaPMap);
     t0OrigTrkRaw.push_back(t0Map);
     sigmat0OrigTrkRaw.push_back(sigmat0Map);
     pathLengthsOrigTrkRaw.push_back(pathLengthMap);
@@ -1033,6 +1083,12 @@ void TrackExtenderWithMTDT<TrackCollection>::produce(edm::Event& ev, const edm::
   fillValueMap(ev, tracksH, npixEndcap, npixEndcapToken_);
   fillValueMap(ev, tracksH, pOrigTrkRaw, pOrigTrkToken_);
   fillValueMap(ev, tracksH, betaOrigTrkRaw, betaOrigTrkToken_);
+  fillValueMap(ev, tracksH, betaPiOrigTrkRaw, betaPiOrigTrkToken_);
+  fillValueMap(ev, tracksH, betaKOrigTrkRaw, betaKOrigTrkToken_);
+  fillValueMap(ev, tracksH, betaPOrigTrkRaw, betaPOrigTrkToken_);  
+  fillValueMap(ev, tracksH, sigmabetaPiOrigTrkRaw, sigmabetaPiOrigTrkToken_);
+  fillValueMap(ev, tracksH, sigmabetaKOrigTrkRaw, sigmabetaKOrigTrkToken_);
+  fillValueMap(ev, tracksH, sigmabetaPOrigTrkRaw, sigmabetaPOrigTrkToken_);  
   fillValueMap(ev, tracksH, t0OrigTrkRaw, t0OrigTrkToken_);
   fillValueMap(ev, tracksH, sigmat0OrigTrkRaw, sigmat0OrigTrkToken_);
   fillValueMap(ev, tracksH, pathLengthsOrigTrkRaw, pathLengthOrigTrkToken_);
@@ -1320,7 +1376,13 @@ reco::Track TrackExtenderWithMTDT<TrackCollection>::buildTrack(const reco::Track
                                                                float& tofp,
                                                                float& sigmatofpi,
                                                                float& sigmatofk,
-                                                               float& sigmatofp
+                                                               float& sigmatofp,
+                                                               float& betapi,
+                                                               float& betak,
+                                                               float& betap,
+                                                               float& sigmabetapi,
+                                                               float& sigmabetak,
+                                                               float& sigmabetap
                                                                ) const {
   TrajectoryStateClosestToBeamLine tscbl;
   bool tsbcl_status = getTrajectoryStateClosestToBeamLine(traj, bs, thePropagator, tscbl);
@@ -1468,6 +1530,12 @@ reco::Track TrackExtenderWithMTDT<TrackCollection>::buildTrack(const reco::Track
       sigmatofpi = tofInfo.sigma_dt_pi;
       sigmatofk = tofInfo.sigma_dt_k;
       sigmatofp = tofInfo.sigma_dt_p;
+      betapi = tofInfo.beta_pi;
+      betak = tofInfo.beta_k;
+      betap = tofInfo.beta_p;
+      sigmabetapi = tofInfo.sigma_beta_pi;
+      sigmabetak = tofInfo.sigma_beta_k;
+      sigmabetap = tofInfo.sigma_beta_p;
     }
   }
 

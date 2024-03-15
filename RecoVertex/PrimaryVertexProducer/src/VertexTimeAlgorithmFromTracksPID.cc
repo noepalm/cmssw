@@ -191,7 +191,7 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
         }
 
         wsum += wsum_trk;
-        w2sum += wsum_sigma_trk * wsum_sigma_trk / trkInfo.trkWeight; //TODO: remove trkWeight here?
+        w2sum += wsum_sigma_trk * wsum_sigma_trk;
         
       }
 

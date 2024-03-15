@@ -43,6 +43,8 @@ private:
   static constexpr char dtSignPiName[] = "dtSignPi";
   static constexpr char dtSignKName[] = "dtSignK";
   static constexpr char dtSignPName[] = "dtSignP";
+  static constexpr char betaName[] = "beta";
+  static constexpr char sigmaBetaName[] = "sigmabeta";
   static constexpr char timeChisqPiName[] = "timeChisqPi";
   static constexpr char timeChisqKName[] = "timeChisqK";
   static constexpr char timeChisqPName[] = "timeChisqP";
@@ -56,7 +58,13 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> tofpToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpiToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> sigmatofkToken_;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpToken_; 
+  edm::EDGetTokenT<edm::ValueMap<float>> betapiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> betakToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> betapToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmabetapiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmabetakToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmabetapToken_;
   edm::EDGetTokenT<reco::VertexCollection> vtxsToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> trackMTDTimeQualityToken_;
   const double vtxMaxSigmaT_;
@@ -83,6 +91,12 @@ TOFPIDProducer::TOFPIDProducer(const ParameterSet& iConfig)
       sigmatofpiToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofpiSrc"))),
       sigmatofkToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofkSrc"))),
       sigmatofpToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmatofpSrc"))),
+      betapiToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("betapiSrc"))),
+      betakToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("betakSrc"))),
+      betapToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("betapSrc"))),
+      sigmabetapiToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmabetapiSrc"))),
+      sigmabetakToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmabetakSrc"))),
+      sigmabetapToken_(consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("sigmabetapSrc"))),
       vtxsToken_(consumes<reco::VertexCollection>(iConfig.getParameter<edm::InputTag>("vtxsSrc"))),
       trackMTDTimeQualityToken_(
           consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"))),
@@ -110,6 +124,8 @@ TOFPIDProducer::TOFPIDProducer(const ParameterSet& iConfig)
   produces<edm::ValueMap<float>>(timeChisqPiName);
   produces<edm::ValueMap<float>>(timeChisqKName);
   produces<edm::ValueMap<float>>(timeChisqPName);
+  produces<edm::ValueMap<float>>(betaName);
+  produces<edm::ValueMap<float>>(sigmaBetaName);
 }
 
 // Configuration descriptions
@@ -134,6 +150,18 @@ void TOFPIDProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptio
       ->setComment("Input ValueMap for track sigma(tof) as kaon");
   desc.add<edm::InputTag>("sigmatofpSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"))
       ->setComment("Input ValueMap for track sigma(tof) as proton");
+  desc.add<edm::InputTag>("betapiSrc", edm::InputTag("trackExtenderWithMTD:generalTrackBetaPi"))
+      ->setComment("Input ValueMap for track beta as pion");
+  desc.add<edm::InputTag>("betakSrc", edm::InputTag("trackExtenderWithMTD:generalTrackBetaK"))
+      ->setComment("Input ValueMap for track beta as kaon");
+  desc.add<edm::InputTag>("betapSrc", edm::InputTag("trackExtenderWithMTD:generalTrackBetaP"))
+      ->setComment("Input ValueMap for track beta as proton");
+  desc.add<edm::InputTag>("sigmabetapiSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaBetaPi"))
+      ->setComment("Input ValueMap for track sigma(beta) as pion");
+  desc.add<edm::InputTag>("sigmabetakSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaBetaK"))
+      ->setComment("Input ValueMap for track sigma(beta) as kaon");
+  desc.add<edm::InputTag>("sigmabetapSrc", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaBetaP"))
+      ->setComment("Input ValueMap for track sigma(beta) as proton");
   desc.add<edm::InputTag>("vtxsSrc", edm::InputTag("unsortedOfflinePrimaryVertices4DwithPID"))
       ->setComment("Input primary vertex collection");
   desc.add<edm::InputTag>("trackMTDTimeQualityVMapTag", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"))
@@ -194,6 +222,18 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
   const auto& sigmatofpIn = ev.get(sigmatofpToken_);
 
+  const auto& betapiIn = ev.get(betapiToken_);
+
+  const auto& betakIn = ev.get(betakToken_);
+
+  const auto& betapIn = ev.get(betapToken_);
+
+  const auto& sigmabetapiIn = ev.get(sigmabetapiToken_);
+
+  const auto& sigmabetakIn = ev.get(sigmabetakToken_);
+
+  const auto& sigmabetapIn = ev.get(sigmabetapToken_);
+
   const auto& vtxs = ev.get(vtxsToken_);
 
   const auto& trackMVAQualIn = ev.get(trackMTDTimeQualityToken_);
@@ -212,6 +252,8 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
   std::vector<float> chisqPiOutRaw;
   std::vector<float> chisqKOutRaw;
   std::vector<float> chisqPOutRaw;
+  std::vector<float> betaOutRaw;
+  std::vector<float> sigmaBetaOutRaw;
 
   //Do work here
   for (unsigned int itrack = 0; itrack < tracks.size(); ++itrack) {
@@ -227,6 +269,14 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     float sigmatofk = sigmatofkIn[trackref];
     float sigmatofp = sigmatofpIn[trackref];
 
+    float betapi = betapiIn[trackref];
+    float betak = betakIn[trackref];
+    float betap = betapIn[trackref];
+
+    float sigmabetapi = sigmabetapiIn[trackref];
+    float sigmabetak = sigmabetakIn[trackref];
+    float sigmabetap = sigmabetapIn[trackref];
+
     float prob_pi = -1.;
     float prob_k = -1.;
     float prob_p = -1.;
@@ -238,6 +288,9 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     float chisqmin_pi_out = -1.;
     float chisqmin_k_out = -1.;
     float chisqmin_p_out = -1.;
+
+    float beta = betapi;
+    float sigmabeta = betapi - betap;
 
     float trackMVAQual = trackMVAQualIn[trackref];
 
@@ -308,6 +361,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         //reliable match, revert to raw mtd time uncertainty + tof uncertainty for pion hp
         if (dtsignom < maxDtSignificance_) {
           sigmat0safe = 1./rsigmat[0];
+          sigmabeta = sigmabetapi;
         }
 
         double tmtd = tmtdIn[trackref];
@@ -360,6 +414,8 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
             t0_best = t0_k;
             t0safe = t0_k;
             sigmat0safe = 1./rsigmat[1];
+            beta = betak;
+            sigmabeta = sigmabetak;
           }
 
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin) {
@@ -367,6 +423,8 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
             t0_best = t0_p;
             t0safe = t0_p;
             sigmat0safe = 1./rsigmat[2];
+            beta = betap;
+            sigmabeta = sigmabetap;
           }
 
         }
@@ -408,6 +466,8 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
     chisqPiOutRaw.push_back(chisqmin_pi_out);
     chisqKOutRaw.push_back(chisqmin_k_out);
     chisqPOutRaw.push_back(chisqmin_p_out);
+    betaOutRaw.push_back(beta);
+    sigmaBetaOutRaw.push_back(sigmabeta);
   }
 
   fillValueMap(ev, tracksH, t0OutRaw, t0Name);
@@ -423,6 +483,8 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
   fillValueMap(ev, tracksH, chisqPiOutRaw, timeChisqPiName);
   fillValueMap(ev, tracksH, chisqKOutRaw, timeChisqKName);
   fillValueMap(ev, tracksH, chisqPOutRaw, timeChisqPName);
+  fillValueMap(ev, tracksH, betaOutRaw, betaName);
+  fillValueMap(ev, tracksH, sigmaBetaOutRaw, sigmaBetaName);
 }
 
 //define this as a plug-in
