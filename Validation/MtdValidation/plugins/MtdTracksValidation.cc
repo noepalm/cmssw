@@ -161,6 +161,12 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> SigmaTofPToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> trackMVAQualToken_;
 
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbPiToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbKToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> ProbPToken_;
+  edm::EDGetTokenT<edm::ValueMap<float>> BtlMatchTimeChi2Token_;
+  edm::EDGetTokenT<edm::ValueMap<float>> EtlMatchTimeChi2Token_;
+
   edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
   edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
   edm::ESGetToken<MTDDetLayerGeometry, MTDRecoGeometryRecord> mtdlayerToken_;
@@ -255,6 +261,14 @@ private:
   MonitorElement* meExtraBTLeneInCone_;
   MonitorElement* meExtraMTDfailExtenderEta_;
   MonitorElement* meExtraMTDfailExtenderPt_;
+
+  // TESTING HISTOGRAMS
+  MonitorElement* meTrackBtlMatchChi2_[3];
+  MonitorElement* meTrackEtlMatchChi2_[3];
+  MonitorElement* meRatioMatchedTracksVsP_BTL_num_;
+  MonitorElement* meRatioMatchedTracksVsP_BTL_den_;
+  MonitorElement* meRatioMatchedTracksVsP_ETL_num_;
+  MonitorElement* meRatioMatchedTracksVsP_ETL_den_;
 };
 
 // ------------ constructor and destructor --------------
@@ -300,6 +314,13 @@ MtdTracksValidation::MtdTracksValidation(const edm::ParameterSet& iConfig)
   magfieldToken_ = esConsumes<MagneticField, IdealMagneticFieldRecord>();
   builderToken_ = esConsumes<TransientTrackBuilder, TransientTrackRecord>(edm::ESInputTag("", "TransientTrackBuilder"));
   particleTableToken_ = esConsumes<HepPDT::ParticleDataTable, edm::DefaultRecord>();
+
+  // TEST CONSUMES
+  ProbPiToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probPi"));
+  ProbKToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probK"));
+  ProbPToken_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("probP"));
+  BtlMatchTimeChi2Token_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("btlMatchTimeChi2"));
+  EtlMatchTimeChi2Token_ = consumes<edm::ValueMap<float>>(iConfig.getParameter<edm::InputTag>("etlMatchTimeChi2"));
 }
 
 MtdTracksValidation::~MtdTracksValidation() {}
@@ -333,8 +354,12 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
   const auto& mtdQualMVA = iEvent.get(trackMVAQualToken_);
   const auto& trackAssoc = iEvent.get(trackAssocToken_);
   const auto& pathLength = iEvent.get(pathLengthToken_);
-
   const auto& primRecoVtx = *(RecVertexHandle.product()->begin());
+  const auto& btlMatchTimeChi2 = iEvent.get(BtlMatchTimeChi2Token_);
+  const auto& etlMatchTimeChi2 = iEvent.get(EtlMatchTimeChi2Token_);
+  const auto& probPi = iEvent.get(ProbPiToken_);
+  const auto& probK = iEvent.get(ProbKToken_);
+  const auto& probP = iEvent.get(ProbPToken_);
 
   // generator level information (HepMC format)
   auto GenEventHandle = makeValid(iEvent.getHandle(HepMCProductToken_));
@@ -419,6 +444,29 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
       meTrackt0SafePid_->Fill(t0Safe[trackref]);
       meTrackSigmat0SafePid_->Fill(Sigmat0Safe[trackref]);
       meTrackMVAQual_->Fill(mtdQualMVA[trackref]);
+
+      // ---------------------------------------------
+      // ----------- SIGMA(TOF) VALIDATION -----------
+      // ---------------------------------------------
+
+      double probs[3] = {probPi[trackref], probK[trackref], probP[trackref]};
+      int imax = std::max_element(probs, probs + 3) - probs;  //find most likely hypothesis
+
+      // MTD hit match
+      meTrackBtlMatchChi2_[imax]->Fill(btlMatchTimeChi2[trackref]);
+      meTrackEtlMatchChi2_[imax]->Fill(etlMatchTimeChi2[trackref]);
+      if (std::abs(track.eta()) < trackMaxBtlEta_) {
+        meRatioMatchedTracksVsP_BTL_den_->Fill(track.p());
+        if (Sigmat0Safe[trackref] > 0.)
+          meRatioMatchedTracksVsP_BTL_num_->Fill(track.p());
+      } else if (std::abs(track.eta()) > trackMinEtlEta_ && std::abs(track.eta()) < trackMaxEtlEta_) {
+        meRatioMatchedTracksVsP_ETL_den_->Fill(track.p());
+        if (Sigmat0Safe[trackref] > 0.)
+          meRatioMatchedTracksVsP_ETL_num_->Fill(track.p());
+      }
+
+      // ------------------------------
+      // ------------------------------
 
       meTrackSigmaTof_[0]->Fill(SigmaTofPi[trackref] * 1e3);  //save as ps
       meTrackSigmaTof_[1]->Fill(SigmaTofK[trackref] * 1e3);
@@ -974,6 +1022,28 @@ void MtdTracksValidation::bookHistograms(DQMStore::IBooker& ibook, edm::Run cons
   meTrackPathLenghtvsEta_ = ibook.bookProfile(
       "TrackPathLenghtvsEta", "MTD Track pathlength vs MTD track Eta;|#eta|;Pathlength", 100, 0, 3.2, 100.0, 400.0, "S");
 
+  meTrackBtlMatchChi2_[0] =
+      ibook.book1D("TrackBtlMatchChi2_Pion", "Time chi2 with BTL hit match under pion hp.;#chi^{2}_t", 30, 0, 15);
+  meTrackBtlMatchChi2_[1] =
+      ibook.book1D("TrackBtlMatchChi2_Kaon", "Time chi2 with BTL hit match under kaon hp.;#chi^{2}_t", 30, 0, 15);
+  meTrackBtlMatchChi2_[2] =
+      ibook.book1D("TrackBtlMatchChi2_Proton", "Time chi2 with BTL hit match under proton hp.;#chi^{2}_t", 30, 0, 15);
+  meTrackEtlMatchChi2_[0] =
+      ibook.book1D("TrackEtlMatchChi2_Pion", "Time chi2 with ETL hit match under pion hp.;#chi^{2}_t", 30, 0, 15);
+  meTrackEtlMatchChi2_[1] =
+      ibook.book1D("TrackEtlMatchChi2_Kaon", "Time chi2 with ETL hit match under kaon hp.;#chi^{2}_t", 30, 0, 15);
+  meTrackEtlMatchChi2_[2] =
+      ibook.book1D("TrackEtlMatchChi2_Proton", "Time chi2 with ETL hit match under proton hp.;#chi^{2}_t", 30, 0, 15);
+
+  meRatioMatchedTracksVsP_BTL_num_ = ibook.book1D(
+      "RatioMatchedTracksVsP_BTL_num", "Number of tracks matched to MTD BTL hit vs p; p [GeV]", 10, 0., 10.);
+  meRatioMatchedTracksVsP_BTL_den_ =
+      ibook.book1D("RatioMatchedTracksVsP_BTL_den", "Number of all BTL tracks vs p; p [GeV]", 10, 0., 10.);
+  meRatioMatchedTracksVsP_ETL_num_ = ibook.book1D(
+      "RatioMatchedTracksVsP_ETL_num", "Number of tracks matched to MTD ETL hit vs p; p [GeV]", 10, 0., 10.);
+  meRatioMatchedTracksVsP_ETL_den_ =
+      ibook.book1D("RatioMatchedTracksVsP_ETL_den", "Number of all ETL tracks vs p; p [GeV]", 10, 0., 10.);
+
   meTrackSigmaTof_[0] =
       ibook.book1D("TrackSigmaTof_Pion", "Sigma(TOF) for pion hypothesis; #sigma_{t0} [ps]", 10, 0, 5);
   meTrackSigmaTof_[1] =
@@ -1239,6 +1309,12 @@ void MtdTracksValidation::fillDescriptions(edm::ConfigurationDescriptions& descr
   desc.add<edm::InputTag>("sigmaTofK", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"));
   desc.add<edm::InputTag>("sigmaTofP", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"));
   desc.add<edm::InputTag>("trackMVAQual", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"));
+  desc.add<edm::InputTag>("btlMatchTimeChi2", edm::InputTag("trackExtenderWithMTD:btlMatchTimeChi2"));
+  desc.add<edm::InputTag>("etlMatchTimeChi2", edm::InputTag("trackExtenderWithMTD:etlMatchTimeChi2"));
+  desc.add<edm::InputTag>("probPi", edm::InputTag("tofPID:probPi"));
+  desc.add<edm::InputTag>("probK", edm::InputTag("tofPID:probK"));
+  desc.add<edm::InputTag>("probP", edm::InputTag("tofPID:probP"));
+
   desc.add<double>("trackMinimumPt", 0.7);  // [GeV]
   desc.add<double>("trackMaximumBtlEta", 1.5);
   desc.add<double>("trackMinimumEtlEta", 1.6);

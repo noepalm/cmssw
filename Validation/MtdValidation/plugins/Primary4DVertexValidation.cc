@@ -364,6 +364,23 @@ private:
   MonitorElement* meEndcapTruePAsPi_;
   MonitorElement* meEndcapTruePAsK_;
   MonitorElement* meEndcapTruePAsP_;
+
+  // TEST MES
+  MonitorElement* meSigmaTVtx_;
+  MonitorElement* meSigmaTPVtx_;
+
+  MonitorElement* metVtxReco_;
+  MonitorElement* metVtxSim_;
+  MonitorElement* metVtxSimVsZ_;
+  MonitorElement* metPVtxReco_;
+  MonitorElement* metPVtxSim_;
+  MonitorElement* metTracksVsZ_BTL_;
+  MonitorElement* metTracksVsZ_ETL_;
+
+  MonitorElement* meNTracksPerVertex_[4];
+  MonitorElement* meNTracksPerPrimaryVertex_[4];
+  MonitorElement* meNTracksWithMTDPerVertex_[4];
+  MonitorElement* meNTracksWithMTDPerPrimaryVertex_[4];
 };
 
 // constructors and destructor
@@ -537,6 +554,75 @@ void Primary4DVertexValidation::bookHistograms(DQMStore::IBooker& ibook,
   meRecPVZ_ = ibook.book1D("recPVZ", "Weighted #Rec vertices/mm", 400, -20., 20.);
   meRecPVT_ = ibook.book1D("recPVT", "#Rec vertices/10 ps", 200, -1., 1.);
   meSimPVZ_ = ibook.book1D("simPVZ", "Weighted #Sim vertices/mm", 400, -20., 20.);
+
+  // TESTING
+  meSigmaTVtx_ = ibook.book1D("SigmaTVtx", "Sigma_{t} for vertices; #sigma_{t} [ps]", 40, 0., 30.);
+  meSigmaTPVtx_ = ibook.book1D("SigmaTPVtx", "Sigma_{t} for primary vertices; #sigma_{t} [ps]", 40, 0., 30.);
+
+  metVtxReco_ = ibook.book1D("tVtxReco", "Reco time of vertices; t [ns]", 100, -1., 1.);
+  metVtxSim_ = ibook.book1D("tVtxSim", "Sim time of vertices; t [ns]", 100, -1., 1.);
+  metVtxSimVsZ_ = ibook.book2D("tVtxSimVsZ", "Sim time of vertices vs Z; Z [cm]; t [ns]", 100, -10, 10, 100, -1., 1.);
+  metPVtxReco_ = ibook.book1D("tPVtxReco", "Reco time of primary vertices; t [ns]", 100, -1., 1.);
+  metPVtxSim_ = ibook.book1D("tPVtxSim", "Sim time of primary vertices; t [ns]", 100, -1., 1.);
+  metTracksVsZ_BTL_ =
+      ibook.book2D("tTrackVsZ_BTL", "t of tracks vs Z for BTL tracks; Z [cm]; t [ns]", 100, -10, 10, 100, 0, 10);
+  metTracksVsZ_ETL_ =
+      ibook.book2D("tTrackVsZ_ETL", "t of tracks vs Z for ETL tracks; Z [cm]; t [ns]", 100, -10, 10, 100, 0, 10);
+
+  meNTracksPerVertex_[0] =
+      ibook.book1D("NTracksPerVertex_Pion", "Number of pion tracks per reconstructed vertex", 200, 0, 200);
+  meNTracksPerVertex_[1] =
+      ibook.book1D("NTracksPerVertex_Kaon", "Number of kaon tracks per reconstructed vertex", 50, 0, 50);
+  meNTracksPerVertex_[2] =
+      ibook.book1D("NTracksPerVertex_Proton", "Number of proton tracks per reconstructed vertex", 50, 0, 50);
+  meNTracksPerVertex_[3] =
+      ibook.book1D("NTracksPerVertex_Other", "Number of other tracks per reconstructed vertex", 50, 0, 50);
+
+  meNTracksPerPrimaryVertex_[0] = ibook.book1D(
+      "NTracksPerPrimaryVertex_Pion", "Number of pion tracks per reconstructed primary vertex", 100, 0, 200);
+  meNTracksPerPrimaryVertex_[1] =
+      ibook.book1D("NTracksPerPrimaryVertex_Kaon", "Number of kaon tracks per reconstructed primary vertex", 50, 0, 50);
+  meNTracksPerPrimaryVertex_[2] = ibook.book1D(
+      "NTracksPerPrimaryVertex_Proton", "Number of proton tracks per reconstructed primary vertex", 50, 0, 50);
+  meNTracksPerPrimaryVertex_[3] = ibook.book1D(
+      "NTracksPerPrimaryVertex_Other", "Number of other tracks per reconstructed primary vertex", 50, 0, 50);
+
+  meNTracksWithMTDPerVertex_[0] = ibook.book1D(
+      "NTracksWithMTDPerVertex_Pion", "Number of pion tracks with MTD time info per reconstructed vertex", 100, 0, 200);
+  meNTracksWithMTDPerVertex_[1] = ibook.book1D(
+      "NTracksWithMTDPerVertex_Kaon", "Number of kaon tracks with MTD time info per reconstructed vertex", 50, 0, 50);
+  meNTracksWithMTDPerVertex_[2] = ibook.book1D("NTracksWithMTDPerVertex_Proton",
+                                               "Number of proton tracks with MTD time info per reconstructed vertex",
+                                               50,
+                                               0,
+                                               50);
+  meNTracksWithMTDPerVertex_[3] = ibook.book1D(
+      "NTracksWithMTDPerVertex_Other", "Number of other tracks with MTD time info per reconstructed vertex", 50, 0, 50);
+
+  meNTracksWithMTDPerPrimaryVertex_[0] =
+      ibook.book1D("NTracksWithMTDPerPrimaryVertex_Pion",
+                   "Number of pion tracks with MTD time info per reconstructed primary vertex",
+                   100,
+                   0,
+                   200);
+  meNTracksWithMTDPerPrimaryVertex_[1] =
+      ibook.book1D("NTracksWithMTDPerPrimaryVertex_Kaon",
+                   "Number of kaon tracks with MTD time info per reconstructed primary vertex",
+                   50,
+                   0,
+                   50);
+  meNTracksWithMTDPerPrimaryVertex_[2] =
+      ibook.book1D("NTracksWithMTDPerPrimaryVertex_Proton",
+                   "Number of proton tracks with MTD time info per reconstructed primary vertex",
+                   50,
+                   0,
+                   50);
+  meNTracksWithMTDPerPrimaryVertex_[3] =
+      ibook.book1D("NTracksWithMTDPerPrimaryVertex_Other",
+                   "Number of other tracks with MTD time info per reconstructed primary vertex",
+                   50,
+                   0,
+                   50);
 
   //some tests
   meTrackResLowPTot_ = ibook.book1D(
@@ -1346,6 +1432,8 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
               }
 
               if (std::abs((*iTrack)->eta()) < trackMaxBtlEta_) {
+                metTracksVsZ_BTL_->Fill((*iTrack)->vz(), tMtd[*iTrack]);
+
                 meBarrelPIDp_->Fill((*iTrack)->p());
                 meBarrelNoPIDtype_->Fill(noPIDtype + 0.5);
                 if (std::abs((*tp_info)->pdgId()) == 211) {
@@ -1621,6 +1709,54 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
     for (unsigned int ir = 0; ir < recopv.size(); ir++) {
       if (recopv.at(ir).ndof > selNdof_) {
         if (recopv.at(ir).sim == is && simpv.at(is).rec == ir) {
+          // ---------------------------
+          // ---- TESTING SIGMA(T_VTX) FOR SIGMA(TOF) INTEGRATION ----
+          if (recVtxs->at(ir).tError() > 0) {
+            meSigmaTVtx_->Fill(recVtxs->at(ir).tError() * 1e3);  //save in ps
+            if (ir == 0)
+              meSigmaTPVtx_->Fill(recVtxs->at(ir).tError() * 1e3);  //select PV
+          }
+          // ---------------------------------------------------------
+
+          // meNTracksPerVertex_->Fill(recVtxs->at(ir).tracksSize());
+          metVtxReco_->Fill(recVtxs->at(ir).t());
+          metVtxSim_->Fill(simpv.at(is).t * simUnit_);
+          metVtxSimVsZ_->Fill(simpv.at(is).z, simpv.at(is).t * simUnit_);
+
+          // iterate over tracks and count how many have mtd info (Sigmat0Safe[trackref] > 0)
+          int nTracksWithMtdInfo[4] = {0, 0, 0, 0};
+          int nTracksPerPID[4] = {0, 0, 0, 0};
+
+          for (auto iTrack = recVtxs->at(ir).tracks_begin(); iTrack != recVtxs->at(ir).tracks_end(); ++iTrack) {
+            auto tp_info = getMatchedTP(*iTrack, simpv.at(is).sim_vertex);
+
+            if (tp_info != nullptr) {
+              if (std::abs((*tp_info)->pdgId()) == 211) {
+                nTracksPerPID[0]++;
+                if (sigmat0Safe[*iTrack] > 0)
+                  nTracksWithMtdInfo[0]++;
+              } else if (std::abs((*tp_info)->pdgId()) == 321) {
+                nTracksPerPID[1]++;
+                if (sigmat0Safe[*iTrack] > 0)
+                  nTracksWithMtdInfo[1]++;
+              } else if (std::abs((*tp_info)->pdgId()) == 2212) {
+                nTracksPerPID[2]++;
+                if (sigmat0Safe[*iTrack] > 0)
+                  nTracksWithMtdInfo[2]++;
+              } else {
+                nTracksPerPID[3]++;
+                if (sigmat0Safe[*iTrack] > 0)
+                  nTracksWithMtdInfo[3]++;
+              }
+            }
+          }
+
+          for (int i = 0; i < 4; i++) {
+            meNTracksPerVertex_[i]->Fill(nTracksPerPID[i]);
+            meNTracksWithMTDPerVertex_[i]->Fill(nTracksWithMtdInfo[i]);
+          }
+          // ---------------------------
+
           meTimeRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
           meTimePull_->Fill((recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) / recopv.at(ir).recVtx->tError());
           meMatchQual_->Fill(recopv.at(ir).matchQuality - 0.5);
@@ -1628,6 +1764,12 @@ void Primary4DVertexValidation::analyze(const edm::Event& iEvent, const edm::Eve
             meTimeSignalRes_->Fill(recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_);
             meTimeSignalPull_->Fill((recopv.at(ir).recVtx->t() - simpv.at(is).t * simUnit_) /
                                     recopv.at(ir).recVtx->tError());
+            metPVtxReco_->Fill(recopv.at(ir).recVtx->t());
+            metPVtxSim_->Fill(simpv.at(is).t * simUnit_);
+            for (int i = 0; i < 4; i++) {
+              meNTracksPerPrimaryVertex_[i]->Fill(nTracksPerPID[i]);
+              meNTracksWithMTDPerPrimaryVertex_[i]->Fill(nTracksWithMtdInfo[i]);
+            }
             if (optionalPlots_) {
               meRecoPosInSimCollection_->Fill(recopv.at(ir).sim);
               meRecoPosInRecoOrigCollection_->Fill(recopv.at(ir).OriginalIndex);

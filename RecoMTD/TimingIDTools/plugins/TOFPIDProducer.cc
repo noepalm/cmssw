@@ -50,7 +50,7 @@ private:
   edm::EDGetTokenT<edm::ValueMap<float>> tofpToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpiToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> sigmatofkToken_;
-  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpToken_; 
+  edm::EDGetTokenT<edm::ValueMap<float>> sigmatofpToken_;
   edm::EDGetTokenT<reco::VertexCollection> vtxsToken_;
   edm::EDGetTokenT<edm::ValueMap<float>> trackMTDTimeQualityToken_;
   const double vtxMaxSigmaT_;
@@ -215,9 +215,9 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
     if (sigmat0 > 0. && (!MVASel_ || (MVASel_ && trackMVAQual >= minTrackTimeQuality_))) {
       double rsigmazsq = 1. / track.dzError() / track.dzError();
-      double rsigmat[3] = {1. / std::sqrt(sigmatmtd*sigmatmtd + sigmatofpi*sigmatofpi),
-                           1. / std::sqrt(sigmatmtd*sigmatmtd + sigmatofk*sigmatofk),
-                           1. / std::sqrt(sigmatmtd*sigmatmtd + sigmatofp*sigmatofp)};
+      double rsigmat[3] = {1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofpi * sigmatofpi),
+                           1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofk * sigmatofk),
+                           1. / std::sqrt(sigmatmtd * sigmatmtd + sigmatofp * sigmatofp)};
 
       //find associated vertex
       int vtxidx = -1;
@@ -240,7 +240,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
         }
         if (vtx.tError() > 0. && vtx.tError() < vtxMaxSigmaT_) {
           double dt = std::abs(t0 - vtx.t());
-          double dtsig = dt * rsigmat[0]; //pion hp. uncertainty
+          double dtsig = dt * rsigmat[0];  //pion hp. uncertainty
           double chisq = dz * dz * rsigmazsq + dtsig * dtsig;
           if (dz < maxDz_ && dtsig < maxDtSignificance_ && chisq < minchisq) {
             minchisq = chisq;
@@ -276,7 +276,7 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
 
         //reliable match, revert to raw mtd time uncertainty + tof uncertainty for pion hp
         if (dtsignom < maxDtSignificance_) {
-          sigmat0safe = 1./rsigmat[0];
+          sigmat0safe = 1. / rsigmat[0];
         }
 
         double tmtd = tmtdIn[trackref];
@@ -326,13 +326,13 @@ void TOFPIDProducer::produce(edm::Event& ev, const edm::EventSetup& es) {
             chisqmin = chisq_k;
             t0_best = t0_k;
             t0safe = t0_k;
-            sigmat0safe = 1./rsigmat[1];
+            sigmat0safe = 1. / rsigmat[1];
           }
           if (dtsig_p < maxDtSignificance_ && chisq_p < chisqmin) {
             chisqmin = chisq_p;
             t0_best = t0_p;
             t0safe = t0_p;
-            sigmat0safe = 1./rsigmat[2];
+            sigmat0safe = 1. / rsigmat[2];
           }
         }
 

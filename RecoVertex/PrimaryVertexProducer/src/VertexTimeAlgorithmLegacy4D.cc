@@ -42,11 +42,8 @@ bool VertexTimeAlgorithmLegacy4D::vertexTime(float& vtxTime, float& vtxTimeError
   }
 
   if (sumw > 0) {
-    double sumsq = sumwt2 - sumwt * sumwt / sumw;
-    double chisq = num_track > 1 ? sumsq / double(num_track - 1) : sumsq / double(num_track);
-
     vtxTime = sumwt / sumw;
-    vtxTimeError = 1/sqrt(sumw);
+    vtxTimeError = 1 / sqrt(sumw);
     return true;
   }
 

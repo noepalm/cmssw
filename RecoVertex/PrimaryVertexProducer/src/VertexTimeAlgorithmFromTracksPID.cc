@@ -114,16 +114,23 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
         auto& trkInfo = v_trackInfo.back();
 
         trkInfo.trkWeight = trkWeight;
-        trkInfo.trkTimeError = trkTimeError;
-        trkInfo.trkTimeErrorHyp[0] = std::sqrt(trkTimeError*trkTimeError + trackMTDSigmaTofPi_[trk.trackBaseRef()] * trackMTDSigmaTofPi_[trk.trackBaseRef()]);
-        trkInfo.trkTimeErrorHyp[1] = std::sqrt(trkTimeError*trkTimeError + trackMTDSigmaTofK_[trk.trackBaseRef()] * trackMTDSigmaTofK_[trk.trackBaseRef()]);
-        trkInfo.trkTimeErrorHyp[2] = std::sqrt(trkTimeError*trkTimeError + trackMTDSigmaTofP_[trk.trackBaseRef()] * trackMTDSigmaTofP_[trk.trackBaseRef()]);
+        trkInfo.trkTimeErrorHyp[0] =
+            std::sqrt(trkTimeError * trkTimeError +
+                      trackMTDSigmaTofPi_[trk.trackBaseRef()] * trackMTDSigmaTofPi_[trk.trackBaseRef()]);
+        trkInfo.trkTimeErrorHyp[1] =
+            std::sqrt(trkTimeError * trkTimeError +
+                      trackMTDSigmaTofK_[trk.trackBaseRef()] * trackMTDSigmaTofK_[trk.trackBaseRef()]);
+        trkInfo.trkTimeErrorHyp[2] =
+            std::sqrt(trkTimeError * trkTimeError +
+                      trackMTDSigmaTofP_[trk.trackBaseRef()] * trackMTDSigmaTofP_[trk.trackBaseRef()]);
 
         trkInfo.trkTimeHyp[0] = trkTime - trackMTDTofPi_[trk.trackBaseRef()];
         trkInfo.trkTimeHyp[1] = trkTime - trackMTDTofK_[trk.trackBaseRef()];
         trkInfo.trkTimeHyp[2] = trkTime - trackMTDTofP_[trk.trackBaseRef()];
 
-        double const wgt[3] = {trkWeight / (trkInfo.trkTimeErrorHyp[0] * trkInfo.trkTimeErrorHyp[0]), trkWeight / (trkInfo.trkTimeErrorHyp[1] * trkInfo.trkTimeErrorHyp[1]), trkWeight / (trkInfo.trkTimeErrorHyp[2] * trkInfo.trkTimeErrorHyp[2])};
+        double const wgt[3] = {trkWeight / (trkInfo.trkTimeErrorHyp[0] * trkInfo.trkTimeErrorHyp[0]),
+                               trkWeight / (trkInfo.trkTimeErrorHyp[1] * trkInfo.trkTimeErrorHyp[1]),
+                               trkWeight / (trkInfo.trkTimeErrorHyp[2] * trkInfo.trkTimeErrorHyp[2])};
 
         for (uint j = 0; j < 3; ++j) {
           wsum += wgt[j] * a[j];
@@ -133,10 +140,10 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
         LOG << "vertexTimeFromTracks:     track"
             << " pt=" << trk.track().pt() << " eta=" << trk.track().eta() << " phi=" << trk.track().phi()
             << " vtxWeight=" << trkWeight << " time=" << trkTime << " timeError=" << trkTimeError
-            << " timeQuality=" << trkTimeQuality
-            << " timeHyp[pion]=" << trkInfo.trkTimeHyp[0] << " +/- " << trkInfo.trkTimeErrorHyp[0]
-            << " timeHyp[kaon]=" << trkInfo.trkTimeHyp[1] << " +/- " << trkInfo.trkTimeErrorHyp[1]
-            << " timeHyp[proton]=" << trkInfo.trkTimeHyp[2] << " +/- " << trkInfo.trkTimeErrorHyp[2];
+            << " timeQuality=" << trkTimeQuality << " timeHyp[pion]=" << trkInfo.trkTimeHyp[0] << " +/- "
+            << trkInfo.trkTimeErrorHyp[0] << " timeHyp[kaon]=" << trkInfo.trkTimeHyp[1] << " +/- "
+            << trkInfo.trkTimeErrorHyp[1] << " timeHyp[proton]=" << trkInfo.trkTimeHyp[2] << " +/- "
+            << trkInfo.trkTimeErrorHyp[2];
       }
     }
   }
