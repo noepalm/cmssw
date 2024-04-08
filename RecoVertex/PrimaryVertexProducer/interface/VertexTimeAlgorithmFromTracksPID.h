@@ -2,23 +2,24 @@
 #ifndef usercode_PrimaryVertexAnalyzer_VertexTimeAlgorithmFromTracksPID_h
 #define usercode_PrimaryVertexAnalyzer_VertexTimeAlgorithmFromTracksPID_h
 
+#include "DataFormats/Common/interface/ValueMap.h"
+#include "FWCore/Utilities/interface/EDGetToken.h"
 #include "VertexTimeAlgorithmBase.h"
 
-#include "FWCore/Utilities/interface/EDGetToken.h"
-#include "DataFormats/Common/interface/ValueMap.h"
-
 class VertexTimeAlgorithmFromTracksPID : public VertexTimeAlgorithmBase {
-public:
-  VertexTimeAlgorithmFromTracksPID(const edm::ParameterSet& conf, edm::ConsumesCollector& iC);
+ public:
+  VertexTimeAlgorithmFromTracksPID(const edm::ParameterSet& conf,
+                                   edm::ConsumesCollector& iC);
   ~VertexTimeAlgorithmFromTracksPID() override = default;
 
   static void fillPSetDescription(edm::ParameterSetDescription& iDesc);
 
   void setEvent(edm::Event& iEvent, edm::EventSetup const& iSetup) override;
 
-  bool vertexTime(float& vtxTime, float& vtxTimeError, TransientVertex const& vtx) const override;
+  bool vertexTime(float& vtxTime, float& vtxTimeError,
+                  TransientVertex const& vtx) const override;
 
-protected:
+ protected:
   struct TrackInfo {
     double trkWeight;
     double trkTimeErrorHyp[3];

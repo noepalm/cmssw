@@ -1,12 +1,12 @@
+#include "RecoVertex/PrimaryVertexProducer/interface/VertexTimeAlgorithmFromTracksPID.h"
+
+#include "DataFormats/VertexReco/interface/Vertex.h"
 #include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-#include "FWCore/ParameterSet/interface/ValidatedPluginMacros.h"
 #include "FWCore/ParameterSet/interface/ConfigurationDescriptions.h"
-#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "FWCore/ParameterSet/interface/ValidatedPluginMacros.h"
 #include "vdt/vdtMath.h"
-
-#include "RecoVertex/PrimaryVertexProducer/interface/VertexTimeAlgorithmFromTracksPID.h"
 
 #ifdef PVTX_DEBUG
 #define LOG edm::LogPrint("VertexTimeAlgorithmFromTracksPID")
@@ -14,18 +14,27 @@
 #define LOG LogDebug("VertexTimeAlgorithmFromTracksPID")
 #endif
 
-VertexTimeAlgorithmFromTracksPID::VertexTimeAlgorithmFromTracksPID(edm::ParameterSet const& iConfig,
-                                                                   edm::ConsumesCollector& iCC)
+VertexTimeAlgorithmFromTracksPID::VertexTimeAlgorithmFromTracksPID(
+    edm::ParameterSet const& iConfig, edm::ConsumesCollector& iCC)
     : VertexTimeAlgorithmBase(iConfig, iCC),
-      trackMTDTimeToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTimeVMapTag"))),
-      trackMTDTimeErrorToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTimeErrorVMapTag"))),
-      trackMTDTimeQualityToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"))),
-      trackMTDTofPiToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTofPiVMapTag"))),
-      trackMTDTofKToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTofKVMapTag"))),
-      trackMTDTofPToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDTofPVMapTag"))),
-      trackMTDSigmaTofPiToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofPiVMapTag"))),
-      trackMTDSigmaTofKToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofKVMapTag"))),
-      trackMTDSigmaTofPToken_(iCC.consumes(iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofPVMapTag"))),
+      trackMTDTimeToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTimeVMapTag"))),
+      trackMTDTimeErrorToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTimeErrorVMapTag"))),
+      trackMTDTimeQualityToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTimeQualityVMapTag"))),
+      trackMTDTofPiToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTofPiVMapTag"))),
+      trackMTDTofKToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTofKVMapTag"))),
+      trackMTDTofPToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDTofPVMapTag"))),
+      trackMTDSigmaTofPiToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofPiVMapTag"))),
+      trackMTDSigmaTofKToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofKVMapTag"))),
+      trackMTDSigmaTofPToken_(iCC.consumes(
+          iConfig.getParameter<edm::InputTag>("trackMTDSigmaTofPVMapTag"))),
       minTrackVtxWeight_(iConfig.getParameter<double>("minTrackVtxWeight")),
       minTrackTimeQuality_(iConfig.getParameter<double>("minTrackTimeQuality")),
       probPion_(iConfig.getParameter<double>("probPion")),
@@ -34,40 +43,71 @@ VertexTimeAlgorithmFromTracksPID::VertexTimeAlgorithmFromTracksPID(edm::Paramete
       Tstart_(iConfig.getParameter<double>("Tstart")),
       coolingFactor_(iConfig.getParameter<double>("coolingFactor")) {}
 
-void VertexTimeAlgorithmFromTracksPID::fillPSetDescription(edm::ParameterSetDescription& iDesc) {
+void VertexTimeAlgorithmFromTracksPID::fillPSetDescription(
+    edm::ParameterSetDescription& iDesc) {
   VertexTimeAlgorithmBase::fillPSetDescription(iDesc);
 
-  iDesc.add<edm::InputTag>("trackMTDTimeVMapTag", edm::InputTag("trackExtenderWithMTD:generalTracktmtd"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDTimeVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTracktmtd"))
       ->setComment("Input ValueMap for track time at MTD");
-  iDesc.add<edm::InputTag>("trackMTDTimeErrorVMapTag", edm::InputTag("trackExtenderWithMTD:generalTracksigmatmtd"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDTimeErrorVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTracksigmatmtd"))
       ->setComment("Input ValueMap for track time uncertainty at MTD");
-  iDesc.add<edm::InputTag>("trackMTDTimeQualityVMapTag", edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"))
+  iDesc
+      .add<edm::InputTag>("trackMTDTimeQualityVMapTag",
+                          edm::InputTag("mtdTrackQualityMVA:mtdQualMVA"))
       ->setComment("Input ValueMap for track MVA quality value");
-  iDesc.add<edm::InputTag>("trackMTDTofPiVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackTofPi"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDTofPiVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackTofPi"))
       ->setComment("Input ValueMap for track tof as pion");
-  iDesc.add<edm::InputTag>("trackMTDTofKVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackTofK"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDTofKVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackTofK"))
       ->setComment("Input ValueMap for track tof as kaon");
-  iDesc.add<edm::InputTag>("trackMTDTofPVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackTofP"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDTofPVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackTofP"))
       ->setComment("Input ValueMap for track tof as proton");
-  iDesc.add<edm::InputTag>("trackMTDSigmaTofPiVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDSigmaTofPiVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofPi"))
       ->setComment("Input ValueMap for track tof uncertainty as pion");
-  iDesc.add<edm::InputTag>("trackMTDSigmaTofKVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDSigmaTofKVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofK"))
       ->setComment("Input ValueMap for track tof uncertainty as kaon");
-  iDesc.add<edm::InputTag>("trackMTDSigmaTofPVMapTag", edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"))
+  iDesc
+      .add<edm::InputTag>(
+          "trackMTDSigmaTofPVMapTag",
+          edm::InputTag("trackExtenderWithMTD:generalTrackSigmaTofP"))
       ->setComment("Input ValueMap for track tof uncertainty as proton");
 
-  iDesc.add<double>("minTrackVtxWeight", 0.5)->setComment("Minimum track weight");
-  iDesc.add<double>("minTrackTimeQuality", 0.8)->setComment("Minimum MVA Quality selection on tracks");
+  iDesc.add<double>("minTrackVtxWeight", 0.5)
+      ->setComment("Minimum track weight");
+  iDesc.add<double>("minTrackTimeQuality", 0.8)
+      ->setComment("Minimum MVA Quality selection on tracks");
 
   iDesc.add<double>("probPion", 0.7)->setComment("A priori probability pions");
   iDesc.add<double>("probKaon", 0.2)->setComment("A priori probability kaons");
-  iDesc.add<double>("probProton", 0.1)->setComment("A priori probability protons");
+  iDesc.add<double>("probProton", 0.1)
+      ->setComment("A priori probability protons");
 
   iDesc.add<double>("Tstart", 256.)->setComment("DA initial temperature T");
   iDesc.add<double>("coolingFactor", 0.5)->setComment("DA cooling factor");
 }
 
-void VertexTimeAlgorithmFromTracksPID::setEvent(edm::Event& iEvent, edm::EventSetup const&) {
+void VertexTimeAlgorithmFromTracksPID::setEvent(edm::Event& iEvent,
+                                                edm::EventSetup const&) {
   // additional collections required for vertex-time calculation
   trackMTDTimes_ = iEvent.get(trackMTDTimeToken_);
   trackMTDTimeErrors_ = iEvent.get(trackMTDTimeErrorToken_);
@@ -80,9 +120,8 @@ void VertexTimeAlgorithmFromTracksPID::setEvent(edm::Event& iEvent, edm::EventSe
   trackMTDSigmaTofP_ = iEvent.get(trackMTDSigmaTofPToken_);
 }
 
-bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
-                                                  float& vtxTimeError,
-                                                  const TransientVertex& vtx) const {
+bool VertexTimeAlgorithmFromTracksPID::vertexTime(
+    float& vtxTime, float& vtxTimeError, const TransientVertex& vtx) const {
   if (vtx.originalTracks().empty()) {
     return false;
   }
@@ -116,21 +155,28 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
         trkInfo.trkWeight = trkWeight;
         trkInfo.trkTimeErrorHyp[0] =
             std::sqrt(trkTimeError * trkTimeError +
-                      trackMTDSigmaTofPi_[trk.trackBaseRef()] * trackMTDSigmaTofPi_[trk.trackBaseRef()]);
+                      trackMTDSigmaTofPi_[trk.trackBaseRef()] *
+                          trackMTDSigmaTofPi_[trk.trackBaseRef()]);
         trkInfo.trkTimeErrorHyp[1] =
             std::sqrt(trkTimeError * trkTimeError +
-                      trackMTDSigmaTofK_[trk.trackBaseRef()] * trackMTDSigmaTofK_[trk.trackBaseRef()]);
+                      trackMTDSigmaTofK_[trk.trackBaseRef()] *
+                          trackMTDSigmaTofK_[trk.trackBaseRef()]);
         trkInfo.trkTimeErrorHyp[2] =
             std::sqrt(trkTimeError * trkTimeError +
-                      trackMTDSigmaTofP_[trk.trackBaseRef()] * trackMTDSigmaTofP_[trk.trackBaseRef()]);
+                      trackMTDSigmaTofP_[trk.trackBaseRef()] *
+                          trackMTDSigmaTofP_[trk.trackBaseRef()]);
 
         trkInfo.trkTimeHyp[0] = trkTime - trackMTDTofPi_[trk.trackBaseRef()];
         trkInfo.trkTimeHyp[1] = trkTime - trackMTDTofK_[trk.trackBaseRef()];
         trkInfo.trkTimeHyp[2] = trkTime - trackMTDTofP_[trk.trackBaseRef()];
 
-        double const wgt[3] = {trkWeight / (trkInfo.trkTimeErrorHyp[0] * trkInfo.trkTimeErrorHyp[0]),
-                               trkWeight / (trkInfo.trkTimeErrorHyp[1] * trkInfo.trkTimeErrorHyp[1]),
-                               trkWeight / (trkInfo.trkTimeErrorHyp[2] * trkInfo.trkTimeErrorHyp[2])};
+        double const wgt[3] = {
+            trkWeight /
+                (trkInfo.trkTimeErrorHyp[0] * trkInfo.trkTimeErrorHyp[0]),
+            trkWeight /
+                (trkInfo.trkTimeErrorHyp[1] * trkInfo.trkTimeErrorHyp[1]),
+            trkWeight /
+                (trkInfo.trkTimeErrorHyp[2] * trkInfo.trkTimeErrorHyp[2])};
 
         for (uint j = 0; j < 3; ++j) {
           wsum += wgt[j] * a[j];
@@ -138,11 +184,15 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
         }
 
         LOG << "vertexTimeFromTracks:     track"
-            << " pt=" << trk.track().pt() << " eta=" << trk.track().eta() << " phi=" << trk.track().phi()
-            << " vtxWeight=" << trkWeight << " time=" << trkTime << " timeError=" << trkTimeError
-            << " timeQuality=" << trkTimeQuality << " timeHyp[pion]=" << trkInfo.trkTimeHyp[0] << " +/- "
-            << trkInfo.trkTimeErrorHyp[0] << " timeHyp[kaon]=" << trkInfo.trkTimeHyp[1] << " +/- "
-            << trkInfo.trkTimeErrorHyp[1] << " timeHyp[proton]=" << trkInfo.trkTimeHyp[2] << " +/- "
+            << " pt=" << trk.track().pt() << " eta=" << trk.track().eta()
+            << " phi=" << trk.track().phi() << " vtxWeight=" << trkWeight
+            << " time=" << trkTime << " timeError=" << trkTimeError
+            << " timeQuality=" << trkTimeQuality
+            << " timeHyp[pion]=" << trkInfo.trkTimeHyp[0] << " +/- "
+            << trkInfo.trkTimeErrorHyp[0]
+            << " timeHyp[kaon]=" << trkInfo.trkTimeHyp[1] << " +/- "
+            << trkInfo.trkTimeErrorHyp[1]
+            << " timeHyp[proton]=" << trkInfo.trkTimeHyp[2] << " +/- "
             << trkInfo.trkTimeErrorHyp[2];
       }
     }
@@ -157,11 +207,13 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
       w2sum = 0;
 
       for (auto const& trkInfo : v_trackInfo) {
-        double dt[3] = {trkInfo.trkTimeErrorHyp[0], trkInfo.trkTimeErrorHyp[1], trkInfo.trkTimeErrorHyp[2]};
+        double dt[3] = {trkInfo.trkTimeErrorHyp[0], trkInfo.trkTimeErrorHyp[1],
+                        trkInfo.trkTimeErrorHyp[2]};
         double e[3] = {0, 0, 0};
         const double cut_off = 4.5;
         double Z = vdt::fast_exp(
-            -beta * cut_off);  // outlier rejection term Z_0 = exp(-beta * cut_off) = exp(-beta * 0.5 * 3 * 3)
+            -beta * cut_off);  // outlier rejection term Z_0 = exp(-beta *
+                               // cut_off) = exp(-beta * 0.5 * 3 * 3)
 
         for (unsigned int j = 0; j < 3; j++) {
           auto const tpull = (trkInfo.trkTimeHyp[j] - t0) / dt[j];
@@ -189,13 +241,14 @@ bool VertexTimeAlgorithmFromTracksPID::vertexTime(float& vtxTime,
 
       vtxTime = tsum / wsum;
 
-      LOG << "vertexTimeFromTracks:   iteration=" << nit << ", T= " << 1 / beta << ", t=" << vtxTime
-          << ", t-t0=" << vtxTime - t0;
+      LOG << "vertexTimeFromTracks:   iteration=" << nit << ", T= " << 1 / beta
+          << ", t=" << vtxTime << ", t-t0=" << vtxTime - t0;
 
       if ((std::abs(vtxTime - t0) < 1e-4 / std::sqrt(beta)) and beta >= 1.) {
         vtxTimeError = std::sqrt(w2sum) / wsum;
 
-        LOG << "vertexTimeFromTracks:   tfit = " << vtxTime << " +/- " << vtxTimeError << " trec = " << vtx.time()
+        LOG << "vertexTimeFromTracks:   tfit = " << vtxTime << " +/- "
+            << vtxTimeError << " trec = " << vtx.time()
             << ", iteration=" << nit;
 
         return true;
