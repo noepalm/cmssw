@@ -30,4 +30,5 @@
 <use name="gsl"/>
 <use name="fastjet"/>
 <use name="SimFastTiming/FastTimingCommon"/>
+<use name="PhysicsTools/UtilAlgos"/>
 <flags EDM_PLUGIN="1"/>
