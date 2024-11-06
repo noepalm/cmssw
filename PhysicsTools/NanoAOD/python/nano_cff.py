@@ -43,7 +43,7 @@ linkedObjects = cms.EDProducer("PATObjectCrossLinker",
    taus=cms.InputTag("finalTaus"),
    boostedTaus=cms.InputTag("finalBoostedTaus"),
    photons=cms.InputTag("finalPhotons"),
-   vertices=cms.InputTag("slimmedSecondaryVertices")
+#    vertices=cms.InputTag("slimmedSecondaryVertices")
 )
 
 # Switch to AK4 CHS jets for Run-2
