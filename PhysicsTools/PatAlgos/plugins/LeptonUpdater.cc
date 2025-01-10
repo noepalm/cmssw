@@ -25,6 +25,9 @@ namespace pat {
           vertices_(consumes<std::vector<reco::Vertex>>(iConfig.getParameter<edm::InputTag>("vertices"))),
           beamLineToken_(consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamspot"))),
           computeMiniIso_(iConfig.getParameter<bool>("computeMiniIso")),
+          computePfIso_(iConfig.getParameter<bool>("computePfIso")),
+          pfIsoMinPt_(iConfig.getParameter<double>("pfIsoMinPt")),
+          pfIsoMaxPt_(iConfig.getParameter<double>("pfIsoMaxPt")),          
           fixDxySign_(iConfig.getParameter<bool>("fixDxySign")) {
       //for mini-isolation calculation
       if (computeMiniIso_) {
@@ -47,6 +50,9 @@ namespace pat {
       desc.add<edm::InputTag>("vertices")->setComment("Vertex collection");
       desc.add<edm::InputTag>("beamspot", edm::InputTag("offlineBeamSpot"))->setComment("Beam spot");
       desc.add<bool>("computeMiniIso", false)->setComment("Recompute miniIsolation");
+      desc.add<bool>("computePfIso", false)->setComment("Recompute pfIsolation");
+      desc.add<double>("pfIsoMinPt", -1.)->setComment("Min lepton pt to recompute pfIsolation");
+      desc.add<double>("pfIsoMaxPt", -1.)->setComment("Max lepton pt to recompute pfIsolation");      
       desc.add<bool>("fixDxySign", false)->setComment("Fix the IP sign");
       desc.addOptional<edm::InputTag>("pfCandsForMiniIso", edm::InputTag("packedPFCandidates"))
           ->setComment("PackedCandidate collection used for miniIso");
@@ -75,6 +81,7 @@ namespace pat {
     const std::vector<double> &miniIsoParams(const T &lep) const { return miniIsoParams_[0]; }
 
     void recomputeMuonBasicSelectors(T &, const reco::Vertex &, const bool) const;
+    void recomputePfIso(T &, const pat::PackedCandidateCollection* pc) const;    
 
   private:
     // configurables
@@ -82,6 +89,9 @@ namespace pat {
     edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_;
     edm::EDGetTokenT<reco::BeamSpot> beamLineToken_;
     bool computeMiniIso_;
+    bool computePfIso_;
+    double pfIsoMinPt_;
+    double pfIsoMaxPt_;    
     bool fixDxySign_;
     bool recomputeMuonBasicSelectors_;
     std::vector<double> miniIsoParams_[2];
@@ -128,6 +138,29 @@ namespace pat {
     lep.setSelectors(muon::makeSelectorBitset(lep, &pv, do_hip_mitigation_2016));
   }
 
+  template <typename T>
+  void LeptonUpdater<T>::recomputePfIso(T &lep, const pat::PackedCandidateCollection* pc) const {}
+  template <>
+  void LeptonUpdater<pat::Electron>::recomputePfIso(pat::Electron &lep, const pat::PackedCandidateCollection* pc) const {
+    if (pfIsoMinPt_ > 0 && lep.pt() < pfIsoMinPt_) return;
+    if (pfIsoMaxPt_ > 0 && lep.pt() > pfIsoMaxPt_) return;
+    // DataFormats/PatCandidates/interface/PFIsolation.h
+    // DataFormats/EgammaCandidates/interface/GsfElectron.h
+    pat::PFIsolation iso03_ = pat::getMiniPFIsolation(pc, lep.polarP4(), 0.3,0.3,0,0.5,0.01);
+    reco::GsfElectron::PflowIsolationVariables iso03; 
+    iso03.sumChargedHadronPt = iso03_.chargedHadronIso();
+    iso03.sumNeutralHadronEt = iso03_.neutralHadronIso();
+    iso03.sumPhotonEt        = iso03_.photonIso();
+    lep.setPfIsolationVariables(iso03);
+    // DataFormats/PatCandidates/interface/Lepton.h
+    pat::PFIsolation iso04_ = pat::getMiniPFIsolation(pc, lep.polarP4(), 0.4,0.4,0,0.5,0.01);
+    lep.setIsolation(pat::PfChargedHadronIso, iso04_.chargedHadronIso());
+    lep.setIsolation(pat::PfNeutralHadronIso, iso04_.neutralHadronIso());
+    lep.setIsolation(pat::PfGammaIso, iso04_.photonIso());
+    return;
+  }
+
+
 }  // namespace pat
 
 template <typename T>
@@ -140,7 +173,7 @@ void pat::LeptonUpdater<T>::produce(edm::StreamID, edm::Event &iEvent, edm::Even
   const reco::Vertex &pv = vertices->front();
 
   edm::Handle<pat::PackedCandidateCollection> pc;
-  if (computeMiniIso_)
+  if (computeMiniIso_ || computePfIso_)
     iEvent.getByToken(pcToken_, pc);
 
   edm::Handle<reco::BeamSpot> beamSpotHandle;
@@ -177,6 +210,8 @@ void pat::LeptonUpdater<T>::produce(edm::StreamID, edm::Event &iEvent, edm::Even
                                                          params[8]);
       lep.setMiniPFIsolation(miniiso);
     }
+    if (computePfIso_) recomputePfIso(lep, pc.product());
+        
     if (recomputeMuonBasicSelectors_)
       recomputeMuonBasicSelectors(lep, pv, do_hip_mitigation_2016);
     //Fixing the sign of impact parameters

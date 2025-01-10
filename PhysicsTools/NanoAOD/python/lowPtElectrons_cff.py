@@ -22,6 +22,7 @@ updatedLowPtElectrons = cms.EDProducer(
     src = cms.InputTag("modifiedLowPtElectrons"),
     vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
     computeMiniIso = cms.bool(True),
+    computePfIso = cms.bool(True),
     fixDxySign = cms.bool(False),
     pfCandsForMiniIso = cms.InputTag("packedPFCandidates"),
     miniIsoParamsB = PhysicsTools.PatAlgos.producersLayer1.electronProducer_cfi.patElectrons.miniIsoParamsB,
