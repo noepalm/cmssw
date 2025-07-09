@@ -68,7 +68,8 @@ nanoTableTaskCommon = cms.Task(
     cms.Task(linkedObjects),
     jetPuppiTablesTask, jetAK8TablesTask,
     muonTablesTask, fsrTablesTask, tauTablesTask, boostedTauTablesTask,
-    electronTablesTask, lowPtElectronTablesTask, photonTablesTask,
+    # electronTablesTask, lowPtElectronTablesTask, 
+    photonTablesTask,
     globalTablesTask, vertexTablesTask, metTablesTask, extraFlagsTableTask,
     isoTrackTablesTask,softActivityTablesTask
 )
