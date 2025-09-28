@@ -4,6 +4,8 @@
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerClusterFwd.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
+// #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
+// #include "DataFormats/ForwardDetId/interface/ETLDetId.h"
 #include <vector>
 
 class MtdSimSuperCluster {  
@@ -30,6 +32,12 @@ public:
 
     /// Position of the earliest cluster
     LocalPoint simPos() const;
+
+    /// detId of earliest cluster
+    DetId simDetId() const;
+
+    /// Energy of supercluster
+    float simEnergy() const;
 
     /// Retrieve list of all DetIds from clusters
     std::vector<DetId> detIds() const;

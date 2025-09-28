@@ -17,13 +17,14 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', ''
 # Input file (must contain SimClusters + TrackingParticles)
 process.source = cms.Source("PoolSource",
     # fileNames = cms.untracked.vstring([f"root://eosuser.cern.ch///eos/user/n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_080407/0000/step2_{i}.root" for i in range(1, 11)]),
-    fileNames = cms.untracked.vstring([f"file:/eos/cms/store/relval/CMSSW_15_1_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_STD_RegeneratedGS_Run4D110_noPU-v1/2580000/03ec5b66-690c-415a-9602-362b351d2a08.root"]), #photon gun
+    fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_080407/0000/step2_{i}.root" for i in range(1, 11)]),
+    # fileNames = cms.untracked.vstring([f"file:/eos/cms/store/relval/CMSSW_15_1_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_STD_RegeneratedGS_Run4D110_noPU-v1/2580000/03ec5b66-690c-415a-9602-362b351d2a08.root"]), #photon gun
 
 )
 
 # Number of events
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(100)
 )
 
 # Load your producer
@@ -34,9 +35,13 @@ process.mtdSimSuperClusterProducer = mtdSimSuperClusterProducer.clone()
 # Output module (optional - to store results)
 process.output = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string("mtdSimSuperClusters.root"),
+    overrideInputFileSplitLevels = cms.untracked.bool(True),
     outputCommands = cms.untracked.vstring(
         "drop *",
-        "keep *_mtdSimSuperClusterProducer_*_*"
+        "keep *_mtdSimSuperClusterProducer_*_*",
+        "keep *_mix_*_*",  # Keep mix to have TrackingParticles
+        "keep *_mtdSimLayerClusterToTPAssociation_*_*",
+        "keep *_mtdSimLayerClusterToTPAssociatorByTrackId_*_*",
     )
 )
 
