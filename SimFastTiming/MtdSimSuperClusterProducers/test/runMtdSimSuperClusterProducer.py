@@ -1,4 +1,18 @@
 import FWCore.ParameterSet.Config as cms
+from FWCore.ParameterSet.VarParsing import VarParsing
+
+# Set up command line argument parsing
+options = VarParsing('analysis')
+
+# Define custom options
+options.register('useTopologicalClustering',
+                 True,
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.bool,
+                 "Enable topological clustering in SuperCluster producer")
+
+# Parse command line arguments
+options.parseArguments()
 
 from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
 process = cms.Process("MtdSuperClusOnly", Phase2C17I13M9)
@@ -9,37 +23,52 @@ process.load("SimGeneral.MixingModule.mixNoPU_cfi")  # Needed for TrackingPartic
 process.load('Configuration.Geometry.GeometryExtendedRun4D110Reco_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
+# Configure logging levels for your producer
+process.MessageLogger.debugModules = ["*"]
+process.MessageLogger.cerr.MtdSimSuperClusterProducer = cms.untracked.PSet(
+    limit = cms.untracked.int32(-1),  # No limit on messages
+    # Choose your debug level:
+    # INFO: Shows LogInfo and above (basic info)
+    # DEBUG: Shows LogDebug and above (more detailed)  
+    # TRACE: Shows LogTrace and above (most detailed)
+    reportEvery = cms.untracked.int32(1)
+)
+# Set overall threshold:
+# process.MessageLogger.cerr.threshold = cms.untracked.string('INFO')    # Basic info
+process.MessageLogger.cerr.threshold = cms.untracked.string('DEBUG')   # More detailed
+# process.MessageLogger.cerr.threshold = cms.untracked.string('TRACE')   # Most detailed
+
 # Global tag
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-from Configuration.AlCa.GlobalTag import GlobalTag
+from Configuration.AlCa.GlobalTag import GlobalTag  
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', '')
 
 # Input file (must contain SimClusters + TrackingParticles)
 process.source = cms.Source("PoolSource",
-    # fileNames = cms.untracked.vstring([f"root://eosuser.cern.ch///eos/user/n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_080407/0000/step2_{i}.root" for i in range(1, 11)]),
+    # fileNames = cms.untracked.vstring(options.inputFiles)
     fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_080407/0000/step2_{i}.root" for i in range(1, 11)]),
-    # fileNames = cms.untracked.vstring([f"file:/eos/cms/store/relval/CMSSW_15_1_0_pre2/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_STD_RegeneratedGS_Run4D110_noPU-v1/2580000/03ec5b66-690c-415a-9602-362b351d2a08.root"]), #photon gun
-
+    skipEvents = cms.untracked.uint32(175)  # Skip event 0, start from event 1
 )
 
 # Number of events
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(options.maxEvents)
 )
 
 # Load your producer
 from SimFastTiming.MtdSimSuperClusterProducers.mtdSimSuperClusterProducer_cfi import mtdSimSuperClusterProducer
-process.mtdSimSuperClusterProducer = mtdSimSuperClusterProducer.clone()
-# process.superClusterSequence = cms.Sequence(process.mtdSimSuperClusterProducer)
+process.mtdSimSuperClusterProducer = mtdSimSuperClusterProducer.clone(
+    useTopologicalClustering = cms.bool(options.useTopologicalClustering)
+)
 
 # Output module (optional - to store results)
 process.output = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string("mtdSimSuperClusters.root"),
-    overrideInputFileSplitLevels = cms.untracked.bool(True),
+    fileName = cms.untracked.string(options.outputFile),
     outputCommands = cms.untracked.vstring(
         "drop *",
         "keep *_mtdSimSuperClusterProducer_*_*",
-        "keep *_mix_*_*",  # Keep mix to have TrackingParticles
+        "keep *_mix_*_*",  # Keep mix to have TrackingParticles, MtdSimLayerClusters
+        "keep *_genParticles_*_*",  # keep GenParticles
         "keep *_mtdSimLayerClusterToTPAssociation_*_*",
         "keep *_mtdSimLayerClusterToTPAssociatorByTrackId_*_*",
     )
@@ -61,3 +90,8 @@ process.superClusterSequence = cms.Sequence(process.mtdSimLayerClusterToTPAssoci
 process.p = cms.Path(process.superClusterSequence)
 process.out_step = cms.EndPath(process.output)
 process.schedule = cms.Schedule(process.p, process.out_step)
+
+print("Running MTD SuperCluster Producer...")
+print(f"Output file: {options.outputFile}")
+print(f"Max events: {options.maxEvents}")
+print(f"Use topological clustering: {options.useTopologicalClustering}")

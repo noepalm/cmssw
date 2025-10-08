@@ -1,3 +1,6 @@
+// Enable debug logging
+#define EDM_ML_DEBUG
+
 #include <FWCore/Framework/interface/one/EDProducer.h>
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -5,6 +8,9 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
+
+// Logging
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
@@ -31,6 +37,7 @@
 #include "Geometry/MTDGeometryBuilder/interface/MTDTopology.h"
 
 // DetId
+#include "DataFormats/ForwardDetId/interface/MTDDetId.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
 #include "DataFormats/ForwardDetId/interface/ETLDetId.h"
 
@@ -65,7 +72,6 @@ void traverseDecayTree(const edm::Ref<TrackingParticleCollection>& tpRef,
     }
 }
 
-
 class MtdSimSuperClusterProducer : public edm::one::EDProducer<edm::one::SharedResources> {
 public:
     explicit MtdSimSuperClusterProducer(const edm::ParameterSet&);
@@ -76,8 +82,11 @@ public:
 private:
     edm::EDGetTokenT<TrackingParticleCollection> trackingParticlesToken_;
     edm::EDGetTokenT<reco::TPToSimCollectionMtd> tpToSimClusMapToken_;
+    edm::EDGetTokenT<reco::SimToTPCollectionMtd> simClusToTPMapToken_;
     edm::EDGetTokenT<MtdSimLayerClusterCollection> mtdSimLayerClustersToken_;    
     double minEnergy_;
+
+    bool useTopologicalClustering_ = true;
 
     const edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 };
@@ -85,8 +94,10 @@ private:
 MtdSimSuperClusterProducer::MtdSimSuperClusterProducer(const edm::ParameterSet& iConfig)
     : trackingParticlesToken_(consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles"))),
       tpToSimClusMapToken_(consumes<reco::TPToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMap"))),
+      simClusToTPMapToken_(consumes<reco::SimToTPCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMap"))),
       mtdSimLayerClustersToken_(consumes<MtdSimLayerClusterCollection>(iConfig.getParameter<edm::InputTag>("mtdSimLayerClusters"))),
       minEnergy_(iConfig.getParameter<double>("minClusterEnergy")),
+      useTopologicalClustering_(iConfig.getParameter<bool>("useTopologicalClustering")),
       mtdtopoToken_(esConsumes<MTDTopology, MTDTopologyRcd>()) {
     produces<MtdSimSuperClusterCollection>();
 }
@@ -108,62 +119,311 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
     edm::Handle<reco::TPToSimCollectionMtd> tpToSimClusMap;
     iEvent.getByToken(tpToSimClusMapToken_, tpToSimClusMap);
 
+    edm::Handle<reco::SimToTPCollectionMtd> simClusToTPMap;
+    iEvent.getByToken(simClusToTPMapToken_, simClusToTPMap);
+
     edm::Handle<MtdSimLayerClusterCollection> simLClusters;
     iEvent.getByToken(mtdSimLayerClustersToken_, simLClusters);
+
+    // BUILD ANCESTOR MAP: to check if 2 TrackingParticles have the same root ancestor
+    std::map<TrackingParticleRef, TrackingParticleRef> ancestorMap;
+    for(size_t i = 0; i < trackingParticles->size(); ++i) {
+        TrackingParticleRef tp(trackingParticles, i);
+        
+        // Find earliest ancestor for this TP
+        TrackingParticleRef current = tp;
+        std::set<TrackingParticleRef> visited;
+        
+        while (true) {
+            // Prevent infinite loops
+            if (visited.count(current)) {
+                break;
+            }
+            visited.insert(current);
+            
+            // Check if this particle has parent vertices
+            const auto& parentVertices = current->parentVertex();
+            if (parentVertices.isNull() || !parentVertices.isAvailable()) {
+                // No parent vertex - this is the root ancestor
+                break;
+            }
+            // Get the parent tracks from the parent vertex
+            const auto& parentTracks = parentVertices->sourceTracks();
+            if (parentTracks.empty()) {
+                // No parent tracks - this is the root ancestor
+                break;
+            }
+            // Move to the first parent
+            current = parentTracks[0];
+        }
+        // Store the mapping: TP -> earliest ancestor
+        ancestorMap[tp] = current;
+    }
+
+    // ANCESTOR MAP SANITY CHECK: how many unique ancestors are there?
+    std::set<TrackingParticleRef> uniqueAncestors;
+    for (const auto& pair : ancestorMap) {
+        uniqueAncestors.insert(pair.second);
+    }
+    edm::LogInfo("MtdSimSuperClusterProducer") << "Total TrackingParticles: " << trackingParticles->size() 
+                                          << ", Unique primary ancestors: " << uniqueAncestors.size();
 
     // reserve memory for output collection
     // (worst case scenario: all TrackingParticles are primary)
     outputClusters->reserve(trackingParticles->size());
 
     // Create cluster map for fast lookup
-    // FIXME: not BTL only
     std::map<BTLDetId, const MtdSimLayerCluster*> clusterMap;
     for (const auto& cluster : *simLClusters) {
+        if (!cluster.detIds_and_rows().empty() && MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::ETL) continue;
+
         if (cluster.energy() >= minEnergy_) {
             // retrieve detId from first hit
             BTLDetId detId = cluster.detIds_and_rows()[0].first;
-            clusterMap[detId] = &cluster;
+            // CHECK: can there be multiple clusters with same detId?
+            if (clusterMap.count(detId) > 0) {
+                edm::LogWarning("MtdSimSuperClusterProducer") << "Multiple MtdSimLayerClusters with same detId " << detId.rawId();
+            }
+            // retrieve GEOGRAPHICAL id
+            BTLDetId geoDetId = detId.geographicalId(BTLDetId::CrysLayout::v3);
+
+            clusterMap[geoDetId] = &cluster;
         }
     }
 
-    std::cout << "Found " << clusterMap.size() << " BTL clusters above energy threshold" << std::endl;
+    edm::LogInfo("MtdSimSuperClusterProducer") << "Found " << clusterMap.size() << " MTD SimLayerClusters above energy threshold";
 
-    for(size_t i = 0; i < trackingParticles->size(); ++i) {
-        TrackingParticleRef tp(trackingParticles, i);
+    if (useTopologicalClustering_) {
+        edm::LogInfo("MtdSimSuperClusterProducer") << "Using TOPOLOGICAL + HISTORICAL clustering algorithm";
 
-        // check if particle is primary and comes from first interaction vertex
-        if (tp->status() != 1) continue;
-        if (tp->genParticles().size() < 1) continue;
-        if (tp->g4Tracks().size() > 0){
-            if (tp->g4Tracks().front().vertIndex() != 0) continue;
-        } else {
-            continue;
-        }
+        // ------------------------------------------------------
+        // NEW: HISTORY+TOPOLOGY IMPLEMENTATION
 
-        // create supercluster
-        MtdSimSuperCluster simSuperCluster(tp);
+        std::set<const MtdSimLayerCluster*> processedClusters;
 
-        std::set<edm::Ref<TrackingParticleCollection>> visited;
+        // Process clusters with full merging logic
+        for (const auto& cluster : *simLClusters) {
+            if (cluster.energy() < minEnergy_ || processedClusters.count(&cluster)) continue;
 
-        traverseDecayTree(tp, visited, 
-            [&](const TrackingParticleRef& ref) {                
-                const auto& simLayerClusters = tpToSimClusMap->find(ref);
-                if(simLayerClusters != tpToSimClusMap->end()){
-                    for (const auto& simLayerCluster : simLayerClusters->val) {
-                        if (simLayerCluster->simLCEnergy() > minEnergy_)
-                            simSuperCluster.addCluster(simLayerCluster, ref);
+            // // TEMPORARY: forget about ETL hits
+            // std::cout << "DEBUG: cluster detId: " << std::endl;
+            // std::cout << BTLDetId(cluster.detIds_and_rows()[0].first) << std::endl;
+            // std::cout << "Subdetector: " << BTLDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() << " (BTL = " << MTDDetId::BTL << ", ETL = " << MTDDetId::ETL << ")" << std::endl;
+            if (!cluster.detIds_and_rows().empty() && MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::ETL) continue;
+            
+            BTLDetId cluId(cluster.detIds_and_rows()[0].first);
+
+            LogDebug("MtdSimSuperClusterProducer") << "Processing cluster DetId " << cluId.rawId() 
+                                                << " with energy " << cluster.simLCEnergy() << " MeV";
+            
+            // Start with current cluster
+            std::vector<const MtdSimLayerCluster*> superClusterClusters = {&cluster};
+            processedClusters.insert(&cluster);
+            
+            // Check for edge hits in current cluster
+            bool edgeHitIn0 = false;
+            bool edgeHitIn15 = false;
+
+            // iterate over detIds_and_rows:
+            LogDebug("MtdSimSuperClusterProducer") << "Iterating over " << cluster.detIds_and_rows().size() << " cluster hits";
+            for (auto const& detId_row_col : cluster.detIds_and_rows()) {
+                int row = detId_row_col.second.first;
+                int col = detId_row_col.second.second;
+
+                LogDebug("MtdSimSuperClusterProducer") << "  Cluster hit at row " << row << ", col " << col;
+
+                if (col == 0) {
+                    edgeHitIn0 = true;
+                } else if (col == 15) {
+                    edgeHitIn15 = true;
+                }
+
+            }
+            
+            bool hasEdgeHitCurrent = edgeHitIn0 || edgeHitIn15;
+            LogDebug("MtdSimSuperClusterProducer") << "  Edge hits: col0=" << edgeHitIn0 << ", col15=" << edgeHitIn15;
+            LogDebug("MtdSimSuperClusterProducer") << "  hasEdgeHitCurrent = " << hasEdgeHitCurrent;
+            
+            // Get topology indices - use geographicalId (module-level) with crystal layout
+            // std::cout << "  DEBUG: getting BTL indices from geographicalId " << cluId.geographicalId(BTLDetId::CrysLayout::v3) << std::endl;
+            std::pair<uint32_t, uint32_t> indices = topology->btlIndex(cluId.geographicalId(BTLDetId::CrysLayout::v3).rawId());
+            uint32_t iphi = indices.first;
+            uint32_t ieta = indices.second;
+            LogDebug("MtdSimSuperClusterProducer") << "  BTL indices: iphi=" << iphi << ", ieta=" << ieta;
+            
+            // ETA DIRECTION MERGING
+            if (hasEdgeHitCurrent && iphi != std::numeric_limits<uint32_t>::max() && ieta != std::numeric_limits<uint32_t>::max()) {
+                LogDebug("MtdSimSuperClusterProducer") << "  Attempting eta-direction merging...";
+                std::vector<int> etaOffsets = {1, -1};
+                for (int etaOffset : etaOffsets) {
+                    uint32_t adjDetIdRaw = topology->btlidFromIndex(iphi, ieta + etaOffset);
+                    LogDebug("MtdSimSuperClusterProducer") << "    Checking adjacent detId at index (" << iphi << ", " << ieta + etaOffset << "): " << adjDetIdRaw;
+                    if (adjDetIdRaw == 0) continue;
+                    
+                    BTLDetId adjDetId(adjDetIdRaw);
+                    auto it = clusterMap.find(adjDetId);
+                    if (it == clusterMap.end()){
+                        LogDebug("MtdSimSuperClusterProducer") << "    No cluster found at this detId";
+                        continue;
+                    }
+                    if (processedClusters.count(it->second)){
+                        LogDebug("MtdSimSuperClusterProducer") << "    Cluster found but already processed";
+                        continue;
+                    }
+                    
+                    const MtdSimLayerCluster* adjCluster = it->second;
+                    LogDebug("MtdSimSuperClusterProducer") << "    Found eta neighbor at " << adjDetId.rawId();
+                    
+                    // Check for opposite edge hit
+                    bool hasOppositeEdgeHit = false;
+
+                    for (auto const& detId_row_col : adjCluster->detIds_and_rows()) {
+                        int row = detId_row_col.second.first;
+                        int col = detId_row_col.second.second;
+
+                        LogDebug("MtdSimSuperClusterProducer") << "      adjacent cluster hit at row " << row << ", col " << col;
+
+                        if ((edgeHitIn0 && col == 15) || (edgeHitIn15 && col == 0)) {
+                            hasOppositeEdgeHit = true;
+                        }
+                    }
+
+                    if (hasOppositeEdgeHit){ // && areTimingCompatible(&cluster, adjCluster)) { // FORGET ABOUT TIME COMPATIBILITY FOR NOW
+                        // check for common ancestor
+                        bool hasCommonAncestor = false;
+                        const auto& simLayerClusters1 = simClusToTPMap->find(MtdSimLayerClusterRef(simLClusters, &cluster - &(*simLClusters->begin())));
+                        const auto& simLayerClusters2 = simClusToTPMap->find(MtdSimLayerClusterRef(simLClusters, adjCluster - &(*simLClusters->begin())));
+                        if (simLayerClusters1 != simClusToTPMap->end() && simLayerClusters2 != simClusToTPMap->end()) {
+                            for (const auto& tpRef1 : simLayerClusters1->val) {
+                                for (const auto& tpRef2 : simLayerClusters2->val) {
+                                    if (ancestorMap[tpRef1] == ancestorMap[tpRef2]) {
+                                        hasCommonAncestor = true;
+                                        break;
+                                    }
+                                }
+                                if (hasCommonAncestor) break;
+                            }
+                        }
+
+                        if (hasCommonAncestor) {
+                            LogDebug("MtdSimSuperClusterProducer") << "  -> MERGING ETA neighbor: " << cluId.rawId() 
+                                    << " with " << adjDetId.rawId();
+                            superClusterClusters.push_back(adjCluster);
+                            processedClusters.insert(adjCluster);
+                        } else {
+                            LogDebug("MtdSimSuperClusterProducer") << "    Not merging: no common ancestor found";
+                        }
+
+                    }
+                }
+            } else {
+                LogDebug("MtdSimSuperClusterProducer") << "  No edge hit or invalid indices: not attempting eta merging";
+                LogDebug("MtdSimSuperClusterProducer") << "    hasEdgeHitCurrent = " << hasEdgeHitCurrent 
+                            << ", iphi = " << iphi << " (is max? " << (iphi == std::numeric_limits<uint32_t>::max()) << "), ieta = " << ieta << " (is max? " << (ieta == std::numeric_limits<uint32_t>::max()) << ")";
+            }
+            
+            // // PHI DIRECTION MERGING
+            // if (iphi != std::numeric_limits<uint32_t>::max() && ieta != std::numeric_limits<uint32_t>::max()) {
+                
+            //     std::vector<int> phiOffsets = {1, -1};
+            //     for (int phiOffset : phiOffsets) {
+            //         uint32_t adjDetIdRaw = topology->btlidFromIndex(iphi + phiOffset, ieta);
+            //         if (adjDetIdRaw == 0) continue;
+                    
+            //         BTLDetId adjDetId(adjDetIdRaw);
+            //         auto it = clusterMap.find(adjDetId);
+            //         if (it == clusterMap.end()) continue;
+            //         if (processedClusters.count(it->second)) continue;
+                    
+            //         const MtdSimLayerCluster* adjCluster = it->second;
+            //         std::cout << "  Found phi neighbor at " << adjDetId.rawId() << std::endl;
+                    
+            //         // if (areTimingCompatible(&cluster, adjCluster)) {
+            //         //     std::cout << "  -> MERGING PHI neighbor: " << cluId.rawId() 
+            //         //                 << " with " << adjDetId.rawId() << std::endl;
+            //         //     superClusterClusters.push_back(adjCluster);
+            //         //     processedClusters.insert(adjCluster);
+            //         // }
+
+            //         std::cout << "  -> MERGING PHI neighbor: " << cluId.rawId() 
+            //                     << " with " << adjDetId.rawId() << std::endl;
+            //         superClusterClusters.push_back(adjCluster);
+            //         processedClusters.insert(adjCluster);
+
+            //     }
+            // }
+            
+            // Create supercluster from merged clusters
+            MtdSimSuperCluster simSuperCluster;
+
+            // for each cluster, find associated TPs and add to supercluster using Sim to TP map
+            for (const auto& simLayerCluster : superClusterClusters) {
+                // create simLC reference by finding the index in the original collection
+                size_t clusterIndex = simLayerCluster - &(*simLClusters->begin());
+                MtdSimLayerClusterRef simLayerClusterRef(simLClusters, clusterIndex);
+                const auto& TPs = simClusToTPMap->find(simLayerClusterRef);
+                if (TPs != simClusToTPMap->end()) {
+                    for (const auto& tpRef : TPs->val) {
+                        simSuperCluster.addCluster(simLayerClusterRef, tpRef);
                     }
                 }
             }
-        );
 
-        outputClusters->push_back(simSuperCluster);
+            outputClusters->push_back(simSuperCluster);
+            LogDebug("MtdSimSuperClusterProducer") << "Created SuperCluster from " << superClusterClusters.size() 
+                        << " clusters: E=" << simSuperCluster.simEnergy() 
+                        << " MeV, t=" << simSuperCluster.simTime() << " ns";
+        }
+    } else {
+        edm::LogInfo("MtdSimSuperClusterProducer") << "Using HISTORY-ONLY clustering algorithm";
+
+        // OLD: HISTORY-ONLY IMPLEMENTATION
+        for(size_t i = 0; i < trackingParticles->size(); ++i) {
+            TrackingParticleRef tp(trackingParticles, i);
+
+            // check if particle is primary and comes from first interaction vertex
+            if (tp->status() != 1) continue;
+            if (tp->genParticles().size() < 1) continue;
+            if (tp->g4Tracks().size() > 0){
+                if (tp->g4Tracks().front().vertIndex() != 0) continue;
+            } else {
+                continue;
+            }
+
+            // create 2 superclusters: one for primary+secondary+looper clusters, one for backscatter hits 
+            MtdSimSuperCluster simSuperCluster(tp);
+            // MtdSimSuperCluster backscatterCluster(tp);
+
+            std::set<edm::Ref<TrackingParticleCollection>> visited;
+
+            traverseDecayTree(tp, visited, 
+                [&](const TrackingParticleRef& ref) {                
+                    const auto& simLayerClusters = tpToSimClusMap->find(ref);
+                    if(simLayerClusters != tpToSimClusMap->end()){
+                        for (const auto& simLayerCluster : simLayerClusters->val) {
+                            if (simLayerCluster->simLCEnergy() > minEnergy_) {
+                                //TEMPORARY: also check if cluster is in BTL
+                                if (!simLayerCluster->detIds_and_rows().empty() && MTDDetId(simLayerCluster->detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::BTL){
+                                    // if (simLayerCluster->trackIdOffset() == 3)
+                                    //     backscatterCluster.addCluster(simLayerCluster, ref);
+                                    // else
+                                        simSuperCluster.addCluster(simLayerCluster, ref);
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+
+            outputClusters->push_back(simSuperCluster);
+            // outputClusters->push_back(backscatterCluster);
+        }
     }
 
     // print all MtdSimSuperClusters
-    std::cout << "Found " << outputClusters->size() << " MtdSimSuperClusters" << std::endl;
+    edm::LogInfo("MtdSimSuperClusterProducer") << "Found " << outputClusters->size() << " MtdSimSuperClusters";
     for (const auto& superCluster : *outputClusters) {
-        std::cout << superCluster << std::endl;
+        LogDebug("MtdSimSuperClusterProducer") << superCluster;
         auto detids = superCluster.detIds();
     }
 
