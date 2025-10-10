@@ -1,0 +1,55 @@
+#ifndef SimDataFormats_CaloAnalysis_MtdSimSuperCluster_h
+#define SimDataFormats_CaloAnalysis_MtdSimSuperCluster_h
+
+#include "DataFormats/GeometryVector/interface/LocalPoint.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerClusterFwd.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
+// #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
+// #include "DataFormats/ForwardDetId/interface/ETLDetId.h"
+#include <vector>
+
+class MtdSimSuperCluster {  
+    
+    friend std::ostream& operator<<(std::ostream& s, const MtdSimSuperCluster& sc);
+
+public:
+    MtdSimSuperCluster() = default;
+
+    // Construct with one TrackingParticle ref (the main track)
+    MtdSimSuperCluster(const TrackingParticleRef& tpRef) : mainTrack_(tpRef) {
+        trackingParticles_.push_back(tpRef);
+    }
+
+    // Construct with one MtdSimLayerCluster ref and one TrackingParticle ref
+    MtdSimSuperCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef);
+
+    ~MtdSimSuperCluster() = default;
+
+    void addCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef);
+
+    /// Time of the earliest cluster
+    float simTime() const;
+
+    /// Position of the earliest cluster
+    LocalPoint simPos() const;
+
+    /// detId of earliest cluster
+    DetId simDetId() const;
+
+    /// Energy of supercluster
+    float simEnergy() const;
+
+    /// Retrieve list of all DetIds from clusters
+    std::vector<DetId> detIds() const;
+
+    /// Accessors
+    const MtdSimLayerClusterRefVector& clusters() const { return clusters_; }
+    const TrackingParticleRefVector& trackingParticles() const { return trackingParticles_; }
+
+private:
+    MtdSimLayerClusterRefVector clusters_;
+    TrackingParticleRefVector trackingParticles_;
+    TrackingParticleRef mainTrack_;
+};
+
+#endif
