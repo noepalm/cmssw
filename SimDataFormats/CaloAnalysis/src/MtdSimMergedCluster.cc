@@ -22,11 +22,6 @@ void MtdSimMergedCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, co
     clusters_.clear();
     for(auto& ref : sortedRefs)
         clusters_.push_back(ref);
-
-    // std::sort(clusters_.begin(), clusters_.end(),
-    //           [](MtdSimLayerClusterRef& a, MtdSimLayerClusterRef& b) {
-    //             return a->simLCTime() < b->simLCTime();
-    //           });
 }
 
 float MtdSimMergedCluster::simTime() const {
@@ -85,10 +80,6 @@ std::vector<DetId> MtdSimMergedCluster::detIds() const {
 
 std::ostream& operator<<(std::ostream& s, const MtdSimMergedCluster& sc) {
     s << "MtdSimMergedCluster with " << sc.clusters_.size() << " clusters and TrackingParticles: = " << sc.trackingParticles_.size() << "\n";
-    // for (const auto& clu : sc.clusters_) {
-    //   s << "  Cluster time = " << clu->simLCTime() << "\n";
-    // }
-    // print also time and position using methods
     s << "Earliest time = " << sc.simTime() << "\n";
     s << "Earliest position = " << sc.simPos() << "\n";
 

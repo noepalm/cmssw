@@ -59,7 +59,6 @@
 
   <enum name="FTLSeverityLevel::SeverityLevel"/> 
 
-  <!-- nadodano: -->
   <class name="FTLMergedCluster"/>
   <class name="std::vector<FTLMergedCluster>"/>
   <class name="edm::Wrapper<std::vector<FTLMergedCluster>>"/>
