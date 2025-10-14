@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
-//class MtdSimMergedCluster;
+
 typedef std::vector<MtdSimMergedCluster> MtdSimMergedClusterCollection;
 typedef edm::Ref<MtdSimMergedClusterCollection> MtdSimMergedClusterRef;
 typedef edm::RefVector<MtdSimMergedClusterCollection> MtdSimMergedClusterRefVector;

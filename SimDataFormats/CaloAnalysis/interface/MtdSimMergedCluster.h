@@ -4,8 +4,6 @@
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerClusterFwd.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
-// #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
-// #include "DataFormats/ForwardDetId/interface/ETLDetId.h"
 #include <vector>
 
 class MtdSimMergedCluster {  
