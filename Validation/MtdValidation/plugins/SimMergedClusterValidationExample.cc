@@ -1,19 +1,19 @@
-#include "Validation/MtdValidation/plugins/SimSuperClusterValidationExample.h"
+#include "Validation/MtdValidation/plugins/SimMergedClusterValidationExample.h"
 #include <iostream>
 #include <CLHEP/Units/SystemOfUnits.h>
 #include "DataFormats/Math/interface/GeantUnits.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
 
-SimSuperClusterValidationExample::SimSuperClusterValidationExample(const edm::ParameterSet& iConfig):
+SimMergedClusterValidationExample::SimMergedClusterValidationExample(const edm::ParameterSet& iConfig):
     mtdgeoToken_(esConsumes<MTDGeometry, MTDDigiGeometryRecord>()),
     mtdtopoToken_(esConsumes<MTDTopology, MTDTopologyRcd>()) {
     usesResource("TFileService");
 
-    // superClustersToken_ = consumes<FTLSuperClusterCollection>(iConfig.getParameter<edm::InputTag>("superClusters"));
+    // mergedClustersToken_ = consumes<FTLMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("mergedClusters"));
     // clustersToken_ = consumes<FTLClusterCollection>(iConfig.getParameter<edm::InputTag>("clusters"));
 
-    superClustersToken_ = consumes<MtdSimSuperClusterCollection>(iConfig.getParameter<edm::InputTag>("simSuperClusters"));
+    mergedClustersToken_ = consumes<MtdSimMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("simMergedClusters"));
     clustersToken_ = consumes<MtdSimLayerClusterCollection>(iConfig.getParameter<edm::InputTag>("simLayerClusters"));
     
     // GenParticles are optional - only consume if specified in config
@@ -24,18 +24,18 @@ SimSuperClusterValidationExample::SimSuperClusterValidationExample(const edm::Pa
 
 #define DEBUG 0
 
-void SimSuperClusterValidationExample::beginJob() {
+void SimMergedClusterValidationExample::beginJob() {
     // Initialize event counter
     processed_event_counter_ = 0;
     
     edm::Service<TFileService> fs;
     
-    // SuperCluster histograms
-    h_sc_energy_ = fs->make<TH1F>("h_sc_energy", "SuperCluster Energy;Energy [MeV];Count", 50, 0, 2);
-    h_sc_time_ = fs->make<TH1F>("h_sc_time", "SuperCluster Time;Time [ns];Count", 50, 0, 30);
-    // h_sc_timeError_ = fs->make<TH1F>("h_sc_timeError", "SuperCluster Time Error;Time Error [ns];Count", 100, 0, 1);
-    h_sc_x_ = fs->make<TH1F>("h_sc_x", "SuperCluster X;X [mm];Count", 50, -120, 120);
-    h_sc_y_ = fs->make<TH1F>("h_sc_y", "SuperCluster Y;Y [mm];Count", 50, -120, 120);
+    // MergedCluster histograms
+    h_sc_energy_ = fs->make<TH1F>("h_sc_energy", "MergedCluster Energy;Energy [MeV];Count", 50, 0, 2);
+    h_sc_time_ = fs->make<TH1F>("h_sc_time", "MergedCluster Time;Time [ns];Count", 50, 0, 30);
+    // h_sc_timeError_ = fs->make<TH1F>("h_sc_timeError", "MergedCluster Time Error;Time Error [ns];Count", 100, 0, 1);
+    h_sc_x_ = fs->make<TH1F>("h_sc_x", "MergedCluster X;X [mm];Count", 50, -120, 120);
+    h_sc_y_ = fs->make<TH1F>("h_sc_y", "MergedCluster Y;Y [mm];Count", 50, -120, 120);
     h_sc_nClusters_ = fs->make<TH1F>("h_sc_nClusters", "Number of Clusters;N_{clusters};Count", 11, -0.5, 10.5);
     
     // // Cluster histograms for comparison
@@ -43,13 +43,13 @@ void SimSuperClusterValidationExample::beginJob() {
     // h_cluster_time_ = fs->make<TH1F>("h_cluster_time", "Cluster Time;Time [ns];Count", 100, -5, 20);
     
     // // 2D histograms
-    h_sc_energy_vs_time_ = fs->make<TH2F>("h_sc_energy_vs_time", "SuperCluster Energy vs Time;Time [ns];Energy [MeV]", 30, 4, 27, 20, 0, 1);
-    h_sc_xy_ = fs->make<TH2F>("h_sc_xy", "SuperCluster Position;X [mm];Y [mm]", 100, -120, 120, 100, -120, 120);
+    h_sc_energy_vs_time_ = fs->make<TH2F>("h_sc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 30, 4, 27, 20, 0, 1);
+    h_sc_xy_ = fs->make<TH2F>("h_sc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -120, 120, 100, -120, 120);
     h_sc_energy_vs_nClusters_ = fs->make<TH2F>("h_sc_energy_vs_nClusters", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 4, -0.5, 3.5, 20, 0, 1);
     // h_merging_efficiency_ = fs->make<TH2F>("h_merging_efficiency", "Merging Efficiency;Cluster Energy [MeV];Merged?", 50, 0, 50, 2, -0.5, 1.5);
     
     // Analysis tree
-    tree_ = fs->make<TTree>("MTDSuperClusters", "MTD SuperCluster Analysis Tree");
+    tree_ = fs->make<TTree>("MTDMergedClusters", "MTD MergedCluster Analysis Tree");
     
     tree_->Branch("evt_run", &evt_run_);
     tree_->Branch("evt_event", &evt_event_);
@@ -79,20 +79,20 @@ void SimSuperClusterValidationExample::beginJob() {
     // tree_->Branch("cluster_x", &cluster_x_);
     // tree_->Branch("cluster_y", &cluster_y_);
     // tree_->Branch("cluster_detId", &cluster_detId_);
-    // tree_->Branch("cluster_inSuperCluster", &cluster_inSuperCluster_);
+    // tree_->Branch("cluster_inMergedCluster", &cluster_inMergedCluster_);
 }
 
-void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void SimMergedClusterValidationExample::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
     using namespace geant_units::operators; // for energy conversion
 
-    // edm::Handle<FTLSuperClusterCollection> superClustersHandle;
-    // iEvent.getByToken(superClustersToken_, superClustersHandle);
+    // edm::Handle<FTLMergedClusterCollection> mergedClustersHandle;
+    // iEvent.getByToken(mergedClustersToken_, mergedClustersHandle);
     
     // edm::Handle<FTLClusterCollection> clustersHandle;
     // iEvent.getByToken(clustersToken_, clustersHandle);
 
-    edm::Handle<MtdSimSuperClusterCollection> mtdSimSCHandle;
-    iEvent.getByToken(superClustersToken_, mtdSimSCHandle);
+    edm::Handle<MtdSimMergedClusterCollection> mtdSimSCHandle;
+    iEvent.getByToken(mergedClustersToken_, mtdSimSCHandle);
 
     edm::Handle<MtdSimLayerClusterCollection> mtdSimLCHandle;
     iEvent.getByToken(clustersToken_, mtdSimLCHandle);
@@ -133,7 +133,7 @@ void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const e
     // cluster_energy_.clear();
     cluster_time_.clear();
     cluster_x_.clear(); cluster_y_.clear(); cluster_detId_.clear();
-    cluster_inSuperCluster_.clear();
+    cluster_inMergedCluster_.clear();
     
     sc_n_ = mtdSimSCHandle->size();
     
@@ -198,18 +198,18 @@ void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const e
         sc_y_.push_back(global_point.y());
         sc_nClusters_.push_back(nClusters);
 
-        // Collect per-cluster information for this supercluster
+        // Collect per-cluster information for this mergedcluster
         std::vector<uint32_t> iphi_perCluster;
         std::vector<uint32_t> ieta_perCluster;
         std::vector<float> energy_perCluster;
         std::vector<float> time_perCluster;
         std::vector<uint32_t> clusterType_perCluster;
         
-        // Access individual clusters from the supercluster
+        // Access individual clusters from the mergedcluster
         for (const auto& cluster_ref : sc.clusters()) {
             const auto& cluster = *cluster_ref;
             
-            // Get detId from first hit (following MtdSimSuperClusterProducer pattern)
+            // Get detId from first hit (following MtdSimMergedClusterProducer pattern)
             if (cluster.detIds_and_rows().empty()) continue;
             BTLDetId clusterDetId(cluster.detIds_and_rows()[0].first);
             
@@ -241,7 +241,7 @@ void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const e
         sc_time_perCluster_.push_back(time_perCluster);
         sc_clusterType_.push_back(clusterType_perCluster);
         
-        // Find primary tracking particle for this supercluster
+        // Find primary tracking particle for this mergedcluster
         float primary_energy = -999.0;
         float primary_et = -999.0;
         float primary_phi = -999.0;
@@ -339,7 +339,7 @@ void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const e
         
         // Print detailed info for first few events
         if (evt_event_ <= 3) {
-            std::cout << "SuperCluster: MeV, t=" << time << " ns;"
+            std::cout << "MergedCluster: MeV, t=" << time << " ns;"
                       << " E = " << energy << " MeV;"
                       << " pos = (" << sc.simPos().x() << "," << sc.simPos().y() << ")" << std::endl;
             std::cout << "  Made from " << nClusters << " clusters:" << std::endl;
@@ -361,29 +361,29 @@ void SimSuperClusterValidationExample::analyze(const edm::Event& iEvent, const e
     //         h_cluster_time_->Fill(cluster.time());
             
     //         // Check if cluster was merged
-    //         bool inSuperCluster = clusterDetIds.count(cluster.id().rawId()) > 0;
-    //         h_merging_efficiency_->Fill(cluster.energy(), inSuperCluster ? 1 : 0);
+    //         bool inMergedCluster = clusterDetIds.count(cluster.id().rawId()) > 0;
+    //         h_merging_efficiency_->Fill(cluster.energy(), inMergedCluster ? 1 : 0);
             
     //         cluster_energy_.push_back(cluster.energy());
     //         cluster_time_.push_back(cluster.time());
     //         cluster_x_.push_back(cluster.x());
     //         cluster_y_.push_back(cluster.y());
     //         cluster_detId_.push_back(cluster.id().rawId());
-    //         cluster_inSuperCluster_.push_back(inSuperCluster);
+    //         cluster_inMergedCluster_.push_back(inMergedCluster);
     //     }
     // }
     
     tree_->Fill();
     
     if (evt_event_ <= 3) {
-        std::cout << "Event " << evt_event_ << ": " << sc_n_ << " SuperClusters, " 
+        std::cout << "Event " << evt_event_ << ": " << sc_n_ << " MergedClusters, " 
                   << cluster_n_ << " individual clusters" << std::endl;
     }
 }
 
-void SimSuperClusterValidationExample::endJob() {
-    std::cout << "\n=== MTD SuperCluster Validation Summary ===" << std::endl;
+void SimMergedClusterValidationExample::endJob() {
+    std::cout << "\n=== MTD MergedCluster Validation Summary ===" << std::endl;
     std::cout << "Total events processed: " << tree_->GetEntries() << std::endl;
 }
 
-DEFINE_FWK_MODULE(SimSuperClusterValidationExample);
+DEFINE_FWK_MODULE(SimMergedClusterValidationExample);

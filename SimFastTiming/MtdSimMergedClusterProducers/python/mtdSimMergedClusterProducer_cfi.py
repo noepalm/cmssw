@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
-mtdSimSuperClusterProducer = cms.EDProducer(
-    "MtdSimSuperClusterProducer",
+mtdSimMergedClusterProducer = cms.EDProducer(
+    "MtdSimMergedClusterProducer",
     trackingParticles = cms.InputTag("mix", "MergedTrackTruth"),
     mtdSimLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC"),
     tp2SimAssociationMap = cms.InputTag("mtdSimLayerClusterToTPAssociation"),

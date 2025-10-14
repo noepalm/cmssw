@@ -1,10 +1,10 @@
-#include "Validation/MtdValidation/plugins/SuperClusterValidationExample.h"
+#include "Validation/MtdValidation/plugins/MergedClusterValidationExample.h"
 #include <iostream>
 
-SuperClusterValidationExample::SuperClusterValidationExample(const edm::ParameterSet& iConfig) {
+MergedClusterValidationExample::MergedClusterValidationExample(const edm::ParameterSet& iConfig) {
     usesResource("TFileService");
     
-    superClustersToken_ = consumes<FTLSuperClusterCollection>(iConfig.getParameter<edm::InputTag>("superClusters"));
+    mergedClustersToken_ = consumes<FTLMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("mergedClusters"));
     clustersToken_ = consumes<FTLClusterCollection>(iConfig.getParameter<edm::InputTag>("clusters"));
     mtdtopoToken_ = esConsumes<MTDTopology, MTDTopologyRcd>(); 
     mtdgeoToken_ = esConsumes<MTDGeometry, MTDDigiGeometryRecord>();
@@ -13,15 +13,15 @@ SuperClusterValidationExample::SuperClusterValidationExample(const edm::Paramete
     totalMergedPairs_ = 0;
 }
 
-void SuperClusterValidationExample::beginJob() {
+void MergedClusterValidationExample::beginJob() {
     edm::Service<TFileService> fs;
     
-    // SuperCluster histograms
-    h_sc_energy_ = fs->make<TH1F>("h_sc_energy", "SuperCluster Energy;Energy [MeV];Count", 100, 0, 50);
-    h_sc_time_ = fs->make<TH1F>("h_sc_time", "SuperCluster Time;Time [ns];Count", 100, -5, 20);
-    h_sc_timeError_ = fs->make<TH1F>("h_sc_timeError", "SuperCluster Time Error;Time Error [ns];Count", 100, 0, 1);
-    h_sc_x_ = fs->make<TH1F>("h_sc_x", "SuperCluster X;X [mm];Count", 100, -200, 200);
-    h_sc_y_ = fs->make<TH1F>("h_sc_y", "SuperCluster Y;Y [mm];Count", 100, -200, 200);
+    // MergedCluster histograms
+    h_sc_energy_ = fs->make<TH1F>("h_sc_energy", "MergedCluster Energy;Energy [MeV];Count", 100, 0, 50);
+    h_sc_time_ = fs->make<TH1F>("h_sc_time", "MergedCluster Time;Time [ns];Count", 100, -5, 20);
+    h_sc_timeError_ = fs->make<TH1F>("h_sc_timeError", "MergedCluster Time Error;Time Error [ns];Count", 100, 0, 1);
+    h_sc_x_ = fs->make<TH1F>("h_sc_x", "MergedCluster X;X [mm];Count", 100, -200, 200);
+    h_sc_y_ = fs->make<TH1F>("h_sc_y", "MergedCluster Y;Y [mm];Count", 100, -200, 200);
     h_sc_nClusters_ = fs->make<TH1F>("h_sc_nClusters", "Number of Clusters;N_{clusters};Count", 10, 0.5, 10.5);
     
     // Cluster histograms for comparison
@@ -29,8 +29,8 @@ void SuperClusterValidationExample::beginJob() {
     h_cluster_time_ = fs->make<TH1F>("h_cluster_time", "Cluster Time;Time [ns];Count", 100, -5, 20);
     
     // 2D histograms
-    h_sc_energy_vs_time_ = fs->make<TH2F>("h_sc_energy_vs_time", "SuperCluster Energy vs Time;Time [ns];Energy [MeV]", 100, -5, 20, 100, 0, 50);
-    h_sc_xy_ = fs->make<TH2F>("h_sc_xy", "SuperCluster Position;X [mm];Y [mm]", 100, -200, 200, 100, -200, 200);
+    h_sc_energy_vs_time_ = fs->make<TH2F>("h_sc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 100, -5, 20, 100, 0, 50);
+    h_sc_xy_ = fs->make<TH2F>("h_sc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -200, 200, 100, -200, 200);
     h_sc_energy_vs_nClusters_ = fs->make<TH2F>("h_sc_energy_vs_nClusters_", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 10, 0.5, 10.5, 100, 0, 50);
     h_merging_efficiency_ = fs->make<TH2F>("h_merging_efficiency", "Merging Efficiency;Cluster Energy [MeV];Merged?", 50, 0, 50, 2, -0.5, 1.5);
     
@@ -40,7 +40,7 @@ void SuperClusterValidationExample::beginJob() {
     h_eta_merging_efficiency_ = fs->make<TH1F>("h_eta_merging_efficiency", "Merging Efficiency vs Eta;#eta;Efficiency", 100, -1.5, 1.5);
     
     // Analysis tree
-    tree_ = fs->make<TTree>("MTDSuperClusters", "MTD SuperCluster Analysis Tree");
+    tree_ = fs->make<TTree>("MTDMergedClusters", "MTD MergedCluster Analysis Tree");
     
     tree_->Branch("evt_run", &evt_run_);
     tree_->Branch("evt_event", &evt_event_);
@@ -61,18 +61,18 @@ void SuperClusterValidationExample::beginJob() {
     tree_->Branch("cluster_x", &cluster_x_);
     tree_->Branch("cluster_y", &cluster_y_);
     tree_->Branch("cluster_detId", &cluster_detId_);
-    tree_->Branch("cluster_inSuperCluster", &cluster_inSuperCluster_);
+    tree_->Branch("cluster_inMergedCluster", &cluster_inMergedCluster_);
 }
 
-void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+void MergedClusterValidationExample::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
-    edm::Handle<FTLSuperClusterCollection> superClustersHandle;
-    iEvent.getByToken(superClustersToken_, superClustersHandle);
+    edm::Handle<FTLMergedClusterCollection> mergedClustersHandle;
+    iEvent.getByToken(mergedClustersToken_, mergedClustersHandle);
     
     edm::Handle<FTLClusterCollection> clustersHandle;
     iEvent.getByToken(clustersToken_, clustersHandle);
     
-    if (!superClustersHandle.isValid() || !clustersHandle.isValid()) {
+    if (!mergedClustersHandle.isValid() || !clustersHandle.isValid()) {
         std::cout << "Invalid handles!" << std::endl;
         return;
     }
@@ -91,16 +91,16 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
     sc_seedId_.clear(); sc_clusterIds_.clear();
     cluster_energy_.clear(); cluster_time_.clear();
     cluster_x_.clear(); cluster_y_.clear(); cluster_detId_.clear();
-    cluster_inSuperCluster_.clear();
+    cluster_inMergedCluster_.clear();
     
-    sc_n_ = superClustersHandle->size();
+    sc_n_ = mergedClustersHandle->size();
     
     std::set<uint32_t> clusterDetIds;
 
     std::map<uint32_t, int> detIdToSCIndex;
     int scIndex = 0;
     
-    for (const auto& sc : *superClustersHandle) {
+    for (const auto& sc : *mergedClustersHandle) {
 
         h_sc_energy_->Fill(sc.energy());
         h_sc_time_->Fill(sc.time());
@@ -131,7 +131,7 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
         scIndex++;
 
         if (evt_event_ <= 3) {
-            std::cout << "SuperCluster: E=" << sc.energy() << " MeV, t=" << sc.time() 
+            std::cout << "MergedCluster: E=" << sc.energy() << " MeV, t=" << sc.time() 
                       << " ns, pos=(" << sc.x() << "," << sc.y() << ")" << std::endl;
             std::cout << "  Made from " << sc.nClusters() << " clusters:" << std::endl;
             for (const auto& detId : sc.clusterIds()) {
@@ -156,15 +156,15 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
             h_cluster_time_->Fill(cluster.time());
             
             // Check if cluster was merged
-            bool inSuperCluster = clusterDetIds.count(cluster.id().rawId()) > 0;
-            //h_merging_efficiency_->Fill(cluster.energy(), inSuperCluster ? 1 : 0);
+            bool inMergedCluster = clusterDetIds.count(cluster.id().rawId()) > 0;
+            //h_merging_efficiency_->Fill(cluster.energy(), inMergedCluster ? 1 : 0);
             
             cluster_energy_.push_back(cluster.energy());
             cluster_time_.push_back(cluster.time());
             cluster_x_.push_back(cluster.x());
             cluster_y_.push_back(cluster.y());
             cluster_detId_.push_back(cluster.id().rawId());
-            cluster_inSuperCluster_.push_back(inSuperCluster);
+            cluster_inMergedCluster_.push_back(inMergedCluster);
         }
     }
     
@@ -247,7 +247,7 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
                     adjacentPairs++;
                     h_eta_adjacent_pairs_->Fill(cluster_eta);
 
-                    // Check if both clusters are in the same SuperCluster
+                    // Check if both clusters are in the same MergedCluster
                     uint32_t detId1 = cluId.rawId();
                     uint32_t detId2 = adjDetId.rawId();
                     
@@ -302,7 +302,7 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
 
             h_eta_adjacent_pairs_->Fill(cluster_eta);
 
-            // Check if both clusters are in the same SuperCluster
+            // Check if both clusters are in the same MergedCluster
             uint32_t detId1 = cluId.rawId();
             uint32_t detId2 = adjDetId.rawId();
             
@@ -337,20 +337,20 @@ void SuperClusterValidationExample::analyze(const edm::Event& iEvent, const edm:
     tree_->Fill();
 
     if (evt_event_ <= 3) {
-        std::cout << "Event " << evt_event_ << ": " << sc_n_ << " SuperClusters, " 
+        std::cout << "Event " << evt_event_ << ": " << sc_n_ << " MergedClusters, " 
                   << cluster_n_ << " individual clusters" << std::endl;
         std::cout << "Adjacent pairs: " << adjacentPairs 
                   << ", Merged pairs: " << mergedPairs << std::endl;
     }
 }
 
-void SuperClusterValidationExample::endJob() {
+void MergedClusterValidationExample::endJob() {
 
     h_eta_merging_efficiency_->Divide(h_eta_merged_pairs_, h_eta_adjacent_pairs_, 1, 1, "B");
 
-    std::cout << "\n=== MTD SuperCluster Validation Summary ===" << std::endl;
+    std::cout << "\n=== MTD MergedCluster Validation Summary ===" << std::endl;
     std::cout << "Total events processed: " << tree_->GetEntries() << std::endl;
-    std::cout << "Average SuperClusters per event: " << h_sc_energy_->GetEntries() / tree_->GetEntries() << std::endl;
+    std::cout << "Average MergedClusters per event: " << h_sc_energy_->GetEntries() / tree_->GetEntries() << std::endl;
     std::cout << "Total adjacent cluster pairs found: " << totalAdjacentPairs_ << std::endl;
     std::cout << "Total merged pairs: " << totalMergedPairs_ << std::endl;
     if (totalAdjacentPairs_ > 0) {
@@ -359,4 +359,4 @@ void SuperClusterValidationExample::endJob() {
     //std::cout << "Merging efficiency: " << h_merging_efficiency_->GetBinContent(2, 2) / h_merging_efficiency_->GetEntries() * 100 << "%" << std::endl;
 }
 
-DEFINE_FWK_MODULE(SuperClusterValidationExample);
+DEFINE_FWK_MODULE(MergedClusterValidationExample);

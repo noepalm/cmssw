@@ -1,5 +1,5 @@
-#ifndef Validation_MtdValidation_SimSuperClusterValidationExample_h
-#define Validation_MtdValidation_SimSuperClusterValidationExample_h
+#ifndef Validation_MtdValidation_SimMergedClusterValidationExample_h
+#define Validation_MtdValidation_SimMergedClusterValidationExample_h
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
@@ -9,9 +9,9 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
-// #include "DataFormats/FTLRecHit/interface/FTLSuperCluster.h"
-#include "SimDataFormats/CaloAnalysis/interface/MtdSimSuperCluster.h"
-#include "SimDataFormats/CaloAnalysis/interface/MtdSimSuperClusterFwd.h"
+// #include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedClusterFwd.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -27,17 +27,17 @@
 #include "TH2F.h"
 #include "TTree.h"
 
-class SimSuperClusterValidationExample : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class SimMergedClusterValidationExample : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
-    explicit SimSuperClusterValidationExample(const edm::ParameterSet&);
-    ~SimSuperClusterValidationExample() = default;
+    explicit SimMergedClusterValidationExample(const edm::ParameterSet&);
+    ~SimMergedClusterValidationExample() = default;
 
 private:
     void analyze(const edm::Event&, const edm::EventSetup&) override;
     void beginJob() override;
     void endJob() override;
 
-    edm::EDGetTokenT<MtdSimSuperClusterCollection> superClustersToken_;
+    edm::EDGetTokenT<MtdSimMergedClusterCollection> mergedClustersToken_;
     edm::EDGetTokenT<MtdSimLayerClusterCollection> clustersToken_;
     edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
 
@@ -68,14 +68,14 @@ private:
     std::vector<std::vector<float>> sc_energy_perCluster_, sc_time_perCluster_;
     std::vector<std::vector<uint32_t>> sc_clusterType_;
     
-    // Primary particle information per supercluster
+    // Primary particle information per mergedcluster
     std::vector<float> sc_primary_energy_, sc_primary_et_, sc_primary_phi_, sc_primary_eta_;
     std::vector<int> sc_primary_pdgId_;
     
     int cluster_n_;
     std::vector<float> cluster_energy_, cluster_time_, cluster_x_, cluster_y_;
     std::vector<uint32_t> cluster_detId_;
-    std::vector<bool> cluster_inSuperCluster_;
+    std::vector<bool> cluster_inMergedCluster_;
     
     // Event counter for actual processed event number
     int processed_event_counter_;

@@ -9,7 +9,7 @@ options.register('useTopologicalClustering',
                  True,
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.bool,
-                 "Enable topological clustering in SuperCluster producer")
+                 "Enable topological clustering in MergedCluster producer")
 
 # Parse command line arguments
 options.parseArguments()
@@ -25,7 +25,7 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 
 # Configure logging levels for your producer
 process.MessageLogger.debugModules = ["*"]
-process.MessageLogger.cerr.MtdSimSuperClusterProducer = cms.untracked.PSet(
+process.MessageLogger.cerr.MtdSimMergedClusterProducer = cms.untracked.PSet(
     limit = cms.untracked.int32(-1),  # No limit on messages
     # Choose your debug level:
     # INFO: Shows LogInfo and above (basic info)
@@ -34,8 +34,8 @@ process.MessageLogger.cerr.MtdSimSuperClusterProducer = cms.untracked.PSet(
     reportEvery = cms.untracked.int32(1)
 )
 # Set overall threshold:
-# process.MessageLogger.cerr.threshold = cms.untracked.string('INFO')    # Basic info
-process.MessageLogger.cerr.threshold = cms.untracked.string('DEBUG')   # More detailed
+process.MessageLogger.cerr.threshold = cms.untracked.string('INFO')    # Basic info
+# process.MessageLogger.cerr.threshold = cms.untracked.string('DEBUG')   # More detailed
 # process.MessageLogger.cerr.threshold = cms.untracked.string('TRACE')   # Most detailed
 
 # Global tag
@@ -56,8 +56,8 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 # Load your producer
-from SimFastTiming.MtdSimSuperClusterProducers.mtdSimSuperClusterProducer_cfi import mtdSimSuperClusterProducer
-process.mtdSimSuperClusterProducer = mtdSimSuperClusterProducer.clone(
+from SimFastTiming.MtdSimMergedClusterProducers.mtdSimMergedClusterProducer_cfi import mtdSimMergedClusterProducer
+process.mtdSimMergedClusterProducer = mtdSimMergedClusterProducer.clone(
     useTopologicalClustering = cms.bool(options.useTopologicalClustering)
 )
 
@@ -66,7 +66,7 @@ process.output = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string(options.outputFile),
     outputCommands = cms.untracked.vstring(
         "drop *",
-        "keep *_mtdSimSuperClusterProducer_*_*",
+        "keep *_mtdSimMergedClusterProducer_*_*",
         "keep *_mix_*_*",  # Keep mix to have TrackingParticles, MtdSimLayerClusters
         "keep *_genParticles_*_*",  # keep GenParticles
         "keep *_mtdSimLayerClusterToTPAssociation_*_*",
@@ -82,16 +82,16 @@ from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociation_cfi 
 process.mtdSimLayerClusterToTPAssociatorByTrackId = mtdSimLayerClusterToTPAssociatorByTrackId.clone()
 process.mtdSimLayerClusterToTPAssociation = mtdSimLayerClusterToTPAssociation.clone()
 
-process.superClusterSequence = cms.Sequence(process.mtdSimLayerClusterToTPAssociatorByTrackId + process.mtdSimLayerClusterToTPAssociation + process.mtdSimSuperClusterProducer)
+process.mergedClusterSequence = cms.Sequence(process.mtdSimLayerClusterToTPAssociatorByTrackId + process.mtdSimLayerClusterToTPAssociation + process.mtdSimMergedClusterProducer)
 
-# process.superClusterSequence = cms.Sequence(process.mtdSimSuperClusterProducer)
+# process.mergedClusterSequence = cms.Sequence(process.mtdSimMergedClusterProducer)
 
 # Execution path
-process.p = cms.Path(process.superClusterSequence)
+process.p = cms.Path(process.mergedClusterSequence)
 process.out_step = cms.EndPath(process.output)
 process.schedule = cms.Schedule(process.p, process.out_step)
 
-print("Running MTD SuperCluster Producer...")
+print("Running MTD MergedCluster Producer...")
 print(f"Output file: {options.outputFile}")
 print(f"Max events: {options.maxEvents}")
 print(f"Use topological clustering: {options.useTopologicalClustering}")

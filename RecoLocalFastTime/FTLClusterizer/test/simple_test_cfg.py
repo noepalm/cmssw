@@ -22,21 +22,21 @@ process.source = cms.Source("PoolSource",
     )
 )
 
-process.mtdSuperClusters = cms.EDProducer("MTDSuperClusterProducer",
+process.mtdMergedClusters = cms.EDProducer("MTDMergedClusterProducer",
     btlBarrel = cms.InputTag("mtdClusters", "FTLBarrel"),
-    btlSuperClusterInstance = cms.string("FTLBarrel"),
+    btlMergedClusterInstance = cms.string("FTLBarrel"),
     timeThreshold = cms.double(10.0),
     energyThreshold = cms.double(1.0)
 )
 
 process.output = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string('supercluster_reco_singlepi.root'),
+    fileName = cms.untracked.string('mergedcluster_reco_singlepi.root'),
     outputCommands = cms.untracked.vstring(
         #'keep *'
         'drop *',
         #'keep *_mtdRecHits_*_*',            # keep rec hits
         #'keep *_mtdClusters_*_*',           # keep original clusters
-        #'keep *_mtdSuperClusters_*_*',      # keep SuperClusters
+        #'keep *_mtdMergedClusters_*_*',      # keep MergedClusters
         #'keep *_genParticles_*_*',          # keep gen info if needed?
         #'keep *_simHits_*_*',               # keep sim hits if needed for validation?
 
@@ -56,14 +56,14 @@ process.output = cms.OutputModule("PoolOutputModule",
         'keep *_mtdClusters_FTLBarrel_*',
         'keep *_mtdClusters_FTLEndcap_*',
         'keep *_mtdTrackingRecHits_*_*',
-        'keep *_mtdSuperClusters_*_*',  
+        'keep *_mtdMergedClusters_*_*',  
     ),
     #SelectEvents = cms.untracked.PSet(
     #    SelectEvents = cms.vstring('p')
     #)
 )
 
-process.mtd_reco = cms.Path(process.mtdSuperClusters)
+process.mtd_reco = cms.Path(process.mtdMergedClusters)
 process.outpath = cms.EndPath(process.output)
     
-print("Testing BTL MTDSuperClusterProducer with adjacent cluster algorithm...")
+print("Testing BTL MTDMergedClusterProducer with adjacent cluster algorithm...")

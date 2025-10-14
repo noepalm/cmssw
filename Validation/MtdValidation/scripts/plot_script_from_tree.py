@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot script for MTD SuperCluster validation from TTree
+Plot script for MTD MergedCluster validation from TTree
 Uses mplhep and uproot to read ROOT TTree and create publication-quality plots
 """
 
@@ -32,7 +32,7 @@ def apply_cuts(tree, cuts, branches_needed):
         # No cuts, return all data
         result = {}
         for branch in branches_needed:
-            if branch == 'sc_n':
+            if branch == 'simmc_n':
                 result[branch] = tree[branch].array(library='np')
             else:
                 data = tree[branch].array(library='ak')
@@ -44,30 +44,30 @@ def apply_cuts(tree, cuts, branches_needed):
     branch_data = {}
     
     for branch in all_branches:
-        if branch == 'sc_n':
+        if branch == 'simmc_n':
             branch_data[branch] = tree[branch].array(library='np')
         else:
             data = tree[branch].array(library='ak')
             branch_data[branch] = np.concatenate([event_data for event_data in data if len(event_data) > 0])
     
     # Apply cuts sequentially - ensure all arrays are numpy arrays
-    first_supercluster_branch = None
+    first_mergedcluster_branch = None
     for branch in all_branches:
-        if branch != 'sc_n':
-            first_supercluster_branch = branch
+        if branch != 'simmc_n':
+            first_mergedcluster_branch = branch
             break
     
-    if first_supercluster_branch is None:
-        # Only sc_n branch, return as-is
+    if first_mergedcluster_branch is None:
+        # Only simmc_n branch, return as-is
         result = {}
         for branch in branches_needed:
             result[branch] = branch_data[branch]
         return result
     
-    mask = np.ones(len(branch_data[first_supercluster_branch]), dtype=bool)
+    mask = np.ones(len(branch_data[first_mergedcluster_branch]), dtype=bool)
     
     for cut_branch, cut_func in cuts.items():
-        if cut_branch in branch_data and cut_branch != 'sc_n':
+        if cut_branch in branch_data and cut_branch != 'simmc_n':
             # Convert to numpy array and apply cut
             cut_data = np.array(branch_data[cut_branch])
             cut_result = cut_func(cut_data)
@@ -78,10 +78,10 @@ def apply_cuts(tree, cuts, branches_needed):
                 cut_result = np.array(cut_result)
             mask = mask & cut_result
     
-    # Apply mask to all branches except sc_n (which is event-level)
+    # Apply mask to all branches except simmc_n (which is event-level)
     result = {}
     for branch in branches_needed:
-        if branch == 'sc_n':
+        if branch == 'simmc_n':
             result[branch] = branch_data[branch]
         else:
             result[branch] = branch_data[branch][mask]
@@ -104,9 +104,9 @@ def plot_1d_from_tree(tree, plot_def, output_dir):
     # Check if type breakdown is requested and we have cluster-level data
     type_breakdown = plot_def.get('type_breakdown', False)
     if type_breakdown:
-        # Add sc_clusterType to branches needed
-        if 'sc_clusterType' not in branches_needed:
-            branches_needed.append('sc_clusterType')
+        # Add simmc_clusterType to branches needed
+        if 'simmc_clusterType' not in branches_needed:
+            branches_needed.append('simmc_clusterType')
     
     data_dict = apply_cuts(tree, cuts, branches_needed)
     data = data_dict[branch]
@@ -144,8 +144,8 @@ def plot_1d_from_tree(tree, plot_def, output_dir):
             alpha=0.6, color=default_color, label='_nolegend_')
     
     # Add type breakdown if requested
-    if type_breakdown and 'sc_clusterType' in data_dict:
-        cluster_types = np.ravel(data_dict['sc_clusterType'])
+    if type_breakdown and 'simmc_clusterType' in data_dict:
+        cluster_types = np.ravel(data_dict['simmc_clusterType'])
         
         # Ensure same length as data
         min_len = min(len(data), len(cluster_types))
@@ -203,7 +203,7 @@ def plot_1d_from_tree(tree, plot_def, output_dir):
     hep.cms.label("Simulation", data=False,  ax=ax)
     
     # Add legend if type breakdown is shown
-    if type_breakdown and 'sc_clusterType' in data_dict:
+    if type_breakdown and 'simmc_clusterType' in data_dict:
         ax.legend(fontsize=9)
     
     # Add statistics
@@ -217,9 +217,9 @@ def plot_1d_from_tree(tree, plot_def, output_dir):
         stats_text += f'\n(with cuts applied)'
     
     # Position stats box based on whether legend is present
-    stats_x = 0.75 if not (type_breakdown and 'sc_clusterType' in data_dict) else 0.02
-    stats_y = 0.85 if not (type_breakdown and 'sc_clusterType' in data_dict) else 0.98
-    v_align = 'bottom' if not (type_breakdown and 'sc_clusterType' in data_dict) else 'top'
+    stats_x = 0.75 if not (type_breakdown and 'simmc_clusterType' in data_dict) else 0.02
+    stats_y = 0.85 if not (type_breakdown and 'simmc_clusterType' in data_dict) else 0.98
+    v_align = 'bottom' if not (type_breakdown and 'simmc_clusterType' in data_dict) else 'top'
     
     ax.text(stats_x, stats_y, stats_text, transform=ax.transAxes, fontsize=10,
             verticalalignment=v_align,
@@ -250,7 +250,7 @@ def plot_2d_from_tree(tree, plot_def, output_dir, logy_scale=False):
     x_flat = data_dict[x_branch]
     y_flat = data_dict[y_branch]
     
-    # Ensure same length (should be the case for supercluster data)
+    # Ensure same length (should be the case for mergedcluster data)
     min_len = min(len(x_flat), len(y_flat))
     x_flat = x_flat[:min_len]
     y_flat = y_flat[:min_len]
@@ -270,7 +270,7 @@ def plot_2d_from_tree(tree, plot_def, output_dir, logy_scale=False):
     
     # Add colorbar
     cbar = plt.colorbar(im, ax=ax)
-    cbar.set_label('SuperClusters')
+    cbar.set_label('MergedClusters')
     
     # Set labels and title
     ax.set_xlabel(plot_def['xlabel'])
@@ -301,15 +301,15 @@ def plot_2d_from_tree(tree, plot_def, output_dir, logy_scale=False):
     print(f"Saved 2D plot: {output_path}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Plot MTD SuperCluster validation from TTree')
-    parser.add_argument('input_file', nargs='?', default='mtd_supercluster_validation.root',
-                       help='Input ROOT file (default: mtd_supercluster_validation.root)')
-    parser.add_argument('--output-dir', '-o', default='/eos/home-n/npalmeri/www/MTD/SuperCluster/sim_tests',
+    parser = argparse.ArgumentParser(description='Plot MTD MergedCluster validation from TTree')
+    parser.add_argument('input_file', nargs='?', default='mtd_mergedcluster_validation.root',
+                       help='Input ROOT file (default: mtd_mergedcluster_validation.root)')
+    parser.add_argument('--output-dir', '-o', default='/eos/home-n/npalmeri/www/MTD/MergedCluster/sim_tests',
                        help='Output directory for plots')
     parser.add_argument('--config', '-c', default='plot_config.py',
                        help='Plot configuration file (default: plot_config.py)')
-    parser.add_argument('--tree-name', '-t', default='mtdSimSuperClusterValidation/MTDSuperClusters',
-                       help='Name of TTree to read (default: mtdSimSuperClusterValidation/MTDSuperClusters)')
+    parser.add_argument('--tree-name', '-t', default='mtdMergedClusterValidation/MTDMergedClusters',
+                       help='Name of TTree to read (default: mtdMergedClusterValidation/MTDMergedClusters)')
     
     args = parser.parse_args()
     

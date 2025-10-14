@@ -1,5 +1,5 @@
-#ifndef Validation_MtdValidation_SuperClusterValidationExample_h
-#define Validation_MtdValidation_SuperClusterValidationExample_h
+#ifndef Validation_MtdValidation_MergedClusterValidationExample_h
+#define Validation_MtdValidation_MergedClusterValidationExample_h
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
@@ -19,7 +19,7 @@
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 
-#include "DataFormats/FTLRecHit/interface/FTLSuperCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
 
@@ -27,17 +27,17 @@
 #include "TH2F.h"
 #include "TTree.h"
 
-class SuperClusterValidationExample : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class MergedClusterValidationExample : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
-    explicit SuperClusterValidationExample(const edm::ParameterSet&);
-    ~SuperClusterValidationExample() = default;
+    explicit MergedClusterValidationExample(const edm::ParameterSet&);
+    ~MergedClusterValidationExample() = default;
 
 private:
     void analyze(const edm::Event&, const edm::EventSetup&) override;
     void beginJob() override;
     void endJob() override;
 
-    edm::EDGetTokenT<FTLSuperClusterCollection> superClustersToken_;
+    edm::EDGetTokenT<FTLMergedClusterCollection> mergedClustersToken_;
     edm::EDGetTokenT<FTLClusterCollection> clustersToken_;
 
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
@@ -73,7 +73,7 @@ private:
     int cluster_n_;
     std::vector<float> cluster_energy_, cluster_time_, cluster_x_, cluster_y_;
     std::vector<uint32_t> cluster_detId_;
-    std::vector<bool> cluster_inSuperCluster_;
+    std::vector<bool> cluster_inMergedCluster_;
 
     int totalAdjacentPairs_;
     int totalMergedPairs_;

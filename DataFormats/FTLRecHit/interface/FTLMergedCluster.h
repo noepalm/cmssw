@@ -1,17 +1,17 @@
-#ifndef DataFormats_FTLRecHit_FTLSuperCluster_h
-#define DataFormats_FTLRecHit_FTLSuperCluster_h
+#ifndef DataFormats_FTLRecHit_FTLMergedCluster_h
+#define DataFormats_FTLRecHit_FTLMergedCluster_h
 
 #include "DataFormats/DetId/interface/DetId.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include <vector>
 
-class FTLSuperCluster {
+class FTLMergedCluster {
 public:
     // Default constructor
-    constexpr FTLSuperCluster() : id_(0), energy_(0.0), time_(0.0), timeError_(0.0), x_(0.0), y_(0.0), clusterIds_() {}
+    constexpr FTLMergedCluster() : id_(0), energy_(0.0), time_(0.0), timeError_(0.0), x_(0.0), y_(0.0), clusterIds_() {}
     
     // Constructor
-    FTLSuperCluster(DetId id, float energy, float time, float timeError, float x, float y, const std::vector<DetId>& clusterIds)
+    FTLMergedCluster(DetId id, float energy, float time, float timeError, float x, float y, const std::vector<DetId>& clusterIds)
         : id_(id), energy_(energy), time_(time), timeError_(timeError), x_(x), y_(y), clusterIds_(clusterIds) {}
 
     // getteri
@@ -34,6 +34,6 @@ private:
 
     std::vector<DetId> clusterIds_;
 };
-typedef std::vector<FTLSuperCluster> FTLSuperClusterCollection;
+typedef std::vector<FTLMergedCluster> FTLMergedClusterCollection;
 
 #endif

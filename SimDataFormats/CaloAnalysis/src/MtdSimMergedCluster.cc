@@ -1,12 +1,12 @@
-#include "SimDataFormats/CaloAnalysis/interface/MtdSimSuperCluster.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
 #include <algorithm>
 #include <iostream>
 
-MtdSimSuperCluster::MtdSimSuperCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef) {
+MtdSimMergedCluster::MtdSimMergedCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef) {
     addCluster(clusterRef, tpRef);
 }
 
-void MtdSimSuperCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef) {
+void MtdSimMergedCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef) {
     clusters_.push_back(clusterRef);
 
     // check if tpRef is already in trackingParticles_
@@ -29,7 +29,7 @@ void MtdSimSuperCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, con
     //           });
 }
 
-float MtdSimSuperCluster::simTime() const {
+float MtdSimMergedCluster::simTime() const {
     if(clusters_.empty()) {
         return -999;
     } else {
@@ -38,7 +38,7 @@ float MtdSimSuperCluster::simTime() const {
     }
 }
 
-LocalPoint MtdSimSuperCluster::simPos() const {
+LocalPoint MtdSimMergedCluster::simPos() const {
     if(clusters_.empty()) {
         return LocalPoint(-999, -999, -999);
     } else {
@@ -48,7 +48,7 @@ LocalPoint MtdSimSuperCluster::simPos() const {
     }
 }
 
-float MtdSimSuperCluster::simEnergy() const {
+float MtdSimMergedCluster::simEnergy() const {
     float totalEnergy = 0;
     for (const auto& clu : clusters_) {
         // FIRST IMPLEMENTATION: sum energies of *all* clusters
@@ -57,7 +57,7 @@ float MtdSimSuperCluster::simEnergy() const {
     return totalEnergy;
 }
 
-DetId MtdSimSuperCluster::simDetId() const {
+DetId MtdSimMergedCluster::simDetId() const {
     if(clusters_.empty()) {
         return -999;
     } else {
@@ -67,7 +67,7 @@ DetId MtdSimSuperCluster::simDetId() const {
     }
 }
 
-std::vector<DetId> MtdSimSuperCluster::detIds() const {
+std::vector<DetId> MtdSimMergedCluster::detIds() const {
     std::vector<DetId> ids;
     for (const auto& clu : clusters_) {
         const auto& clusterDetIds = clu->hits_and_fractions();
@@ -83,8 +83,8 @@ std::vector<DetId> MtdSimSuperCluster::detIds() const {
     return ids;
 }
 
-std::ostream& operator<<(std::ostream& s, const MtdSimSuperCluster& sc) {
-    s << "MtdSimSuperCluster with " << sc.clusters_.size() << " clusters and TrackingParticles: = " << sc.trackingParticles_.size() << "\n";
+std::ostream& operator<<(std::ostream& s, const MtdSimMergedCluster& sc) {
+    s << "MtdSimMergedCluster with " << sc.clusters_.size() << " clusters and TrackingParticles: = " << sc.trackingParticles_.size() << "\n";
     // for (const auto& clu : sc.clusters_) {
     //   s << "  Cluster time = " << clu->simLCTime() << "\n";
     // }

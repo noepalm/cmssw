@@ -6,7 +6,8 @@ options = VarParsing('analysis')
 
 # Define custom options
 options.register('inputFile',
-                 'file:/eos/home-n/npalmeri/MTD/MTD_photonReco/CMSSW_15_1_0_pre2_superclusterDev/src/SimFastTiming/MtdSimSuperClusterProducers/test/mtdSimSuperClusters_history_1k.root',
+                #  'file:/eos/home-n/npalmeri/MTD/MTD_photonReco/CMSSW_15_1_0_pre2_mergedclusterDev/src/SimFastTiming/MtdSimMergedClusterProducers/test/mtdSimMergedClusters_history_1k.root',
+                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_numEvent1000.root',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "Input ROOT file")
@@ -17,7 +18,7 @@ options.register('inputFile',
 options.parseArguments()
 
 from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
-process = cms.Process("SimSuperClusterValidationExample", Phase2C17I13M9)
+process = cms.Process("MergedClusterValidationExample", Phase2C17I13M9)
 
 # Load standard configurations
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
@@ -44,28 +45,28 @@ process.TFileService = cms.Service("TFileService",
     fileName = cms.string("file:" + options.outputFile)
 )
 
-# process.mtdSuperClusters = cms.EDProducer("MTDSuperClusterProducer",
+# process.mtdMergedClusters = cms.EDProducer("MTDMergedClusterProducer",
 #     srcBarrel = cms.InputTag("mtdClusters", "FTLBarrel"),
-#     BarrelSuperClusterName = cms.string("FTLBarrel"),
+#     BarrelMergedClusterName = cms.string("FTLBarrel"),
 #     timeThreshold = cms.double(10.0),
 #     energyThreshold = cms.double(1.0)
 # )
 
 # Validation analyzer
-process.mtdSimSuperClusterValidation = cms.EDAnalyzer("SimSuperClusterValidationExample",
-    simSuperClusters = cms.InputTag("mtdSimSuperClusterProducer"), #tag name? Not sure where it's specified
+process.mtdSimMergedClusterValidation = cms.EDAnalyzer("SimMergedClusterValidationExample",
+    simMergedClusters = cms.InputTag("mtdSimMergedClusterProducer"), #tag name? Not sure where it's specified
     simLayerClusters = cms.InputTag("mixData:MergedMtdTruthLC"),
-    # superClusters = cms.InputTag("mtdSuperClusters", "FTLBarrel"),
+    # mergedClusters = cms.InputTag("mtdMergedClusters", "FTLBarrel"),
     # clusters = cms.InputTag("mtdClusters", "FTLBarrel")
 )
 
 # Path
 process.p = cms.Path(
-    # process.mtdSuperClusters * 
-    process.mtdSimSuperClusterValidation
+    # process.mtdMergedClusters * 
+    process.mtdSimMergedClusterValidation
 )
 
-print("Running MTD SuperCluster Validation...")
+print("Running MTD MergedCluster Validation...")
 print(f"Input file: {options.inputFile}")
 print(f"Output file: {options.outputFile}")
 print(f"Max events: {options.maxEvents}")

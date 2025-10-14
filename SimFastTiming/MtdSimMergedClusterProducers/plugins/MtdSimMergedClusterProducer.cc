@@ -19,8 +19,8 @@
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerCluster.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerClusterFwd.h"
 
-#include "SimDataFormats/CaloAnalysis/interface/MtdSimSuperCluster.h"
-#include "SimDataFormats/CaloAnalysis/interface/MtdSimSuperClusterFwd.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
+#include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedClusterFwd.h"
 
 // MTD truth association maps
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
@@ -55,7 +55,7 @@ void traverseDecayTree(const edm::Ref<TrackingParticleCollection>& tpRef,
     // keep track of visited particles
     visited.insert(tpRef);
 
-    // Perform the user-defined action (e.g. fill supercluster)
+    // Perform the user-defined action (e.g. fill mergedcluster)
     action(tpRef);
 
     const auto& decayVtxs = tpRef->decayVertices();
@@ -72,10 +72,10 @@ void traverseDecayTree(const edm::Ref<TrackingParticleCollection>& tpRef,
     }
 }
 
-class MtdSimSuperClusterProducer : public edm::one::EDProducer<edm::one::SharedResources> {
+class MtdSimMergedClusterProducer : public edm::one::EDProducer<edm::one::SharedResources> {
 public:
-    explicit MtdSimSuperClusterProducer(const edm::ParameterSet&);
-    ~MtdSimSuperClusterProducer() override = default;
+    explicit MtdSimMergedClusterProducer(const edm::ParameterSet&);
+    ~MtdSimMergedClusterProducer() override = default;
 
     void produce(edm::Event&, const edm::EventSetup&) override;
 
@@ -91,7 +91,7 @@ private:
     const edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 };
 
-MtdSimSuperClusterProducer::MtdSimSuperClusterProducer(const edm::ParameterSet& iConfig)
+MtdSimMergedClusterProducer::MtdSimMergedClusterProducer(const edm::ParameterSet& iConfig)
     : trackingParticlesToken_(consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles"))),
       tpToSimClusMapToken_(consumes<reco::TPToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMap"))),
       simClusToTPMapToken_(consumes<reco::SimToTPCollectionMtd>(iConfig.getParameter<edm::InputTag>("tp2SimAssociationMap"))),
@@ -99,18 +99,18 @@ MtdSimSuperClusterProducer::MtdSimSuperClusterProducer(const edm::ParameterSet& 
       minEnergy_(iConfig.getParameter<double>("minClusterEnergy")),
       useTopologicalClustering_(iConfig.getParameter<bool>("useTopologicalClustering")),
       mtdtopoToken_(esConsumes<MTDTopology, MTDTopologyRcd>()) {
-    produces<MtdSimSuperClusterCollection>();
+    produces<MtdSimMergedClusterCollection>();
 }
 
-void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-    // std::cout << "MtdSimSuperClusterProducer::produce() called" << std::endl;
+void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+    // std::cout << "MtdSimMergedClusterProducer::produce() called" << std::endl;
 
     // Get topology for navigation
     auto topologyHandle = iSetup.getTransientHandle(mtdtopoToken_);
     const MTDTopology* topology = topologyHandle.product();
 
-    // Create output collection (MtdSimSuperCluster)
-    auto outputClusters = std::make_unique<MtdSimSuperClusterCollection>();
+    // Create output collection (MtdSimMergedCluster)
+    auto outputClusters = std::make_unique<MtdSimMergedClusterCollection>();
 
     // Retrieve collections
     edm::Handle<TrackingParticleCollection> trackingParticles;
@@ -165,7 +165,7 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
     for (const auto& pair : ancestorMap) {
         uniqueAncestors.insert(pair.second);
     }
-    edm::LogInfo("MtdSimSuperClusterProducer") << "Total TrackingParticles: " << trackingParticles->size() 
+    edm::LogInfo("MtdSimMergedClusterProducer") << "Total TrackingParticles: " << trackingParticles->size() 
                                           << ", Unique primary ancestors: " << uniqueAncestors.size();
 
     // reserve memory for output collection
@@ -182,7 +182,7 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
             BTLDetId detId = cluster.detIds_and_rows()[0].first;
             // CHECK: can there be multiple clusters with same detId?
             if (clusterMap.count(detId) > 0) {
-                edm::LogWarning("MtdSimSuperClusterProducer") << "Multiple MtdSimLayerClusters with same detId " << detId.rawId();
+                edm::LogWarning("MtdSimMergedClusterProducer") << "Multiple MtdSimLayerClusters with same detId " << detId.rawId();
             }
             // retrieve GEOGRAPHICAL id
             BTLDetId geoDetId = detId.geographicalId(BTLDetId::CrysLayout::v3);
@@ -191,10 +191,10 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
         }
     }
 
-    edm::LogInfo("MtdSimSuperClusterProducer") << "Found " << clusterMap.size() << " MTD SimLayerClusters above energy threshold";
+    edm::LogInfo("MtdSimMergedClusterProducer") << "Found " << clusterMap.size() << " MTD SimLayerClusters above energy threshold";
 
     if (useTopologicalClustering_) {
-        edm::LogInfo("MtdSimSuperClusterProducer") << "Using TOPOLOGICAL + HISTORICAL clustering algorithm";
+        edm::LogInfo("MtdSimMergedClusterProducer") << "Using TOPOLOGICAL + HISTORICAL clustering algorithm";
 
         // ------------------------------------------------------
         // NEW: HISTORY+TOPOLOGY IMPLEMENTATION
@@ -213,11 +213,11 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
             
             BTLDetId cluId(cluster.detIds_and_rows()[0].first);
 
-            LogDebug("MtdSimSuperClusterProducer") << "Processing cluster DetId " << cluId.rawId() 
+            LogDebug("MtdSimMergedClusterProducer") << "Processing cluster DetId " << cluId.rawId() 
                                                 << " with energy " << cluster.simLCEnergy() << " MeV";
             
             // Start with current cluster
-            std::vector<const MtdSimLayerCluster*> superClusterClusters = {&cluster};
+            std::vector<const MtdSimLayerCluster*> mergedClusterClusters = {&cluster};
             processedClusters.insert(&cluster);
             
             // Check for edge hits in current cluster
@@ -225,12 +225,12 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
             bool edgeHitIn15 = false;
 
             // iterate over detIds_and_rows:
-            LogDebug("MtdSimSuperClusterProducer") << "Iterating over " << cluster.detIds_and_rows().size() << " cluster hits";
+            LogDebug("MtdSimMergedClusterProducer") << "Iterating over " << cluster.detIds_and_rows().size() << " cluster hits";
             for (auto const& detId_row_col : cluster.detIds_and_rows()) {
                 int row = detId_row_col.second.first;
                 int col = detId_row_col.second.second;
 
-                LogDebug("MtdSimSuperClusterProducer") << "  Cluster hit at row " << row << ", col " << col;
+                LogDebug("MtdSimMergedClusterProducer") << "  Cluster hit at row " << row << ", col " << col;
 
                 if (col == 0) {
                     edgeHitIn0 = true;
@@ -241,38 +241,38 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
             }
             
             bool hasEdgeHitCurrent = edgeHitIn0 || edgeHitIn15;
-            LogDebug("MtdSimSuperClusterProducer") << "  Edge hits: col0=" << edgeHitIn0 << ", col15=" << edgeHitIn15;
-            LogDebug("MtdSimSuperClusterProducer") << "  hasEdgeHitCurrent = " << hasEdgeHitCurrent;
+            LogDebug("MtdSimMergedClusterProducer") << "  Edge hits: col0=" << edgeHitIn0 << ", col15=" << edgeHitIn15;
+            LogDebug("MtdSimMergedClusterProducer") << "  hasEdgeHitCurrent = " << hasEdgeHitCurrent;
             
             // Get topology indices - use geographicalId (module-level) with crystal layout
             // std::cout << "  DEBUG: getting BTL indices from geographicalId " << cluId.geographicalId(BTLDetId::CrysLayout::v3) << std::endl;
             std::pair<uint32_t, uint32_t> indices = topology->btlIndex(cluId.geographicalId(BTLDetId::CrysLayout::v3).rawId());
             uint32_t iphi = indices.first;
             uint32_t ieta = indices.second;
-            LogDebug("MtdSimSuperClusterProducer") << "  BTL indices: iphi=" << iphi << ", ieta=" << ieta;
+            LogDebug("MtdSimMergedClusterProducer") << "  BTL indices: iphi=" << iphi << ", ieta=" << ieta;
             
             // ETA DIRECTION MERGING
             if (hasEdgeHitCurrent && iphi != std::numeric_limits<uint32_t>::max() && ieta != std::numeric_limits<uint32_t>::max()) {
-                LogDebug("MtdSimSuperClusterProducer") << "  Attempting eta-direction merging...";
+                LogDebug("MtdSimMergedClusterProducer") << "  Attempting eta-direction merging...";
                 std::vector<int> etaOffsets = {1, -1};
                 for (int etaOffset : etaOffsets) {
                     uint32_t adjDetIdRaw = topology->btlidFromIndex(iphi, ieta + etaOffset);
-                    LogDebug("MtdSimSuperClusterProducer") << "    Checking adjacent detId at index (" << iphi << ", " << ieta + etaOffset << "): " << adjDetIdRaw;
+                    LogDebug("MtdSimMergedClusterProducer") << "    Checking adjacent detId at index (" << iphi << ", " << ieta + etaOffset << "): " << adjDetIdRaw;
                     if (adjDetIdRaw == 0) continue;
                     
                     BTLDetId adjDetId(adjDetIdRaw);
                     auto it = clusterMap.find(adjDetId);
                     if (it == clusterMap.end()){
-                        LogDebug("MtdSimSuperClusterProducer") << "    No cluster found at this detId";
+                        LogDebug("MtdSimMergedClusterProducer") << "    No cluster found at this detId";
                         continue;
                     }
                     if (processedClusters.count(it->second)){
-                        LogDebug("MtdSimSuperClusterProducer") << "    Cluster found but already processed";
+                        LogDebug("MtdSimMergedClusterProducer") << "    Cluster found but already processed";
                         continue;
                     }
                     
                     const MtdSimLayerCluster* adjCluster = it->second;
-                    LogDebug("MtdSimSuperClusterProducer") << "    Found eta neighbor at " << adjDetId.rawId();
+                    LogDebug("MtdSimMergedClusterProducer") << "    Found eta neighbor at " << adjDetId.rawId();
                     
                     // Check for opposite edge hit
                     bool hasOppositeEdgeHit = false;
@@ -281,7 +281,7 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                         int row = detId_row_col.second.first;
                         int col = detId_row_col.second.second;
 
-                        LogDebug("MtdSimSuperClusterProducer") << "      adjacent cluster hit at row " << row << ", col " << col;
+                        LogDebug("MtdSimMergedClusterProducer") << "      adjacent cluster hit at row " << row << ", col " << col;
 
                         if ((edgeHitIn0 && col == 15) || (edgeHitIn15 && col == 0)) {
                             hasOppositeEdgeHit = true;
@@ -306,19 +306,19 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                         }
 
                         if (hasCommonAncestor) {
-                            LogDebug("MtdSimSuperClusterProducer") << "  -> MERGING ETA neighbor: " << cluId.rawId() 
+                            LogDebug("MtdSimMergedClusterProducer") << "  -> MERGING ETA neighbor: " << cluId.rawId() 
                                     << " with " << adjDetId.rawId();
-                            superClusterClusters.push_back(adjCluster);
+                            mergedClusterClusters.push_back(adjCluster);
                             processedClusters.insert(adjCluster);
                         } else {
-                            LogDebug("MtdSimSuperClusterProducer") << "    Not merging: no common ancestor found";
+                            LogDebug("MtdSimMergedClusterProducer") << "    Not merging: no common ancestor found";
                         }
 
                     }
                 }
             } else {
-                LogDebug("MtdSimSuperClusterProducer") << "  No edge hit or invalid indices: not attempting eta merging";
-                LogDebug("MtdSimSuperClusterProducer") << "    hasEdgeHitCurrent = " << hasEdgeHitCurrent 
+                LogDebug("MtdSimMergedClusterProducer") << "  No edge hit or invalid indices: not attempting eta merging";
+                LogDebug("MtdSimMergedClusterProducer") << "    hasEdgeHitCurrent = " << hasEdgeHitCurrent 
                             << ", iphi = " << iphi << " (is max? " << (iphi == std::numeric_limits<uint32_t>::max()) << "), ieta = " << ieta << " (is max? " << (ieta == std::numeric_limits<uint32_t>::max()) << ")";
             }
             
@@ -341,41 +341,41 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
             //         // if (areTimingCompatible(&cluster, adjCluster)) {
             //         //     std::cout << "  -> MERGING PHI neighbor: " << cluId.rawId() 
             //         //                 << " with " << adjDetId.rawId() << std::endl;
-            //         //     superClusterClusters.push_back(adjCluster);
+            //         //     mergedClusterClusters.push_back(adjCluster);
             //         //     processedClusters.insert(adjCluster);
             //         // }
 
             //         std::cout << "  -> MERGING PHI neighbor: " << cluId.rawId() 
             //                     << " with " << adjDetId.rawId() << std::endl;
-            //         superClusterClusters.push_back(adjCluster);
+            //         mergedClusterClusters.push_back(adjCluster);
             //         processedClusters.insert(adjCluster);
 
             //     }
             // }
             
-            // Create supercluster from merged clusters
-            MtdSimSuperCluster simSuperCluster;
+            // Create mergedcluster from merged clusters
+            MtdSimMergedCluster simMergedCluster;
 
-            // for each cluster, find associated TPs and add to supercluster using Sim to TP map
-            for (const auto& simLayerCluster : superClusterClusters) {
+            // for each cluster, find associated TPs and add to mergedcluster using Sim to TP map
+            for (const auto& simLayerCluster : mergedClusterClusters) {
                 // create simLC reference by finding the index in the original collection
                 size_t clusterIndex = simLayerCluster - &(*simLClusters->begin());
                 MtdSimLayerClusterRef simLayerClusterRef(simLClusters, clusterIndex);
                 const auto& TPs = simClusToTPMap->find(simLayerClusterRef);
                 if (TPs != simClusToTPMap->end()) {
                     for (const auto& tpRef : TPs->val) {
-                        simSuperCluster.addCluster(simLayerClusterRef, tpRef);
+                        simMergedCluster.addCluster(simLayerClusterRef, tpRef);
                     }
                 }
             }
 
-            outputClusters->push_back(simSuperCluster);
-            LogDebug("MtdSimSuperClusterProducer") << "Created SuperCluster from " << superClusterClusters.size() 
-                        << " clusters: E=" << simSuperCluster.simEnergy() 
-                        << " MeV, t=" << simSuperCluster.simTime() << " ns";
+            outputClusters->push_back(simMergedCluster);
+            LogDebug("MtdSimMergedClusterProducer") << "Created MergedCluster from " << mergedClusterClusters.size() 
+                        << " clusters: E=" << simMergedCluster.simEnergy() 
+                        << " MeV, t=" << simMergedCluster.simTime() << " ns";
         }
     } else {
-        edm::LogInfo("MtdSimSuperClusterProducer") << "Using HISTORY-ONLY clustering algorithm";
+        edm::LogInfo("MtdSimMergedClusterProducer") << "Using HISTORY-ONLY clustering algorithm";
 
         // OLD: HISTORY-ONLY IMPLEMENTATION
         for(size_t i = 0; i < trackingParticles->size(); ++i) {
@@ -390,9 +390,9 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                 continue;
             }
 
-            // create 2 superclusters: one for primary+secondary+looper clusters, one for backscatter hits 
-            MtdSimSuperCluster simSuperCluster(tp);
-            // MtdSimSuperCluster backscatterCluster(tp);
+            // create 2 mergedclusters: one for primary+secondary+looper clusters, one for backscatter hits 
+            MtdSimMergedCluster simMergedCluster(tp);
+            // MtdSimMergedCluster backscatterCluster(tp);
 
             std::set<edm::Ref<TrackingParticleCollection>> visited;
 
@@ -407,7 +407,7 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                                     // if (simLayerCluster->trackIdOffset() == 3)
                                     //     backscatterCluster.addCluster(simLayerCluster, ref);
                                     // else
-                                        simSuperCluster.addCluster(simLayerCluster, ref);
+                                        simMergedCluster.addCluster(simLayerCluster, ref);
                                 }
                             }
                         }
@@ -415,19 +415,19 @@ void MtdSimSuperClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                 }
             );
 
-            outputClusters->push_back(simSuperCluster);
+            outputClusters->push_back(simMergedCluster);
             // outputClusters->push_back(backscatterCluster);
         }
     }
 
-    // print all MtdSimSuperClusters
-    edm::LogInfo("MtdSimSuperClusterProducer") << "Found " << outputClusters->size() << " MtdSimSuperClusters";
-    for (const auto& superCluster : *outputClusters) {
-        LogDebug("MtdSimSuperClusterProducer") << superCluster;
-        auto detids = superCluster.detIds();
+    // print all MtdSimMergedClusters
+    edm::LogInfo("MtdSimMergedClusterProducer") << "Found " << outputClusters->size() << " MtdSimMergedClusters";
+    for (const auto& mergedCluster : *outputClusters) {
+        LogDebug("MtdSimMergedClusterProducer") << mergedCluster;
+        auto detids = mergedCluster.detIds();
     }
 
     iEvent.put(std::move(outputClusters));
 }
 
-DEFINE_FWK_MODULE(MtdSimSuperClusterProducer);
+DEFINE_FWK_MODULE(MtdSimMergedClusterProducer);

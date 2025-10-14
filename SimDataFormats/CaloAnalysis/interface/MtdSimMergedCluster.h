@@ -1,5 +1,5 @@
-#ifndef SimDataFormats_CaloAnalysis_MtdSimSuperCluster_h
-#define SimDataFormats_CaloAnalysis_MtdSimSuperCluster_h
+#ifndef SimDataFormats_CaloAnalysis_MtdSimMergedCluster_h
+#define SimDataFormats_CaloAnalysis_MtdSimMergedCluster_h
 
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimLayerClusterFwd.h"
@@ -8,22 +8,22 @@
 // #include "DataFormats/ForwardDetId/interface/ETLDetId.h"
 #include <vector>
 
-class MtdSimSuperCluster {  
+class MtdSimMergedCluster {  
     
-    friend std::ostream& operator<<(std::ostream& s, const MtdSimSuperCluster& sc);
+    friend std::ostream& operator<<(std::ostream& s, const MtdSimMergedCluster& sc);
 
 public:
-    MtdSimSuperCluster() = default;
+    MtdSimMergedCluster() = default;
 
     // Construct with one TrackingParticle ref (the main track)
-    MtdSimSuperCluster(const TrackingParticleRef& tpRef) : mainTrack_(tpRef) {
+    MtdSimMergedCluster(const TrackingParticleRef& tpRef) : mainTrack_(tpRef) {
         trackingParticles_.push_back(tpRef);
     }
 
     // Construct with one MtdSimLayerCluster ref and one TrackingParticle ref
-    MtdSimSuperCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef);
+    MtdSimMergedCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef);
 
-    ~MtdSimSuperCluster() = default;
+    ~MtdSimMergedCluster() = default;
 
     void addCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef);
 
@@ -36,7 +36,7 @@ public:
     /// detId of earliest cluster
     DetId simDetId() const;
 
-    /// Energy of supercluster
+    /// Energy of mergedcluster
     float simEnergy() const;
 
     /// Retrieve list of all DetIds from clusters

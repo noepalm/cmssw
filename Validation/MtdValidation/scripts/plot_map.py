@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plot script for MTD SuperCluster validation from TTree
+Plot script for MTD MergedCluster validation from TTree
 Creates maps of cluster energy vs iphi/ieta for events where topological clustering merges clusters
 """
 
@@ -204,10 +204,10 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
     event_number = evt_history['evt_number']
     
     print(f"Processing event {event_idx} (event number {event_number}):")
-    print(f"  History-only: {evt_history['sc_n']} superclusters")
-    print(f"  Topo+History: {evt_topo['sc_n']} superclusters")
+    print(f"  History-only: {evt_history['sc_n']} mergedclusters")
+    print(f"  Topo+History: {evt_topo['sc_n']} mergedclusters")
     
-    # Debug prints for topological+historical clustering superclusters with >=2 clusters
+    # Debug prints for topological+historical clustering mergedclusters with >=2 clusters
     topo_merged_info = []
     for sc_idx in range(len(evt_topo['sc_energy'])):
         n_clusters = evt_topo['sc_nClusters'][sc_idx]
@@ -230,7 +230,7 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
                 'total_energy': total_energy
             })
     
-    print(f"  Topo+History merged superclusters ({len(topo_merged_info)}):")
+    print(f"  Topo+History merged mergedclusters ({len(topo_merged_info)}):")
     for info in topo_merged_info:
         print(f"    SC {info['sc_idx']}: {info['n_clusters']} clusters, Total E={info['total_energy']:.2f} MeV")
         cluster_type_names = {0: 'Primary', 1: 'Secondary', 2: 'Looper', 3: 'Calo backscatter'}
@@ -239,16 +239,16 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
             print(f"      Cluster {i}: iPhi={info['iphi_list'][i]}, iEta={info['ieta_list'][i]}, E={info['energy_list'][i]:.2f} MeV, t={info['time_list'][i]:.2f} ns, type={cluster_type_name}")
     
     if len(topo_merged_info) == 0:
-        print("    No merged superclusters found (this shouldn't happen)")
+        print("    No merged mergedclusters found (this shouldn't happen)")
         return False
     
-    # Process history-only clustering - plot each supercluster with individual cluster positions
+    # Process history-only clustering - plot each mergedcluster with individual cluster positions
     for sc_idx in range(len(evt_history['sc_energy'])):
         n_clusters = evt_history['sc_nClusters'][sc_idx]
         if n_clusters <= 0:
             continue
             
-        # Now we can plot individual clusters within the supercluster
+        # Now we can plot individual clusters within the mergedcluster
         iphi_vals = list(evt_history['sc_iphi_perCluster'][sc_idx])
         ieta_vals = list(evt_history['sc_ieta_perCluster'][sc_idx])
         energy_vals = list(evt_history['sc_energy_perCluster'][sc_idx])
@@ -259,7 +259,7 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
         title_base = f"Event {event_idx} (#{event_number}) - History Only - SC {sc_idx}\n({n_clusters} clusters, {evt_history['sc_energy'][sc_idx]:.2f} MeV total)"
         output_path = event_dir / f"history_sc_{sc_idx}.png"
         
-        # Get primary particle info for this supercluster
+        # Get primary particle info for this mergedcluster
         primary_energy = evt_history['sc_primary_energy'][sc_idx] if evt_history['sc_primary_energy'][sc_idx] > 0 else None
         primary_eta = evt_history['sc_primary_eta'][sc_idx] if primary_energy is not None else None
         primary_phi = evt_history['sc_primary_phi'][sc_idx] if primary_energy is not None else None
@@ -267,7 +267,7 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
         
         create_cluster_map_combined(iphi_vals, ieta_vals, energy_vals, time_vals, clustertype_vals, title_base, output_path, mtd_ranges, primary_energy, primary_eta, primary_phi, primary_pt)
     
-    # Process topo+history clustering - only superclusters with >=2 clusters, showing individual cluster positions
+    # Process topo+history clustering - only mergedclusters with >=2 clusters, showing individual cluster positions
     merged_sc_count = 0
     for sc_idx in range(len(evt_topo['sc_energy'])):
         n_clusters = evt_topo['sc_nClusters'][sc_idx]
@@ -276,7 +276,7 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
             
         merged_sc_count += 1
         
-        # Plot individual clusters within the merged supercluster
+        # Plot individual clusters within the merged mergedcluster
         iphi_vals = list(evt_topo['sc_iphi_perCluster'][sc_idx])
         ieta_vals = list(evt_topo['sc_ieta_perCluster'][sc_idx])
         energy_vals = list(evt_topo['sc_energy_perCluster'][sc_idx])
@@ -287,7 +287,7 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
         title_base = f"Event {event_idx} (#{event_number}) - Topo+History - SC {sc_idx}\n({n_clusters} clusters, {evt_topo['sc_energy'][sc_idx]:.2f} MeV total)"
         output_path = event_dir / f"topo_sc_{sc_idx}_merged.png"
         
-        # Get primary particle info for this supercluster
+        # Get primary particle info for this mergedcluster
         primary_energy = evt_topo['sc_primary_energy'][sc_idx] if evt_topo['sc_primary_energy'][sc_idx] > 0 else None
         primary_eta = evt_topo['sc_primary_eta'][sc_idx] if primary_energy is not None else None
         primary_phi = evt_topo['sc_primary_phi'][sc_idx] if primary_energy is not None else None
@@ -295,18 +295,18 @@ def process_event_maps(history_tree, topo_tree, event_idx, output_dir, mtd_range
         
         create_cluster_map_combined(iphi_vals, ieta_vals, energy_vals, time_vals, clustertype_vals, title_base, output_path, mtd_ranges, primary_energy, primary_eta, primary_phi, primary_pt)
     
-    print(f"  Created maps for {merged_sc_count} merged superclusters")
+    print(f"  Created maps for {merged_sc_count} merged mergedclusters")
     return merged_sc_count > 0
 
 def main():
     parser = argparse.ArgumentParser(description='Create cluster maps for events with topological merging')
-    parser.add_argument('--history-file', default='mtd_supercluster_validation_history.root',
+    parser.add_argument('--history-file', default='mtd_mergedcluster_validation_history.root',
                        help='History-only clustering ROOT file')
-    parser.add_argument('--topo-file', default='mtd_supercluster_validation_topo+history.root',
+    parser.add_argument('--topo-file', default='mtd_mergedcluster_validation_topo+history.root',
                        help='Topological+history clustering ROOT file')
-    parser.add_argument('--output-dir', '-o', default='/eos/home-n/npalmeri/www/MTD/SuperCluster/sim_tests',
+    parser.add_argument('--output-dir', '-o', default='/eos/home-n/npalmeri/www/MTD/MergedCluster/sim_tests',
                        help='Output directory for plots')
-    parser.add_argument('--tree-name', '-t', default='mtdSimSuperClusterValidation/MTDSuperClusters',
+    parser.add_argument('--tree-name', '-t', default='mtdSimMergedClusterValidation/MTDMergedClusters',
                        help='Name of TTree to read')
     parser.add_argument('--max-events', default=10, type=int,
                        help='Maximum event number to process (default: 10)')
@@ -398,7 +398,7 @@ def main():
             
             events_with_merging = []
             for i, event_idx in enumerate(events_to_check):
-                # Check if this event has any superclusters with >=2 clusters in topology
+                # Check if this event has any mergedclusters with >=2 clusters in topology
                 event_clusters = topo_nClusters[i] if args.single_event is not None else topo_nClusters[event_idx]
                 has_merged = any(n_clus >= 2 for n_clus in event_clusters)
                 
