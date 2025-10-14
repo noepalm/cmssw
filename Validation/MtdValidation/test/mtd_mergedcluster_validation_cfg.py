@@ -45,7 +45,7 @@ process.source = cms.Source("PoolSource",
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(options.maxEvents))
 
 # Validation analyzer
-process.mtdMergedClusterValidation = cms.EDProducer("MergedClusterValidation_valimodule",
+process.mtdMergedClusterValidation = cms.EDProducer("MergedClusterValidation",
     mergedClusters = cms.InputTag("mtdMergedClusters", "FTLBarrel"),
     clusters = cms.InputTag("mtdClusters", "FTLBarrel"),
     simMergedClusters = cms.InputTag("mtdSimMergedClusterProducer"),

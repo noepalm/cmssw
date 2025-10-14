@@ -10,7 +10,6 @@
 MergedClusterValidation::MergedClusterValidation(const edm::ParameterSet& iConfig):
     mtdgeoToken_(esConsumes<MTDGeometry, MTDDigiGeometryRecord>()),
     mtdtopoToken_(esConsumes<MTDTopology, MTDTopologyRcd>()) {
-    usesResource("TFileService");
     
     mergedClustersToken_ = consumes<FTLMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("mergedClusters"));
     clustersToken_ = consumes<FTLClusterCollection>(iConfig.getParameter<edm::InputTag>("clusters"));
@@ -20,108 +19,6 @@ MergedClusterValidation::MergedClusterValidation(const edm::ParameterSet& iConfi
 
     totalAdjacentPairs_ = 0;
     totalMergedPairs_ = 0;
-}
-
-void MergedClusterValidation::beginJob() {
-    edm::Service<TFileService> fs;
-    
-    // -------------------- //
-    // ------- RECO ------- //
-    // -------------------- //
-
-    // MergedCluster histograms
-    h_mc_energy_ = fs->make<TH1F>("h_mc_energy", "MergedCluster Energy;Energy [MeV];Count", 100, 0, 50);
-    h_mc_time_ = fs->make<TH1F>("h_mc_time", "MergedCluster Time;Time [ns];Count", 100, -5, 20);
-    h_mc_timeError_ = fs->make<TH1F>("h_mc_timeError", "MergedCluster Time Error;Time Error [ns];Count", 100, 0, 1);
-    h_mc_x_ = fs->make<TH1F>("h_mc_x", "MergedCluster X;X [mm];Count", 100, -200, 200);
-    h_mc_y_ = fs->make<TH1F>("h_mc_y", "MergedCluster Y;Y [mm];Count", 100, -200, 200);
-    h_mc_nClusters_ = fs->make<TH1F>("h_mc_nClusters", "Number of Clusters;N_{clusters};Count", 10, 0.5, 10.5);
-    
-    // Cluster histograms for comparison
-    h_cluster_energy_ = fs->make<TH1F>("h_cluster_energy", "Cluster Energy;Energy [MeV];Count", 100, 0, 50);
-    h_cluster_time_ = fs->make<TH1F>("h_cluster_time", "Cluster Time;Time [ns];Count", 100, -5, 20);
-    
-    // 2D histograms
-    h_mc_energy_vs_time_ = fs->make<TH2F>("h_mc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 100, -5, 20, 100, 0, 50);
-    h_mc_xy_ = fs->make<TH2F>("h_mc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -200, 200, 100, -200, 200);
-    h_mc_energy_vs_nClusters_ = fs->make<TH2F>("h_mc_energy_vs_nClusters_", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 10, 0.5, 10.5, 100, 0, 50);
-    h_merging_efficiency_ = fs->make<TH2F>("h_merging_efficiency", "Merging Efficiency;Cluster Energy [MeV];Merged?", 50, 0, 50, 2, -0.5, 1.5);
-    
-    // efficiency
-    h_eta_adjacent_pairs_ = fs->make<TH1F>("h_eta_adjacent_pairs", "Adjacent Pairs vs Eta;#eta;Number of Adjacent Pairs", 100, -1.5, 1.5);
-    h_eta_merged_pairs_ = fs->make<TH1F>("h_eta_merged_pairs", "Merged Pairs vs Eta;#eta;Number of Merged Pairs", 100, -1.5, 1.5);
-    h_eta_merging_efficiency_ = fs->make<TH1F>("h_eta_merging_efficiency", "Merging Efficiency vs Eta;#eta;Efficiency", 100, -1.5, 1.5);
-    
-    // ------------------- //
-    // ------- SIM ------- //
-    // ------------------- //
-
-    // 1D histograms
-    h_simmc_energy_ = fs->make<TH1F>("h_simmc_energy", "MergedCluster Energy;Energy [MeV];Count", 50, 0, 50);
-    h_simmc_logEnergy_ = fs->make<TH1F>("h_simmc_logEnergy", "MergedCluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
-    h_simmc_time_ = fs->make<TH1F>("h_simmc_time", "MergedCluster Time;Time [ns];Count", 50, 0, 30);
-    h_simmc_x_ = fs->make<TH1F>("h_simmc_x", "MergedCluster X;X [mm];Count", 50, -120, 120);
-    h_simmc_y_ = fs->make<TH1F>("h_simmc_y", "MergedCluster Y;Y [mm];Count", 50, -120, 120);
-    h_simmc_nClusters_ = fs->make<TH1F>("h_simmc_nClusters", "Number of Clusters;N_{clusters};Count", 11, -0.5, 10.5);
-    h_simmc_n_ = fs->make<TH1F>("h_simmc_n", "Number of MergedClusters;N_{MergedClusters};Count", 51, -0.5, 50.5);
-
-    // 1D histograms -- per simLC 
-    h_simmc_logEnergy_perCluster_ = fs->make<TH1F>("h_simmc_logEnergy_perCluster", "Cluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
-    h_simmc_time_perCluster_ = fs->make<TH1F>("h_simmc_time_perCluster", "Cluster Time;Time [ns];Count", 50, 0, 30);
-    h_simmc_clusterType_ = fs->make<TH1F>("h_simmc_clusterType", "Cluster Type;Type;Count", 4, -0.5, 3.5);
-    
-    // 2D histograms
-    h_simmc_xy_ = fs->make<TH2F>("h_simmc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -120, 120, 100, -120, 120);
-    h_simmc_energy_vs_time_ = fs->make<TH2F>("h_simmc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 30, 4, 27, 20, 0, 1);
-    h_simmc_energy_vs_nClusters_ = fs->make<TH2F>("h_simmc_energy_vs_nClusters", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 4, -0.5, 3.5, 20, 0, 1);
-    h_simmc_primaryPt_vs_nClusters_ = fs->make<TH2F>("h_simmc_primaryPt_vs_nClusters", "Primary Particle pT vs N Clusters;N_{clusters};p_{T} [GeV]", 4, -0.5, 3.5, 20, 0, 20);
-    h_simmc_primaryPt_vs_energy_ = fs->make<TH2F>("h_simmc_primaryPt_vs_energy", "Primary Particle pT vs MergedCluster Energy;MergedCluster Energy [MeV];p_{T} [GeV]", 20, 0, 1, 20, 0, 11);
-    h_simmc_primaryEnergy_vs_energy_ = fs->make<TH2F>("h_simmc_primaryEnergy_vs_energy", "Primary Particle Energy vs MergedCluster Energy;MergedCluster Energy [MeV];Primary Particle Energy [GeV]", 20, 0, 1, 20, 0, 40);
-    h_simmc_primaryEnergy_vs_nClusters_ = fs->make<TH2F>("h_simmc_primaryEnergy_vs_nClusters", "Primary Particle Energy vs N Clusters;N_{clusters};Primary Particle Energy [GeV]", 4, -0.5, 3.5, 20, 0, 40);
-
-    // Analysis tree
-    tree_ = fs->make<TTree>("MTDMergedClusters", "MTD MergedCluster Analysis Tree");
-    
-    tree_->Branch("evt_run", &evt_run_);
-    tree_->Branch("evt_event", &evt_event_);
-    
-    // RECO
-    tree_->Branch("mc_n", &mc_n_);
-    tree_->Branch("mc_energy", &mc_energy_);
-    tree_->Branch("mc_time", &mc_time_);
-    tree_->Branch("mc_timeError", &mc_timeError_);
-    tree_->Branch("mc_x", &mc_x_);
-    tree_->Branch("mc_y", &mc_y_);
-    tree_->Branch("mc_nClusters", &mc_nClusters_);
-    tree_->Branch("mc_seedId", &mc_seedId_);
-    tree_->Branch("mc_clusterIds", &mc_clusterIds_);
-
-    tree_->Branch("cluster_n", &cluster_n_);
-    tree_->Branch("cluster_energy", &cluster_energy_);
-    tree_->Branch("cluster_time", &cluster_time_);
-    tree_->Branch("cluster_x", &cluster_x_);
-    tree_->Branch("cluster_y", &cluster_y_);
-    tree_->Branch("cluster_detId", &cluster_detId_);
-    tree_->Branch("cluster_inMergedCluster", &cluster_inMergedCluster_);
-
-    // SIM
-    tree_->Branch("simmc_n", &simmc_n_);
-    tree_->Branch("simmc_energy", &simmc_energy_);
-    tree_->Branch("simmc_time", &simmc_time_);
-    // tree_->Branch("simmc_timeError", &simmc_timeError_);
-    tree_->Branch("simmc_x", &simmc_x_);
-    tree_->Branch("simmc_y", &simmc_y_);
-    tree_->Branch("simmc_nClusters", &simmc_nClusters_);
-    tree_->Branch("simmc_iphi_perCluster", &simmc_iphi_perCluster_);
-    tree_->Branch("simmc_ieta_perCluster", &simmc_ieta_perCluster_);
-    tree_->Branch("simmc_energy_perCluster", &simmc_energy_perCluster_);
-    tree_->Branch("simmc_time_perCluster", &simmc_time_perCluster_);
-    tree_->Branch("simmc_clusterType", &simmc_clusterType_);
-    tree_->Branch("simmc_primary_energy", &simmc_primary_energy_);
-    tree_->Branch("simmc_primary_et", &simmc_primary_et_);
-    tree_->Branch("simmc_primary_phi", &simmc_primary_phi_);
-    tree_->Branch("simmc_primary_eta", &simmc_primary_eta_);
-    tree_->Branch("simmc_primary_pdgId", &simmc_primary_pdgId_);    
 }
 
 void MergedClusterValidation::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -637,7 +534,7 @@ void MergedClusterValidation::analyze(const edm::Event& iEvent, const edm::Event
 
     h_simmc_n_->Fill(simmc_n_);
 
-    tree_->Fill();
+    // tree_->getTTree()->Fill();
 
     if (evt_event_ <= 3) {
         std::cout << "Event " << evt_event_ << ": " << mc_n_ << " MergedClusters, " 
@@ -647,19 +544,58 @@ void MergedClusterValidation::analyze(const edm::Event& iEvent, const edm::Event
     }
 }
 
-void MergedClusterValidation::endJob() {
+void MergedClusterValidation::bookHistograms(DQMStore::IBooker& ibooker, edm::Run const&, edm::EventSetup const&) {
+    ibooker.setCurrentFolder("MTD/MergedClusterValidation");
 
-    h_eta_merging_efficiency_->Divide(h_eta_merged_pairs_, h_eta_adjacent_pairs_, 1, 1, "B");
+    // Book all histograms
+    h_mc_energy_ = ibooker.book1D("h_mc_energy", "MergedCluster Energy;Energy [MeV];Count", 100, 0, 50);
+    h_mc_time_ = ibooker.book1D("h_mc_time", "MergedCluster Time;Time [ns];Count", 100, -5, 20);
+    h_mc_timeError_ = ibooker.book1D("h_mc_timeError", "MergedCluster Time Error;Time Error [ns];Count", 100, 0, 1);
+    h_mc_x_ = ibooker.book1D("h_mc_x", "MergedCluster X;X [mm];Count", 100, -200, 200);
+    h_mc_y_ = ibooker.book1D("h_mc_y", "MergedCluster Y;Y [mm];Count", 100, -200, 200);
+    h_mc_nClusters_ = ibooker.book1D("h_mc_nClusters", "Number of Clusters;N_{clusters};Count", 10, 0.5, 10.5);
+    
+    // Cluster histograms for comparison
+    h_cluster_energy_ = ibooker.book1D("h_cluster_energy", "Cluster Energy;Energy [MeV];Count", 100, 0, 50);
+    h_cluster_time_ = ibooker.book1D("h_cluster_time", "Cluster Time;Time [ns];Count", 100, -5, 20);
+    
+    // 2D histograms
+    h_mc_energy_vs_time_ = ibooker.book2D("h_mc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 100, -5, 20, 100, 0, 50);
+    h_mc_xy_ = ibooker.book2D("h_mc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -200, 200, 100, -200, 200);
+    h_mc_energy_vs_nClusters_ = ibooker.book2D("h_mc_energy_vs_nClusters_", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 10, 0.5, 10.5, 100, 0, 50);
+    h_merging_efficiency_ = ibooker.book2D("h_merging_efficiency", "Merging Efficiency;Cluster Energy [MeV];Merged?", 50, 0, 50, 2, -0.5, 1.5);
+    
+    // efficiency
+    h_eta_adjacent_pairs_ = ibooker.book1D("h_eta_adjacent_pairs", "Adjacent Pairs vs Eta;#eta;Number of Adjacent Pairs", 100, -1.5, 1.5);
+    h_eta_merged_pairs_ = ibooker.book1D("h_eta_merged_pairs", "Merged Pairs vs Eta;#eta;Number of Merged Pairs", 100, -1.5, 1.5);
+    h_eta_merging_efficiency_ = ibooker.book1D("h_eta_merging_efficiency", "Merging Efficiency vs Eta;#eta;Efficiency", 100, -1.5, 1.5);
+    
+    // ------------------- //
+    // ------- SIM ------- //
+    // ------------------- //
 
-    std::cout << "\n=== MTD MergedCluster Validation Summary ===" << std::endl;
-    std::cout << "Total events processed: " << tree_->GetEntries() << std::endl;
-    std::cout << "Average MergedClusters per event: " << h_mc_energy_->GetEntries() / tree_->GetEntries() << std::endl;
-    std::cout << "Total adjacent cluster pairs found: " << totalAdjacentPairs_ << std::endl;
-    std::cout << "Total merged pairs: " << totalMergedPairs_ << std::endl;
-    if (totalAdjacentPairs_ > 0) {
-        std::cout << "Pair merging efficiency: " << (double)totalMergedPairs_ / totalAdjacentPairs_ * 100 << "%" << std::endl;
-    }
-    //std::cout << "Merging efficiency: " << h_merging_efficiency_->GetBinContent(2, 2) / h_merging_efficiency_->GetEntries() * 100 << "%" << std::endl;
+    // 1D histograms
+    h_simmc_energy_ = ibooker.book1D("h_simmc_energy", "MergedCluster Energy;Energy [MeV];Count", 50, 0, 50);
+    h_simmc_logEnergy_ = ibooker.book1D("h_simmc_logEnergy", "MergedCluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
+    h_simmc_time_ = ibooker.book1D("h_simmc_time", "MergedCluster Time;Time [ns];Count", 50, 0, 30);
+    h_simmc_x_ = ibooker.book1D("h_simmc_x", "MergedCluster X;X [mm];Count", 50, -120, 120);
+    h_simmc_y_ = ibooker.book1D("h_simmc_y", "MergedCluster Y;Y [mm];Count", 50, -120, 120);
+    h_simmc_nClusters_ = ibooker.book1D("h_simmc_nClusters", "Number of Clusters;N_{clusters};Count", 11, -0.5, 10.5);
+    h_simmc_n_ = ibooker.book1D("h_simmc_n", "Number of MergedClusters;N_{MergedClusters};Count", 51, -0.5, 50.5);
+
+    // 1D histograms -- per simLC 
+    h_simmc_logEnergy_perCluster_ = ibooker.book1D("h_simmc_logEnergy_perCluster", "Cluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
+    h_simmc_time_perCluster_ = ibooker.book1D("h_simmc_time_perCluster", "Cluster Time;Time [ns];Count", 50, 0, 30);
+    h_simmc_clusterType_ = ibooker.book1D("h_simmc_clusterType", "Cluster Type;Type;Count", 4, -0.5, 3.5);
+    
+    // 2D histograms
+    h_simmc_xy_ = ibooker.book2D("h_simmc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -120, 120, 100, -120, 120);
+    h_simmc_energy_vs_time_ = ibooker.book2D("h_simmc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 30, 4, 27, 20, 0, 1);
+    h_simmc_energy_vs_nClusters_ = ibooker.book2D("h_simmc_energy_vs_nClusters", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 4, -0.5, 3.5, 20, 0, 1);
+    h_simmc_primaryPt_vs_nClusters_ = ibooker.book2D("h_simmc_primaryPt_vs_nClusters", "Primary Particle pT vs N Clusters;N_{clusters};p_{T} [GeV]", 4, -0.5, 3.5, 20, 0, 20);
+    h_simmc_primaryPt_vs_energy_ = ibooker.book2D("h_simmc_primaryPt_vs_energy", "Primary Particle pT vs MergedCluster Energy;MergedCluster Energy [MeV];p_{T} [GeV]", 20, 0, 1, 20, 0, 11);
+    h_simmc_primaryEnergy_vs_energy_ = ibooker.book2D("h_simmc_primaryEnergy_vs_energy", "Primary Particle Energy vs MergedCluster Energy;MergedCluster Energy [MeV];Primary Particle Energy [GeV]", 20, 0, 1, 20, 0, 40);
+    h_simmc_primaryEnergy_vs_nClusters_ = ibooker.book2D("h_simmc_primaryEnergy_vs_nClusters", "Primary Particle Energy vs N Clusters;N_{clusters};Primary Particle Energy [GeV]", 4, -0.5, 3.5, 20, 0, 40);
 }
 
 DEFINE_FWK_MODULE(MergedClusterValidation);

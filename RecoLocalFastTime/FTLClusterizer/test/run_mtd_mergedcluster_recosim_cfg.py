@@ -34,7 +34,6 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(options.maxEvents)
 )
 
-
 process.source = cms.Source("PoolSource",
     # fileNames = cms.untracked.vstring("file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root")
     fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_164835/0000/step3_{i}.root" for i in range(1, 11)]),
@@ -107,10 +106,7 @@ process.p = cms.Path(process.mergedClusterSequence)
 process.out_step = cms.EndPath(process.output)
 process.schedule = cms.Schedule(process.p, process.out_step)
 
-# process.mtd_reco = cms.Path(process.mtdMergedClusters)
-# process.outpath = cms.EndPath(process.output)
-    
 print("Testing BTL MTDMergedClusterProducer with adjacent cluster algorithm...")
 print(f"Output file: {options.outputFile}")
 print(f"Max events: {options.maxEvents}")
-print(f"Use topological clustering: {options.useSimTopologicalClustering}")
+print(f"Use topological clustering (for SIM merged clusters): {options.useSimTopologicalClustering}")

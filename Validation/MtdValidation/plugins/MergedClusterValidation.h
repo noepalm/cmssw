@@ -28,20 +28,18 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TTree.h"
+// DQM
+#include "DQMServices/Core/interface/DQMEDAnalyzer.h"
+#include "DQMServices/Core/interface/DQMStore.h"
 
-class MergedClusterValidation : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class MergedClusterValidation : public DQMEDAnalyzer {
 public:
     explicit MergedClusterValidation(const edm::ParameterSet&);
     ~MergedClusterValidation() = default;
 
 private:
     void analyze(const edm::Event&, const edm::EventSetup&) override;
-    void beginJob() override;
-    void endJob() override;
-
+    void bookHistograms(DQMStore::IBooker&, edm::Run const&, edm::EventSetup const&) override;
     
     edm::EDGetTokenT<FTLMergedClusterCollection> mergedClustersToken_;
     edm::EDGetTokenT<FTLClusterCollection> clustersToken_;
@@ -54,46 +52,44 @@ private:
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 
     // RECO
-    TH1F* h_mc_energy_;
-    TH1F* h_mc_time_;
-    TH1F* h_mc_timeError_;
-    TH1F* h_mc_x_;
-    TH1F* h_mc_y_;
-    TH1F* h_mc_nClusters_;
-    TH1F* h_cluster_energy_;
-    TH1F* h_cluster_time_;
+    MonitorElement* h_mc_energy_;
+    MonitorElement* h_mc_time_;
+    MonitorElement* h_mc_timeError_;
+    MonitorElement* h_mc_x_;
+    MonitorElement* h_mc_y_;
+    MonitorElement* h_mc_nClusters_;
+    MonitorElement* h_cluster_energy_;
+    MonitorElement* h_cluster_time_;
     
-    TH1F* h_eta_adjacent_pairs_;
-    TH1F* h_eta_merged_pairs_;
-    TH1F* h_eta_merging_efficiency_;
+    MonitorElement* h_eta_adjacent_pairs_;
+    MonitorElement* h_eta_merged_pairs_;
+    MonitorElement* h_eta_merging_efficiency_;
 
-    TH2F* h_mc_energy_vs_time_;
-    TH2F* h_mc_xy_;
-    TH2F* h_mc_energy_vs_nClusters_;
-    TH2F* h_merging_efficiency_;
+    MonitorElement* h_mc_energy_vs_time_;
+    MonitorElement* h_mc_xy_;
+    MonitorElement* h_mc_energy_vs_nClusters_;
+    MonitorElement* h_merging_efficiency_;
 
     // SIM
-    TH1F* h_simmc_energy_;
-    TH1F* h_simmc_logEnergy_;
-    TH1F* h_simmc_time_;
-    TH1F* h_simmc_x_;
-    TH1F* h_simmc_y_;
-    TH1F* h_simmc_nClusters_;
-    TH1F* h_simmc_n_;
+    MonitorElement* h_simmc_energy_;
+    MonitorElement* h_simmc_logEnergy_;
+    MonitorElement* h_simmc_time_;
+    MonitorElement* h_simmc_x_;
+    MonitorElement* h_simmc_y_;
+    MonitorElement* h_simmc_nClusters_;
+    MonitorElement* h_simmc_n_;
 
-    TH1F* h_simmc_logEnergy_perCluster_;
-    TH1F* h_simmc_time_perCluster_;
-    TH1F* h_simmc_clusterType_;
+    MonitorElement* h_simmc_logEnergy_perCluster_;
+    MonitorElement* h_simmc_time_perCluster_;
+    MonitorElement* h_simmc_clusterType_;
 
-    TH2F* h_simmc_xy_;
-    TH2F* h_simmc_energy_vs_time_;
-    TH2F* h_simmc_energy_vs_nClusters_;
-    TH2F* h_simmc_primaryPt_vs_nClusters_;
-    TH2F* h_simmc_primaryPt_vs_energy_;
-    TH2F* h_simmc_primaryEnergy_vs_energy_;
-    TH2F* h_simmc_primaryEnergy_vs_nClusters_;
-
-    TTree* tree_;
+    MonitorElement* h_simmc_xy_;
+    MonitorElement* h_simmc_energy_vs_time_;
+    MonitorElement* h_simmc_energy_vs_nClusters_;
+    MonitorElement* h_simmc_primaryPt_vs_nClusters_;
+    MonitorElement* h_simmc_primaryPt_vs_energy_;
+    MonitorElement* h_simmc_primaryEnergy_vs_energy_;
+    MonitorElement* h_simmc_primaryEnergy_vs_nClusters_;
     
     int evt_run_, evt_event_;
 
@@ -120,8 +116,6 @@ private:
     // Primary particle information per mergedcluster
     std::vector<float> simmc_primary_energy_, simmc_primary_et_, simmc_primary_phi_, simmc_primary_eta_;
     std::vector<int> simmc_primary_pdgId_;
-
-
 
     int totalAdjacentPairs_;
     int totalMergedPairs_;
