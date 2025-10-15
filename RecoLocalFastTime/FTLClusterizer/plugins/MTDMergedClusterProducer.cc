@@ -8,7 +8,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 
-#include "DataFormats/FTLRecHit/interface/FTLSuperCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
@@ -25,17 +25,17 @@
 #include <cmath>
 #include <limits>
 
-class MTDSuperClusterProducer : public edm::stream::EDProducer<> {
+class MTDMergedClusterProducer : public edm::stream::EDProducer<> {
 public:
-    explicit MTDSuperClusterProducer(const edm::ParameterSet& conf);
-    ~MTDSuperClusterProducer() override = default;
+    explicit MTDMergedClusterProducer(const edm::ParameterSet& conf);
+    ~MTDMergedClusterProducer() override = default;
     
     void produce(edm::Event& e, const edm::EventSetup& es) override;
     static void fillDescriptions(edm::ConfigurationDescriptions& descriptions); 
 
 private:
     edm::EDGetTokenT<FTLClusterCollection> btlClustersToken_;
-    std::string btlSuperClusterInstance_;
+    std::string btlMergedClusterInstance_;
 
     double timeThreshold_;  // 10 sigma timing window?
     double energyThreshold_;   
@@ -44,25 +44,25 @@ private:
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;    
 
     bool areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2);
-    FTLSuperCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId);
+    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId);
 };
 
-MTDSuperClusterProducer::MTDSuperClusterProducer(const edm::ParameterSet& conf) 
+MTDMergedClusterProducer::MTDMergedClusterProducer(const edm::ParameterSet& conf) 
     : btlClustersToken_(consumes<FTLClusterCollection>(conf.getParameter<edm::InputTag>("btlBarrel"))),
-      btlSuperClusterInstance_(conf.getParameter<std::string>("btlSuperClusterInstance")),
+      btlMergedClusterInstance_(conf.getParameter<std::string>("btlMergedClusterInstance")),
       timeThreshold_(conf.getParameter<double>("timeThreshold")),
       energyThreshold_(conf.getParameter<double>("energyThreshold")),
       mtdgeoToken_(esConsumes<MTDGeometry, MTDDigiGeometryRecord>()),
       mtdtopoToken_(esConsumes<MTDTopology, MTDTopologyRcd>()) {
 
-    produces<FTLSuperClusterCollection>(btlSuperClusterInstance_);
+    produces<FTLMergedClusterCollection>(btlMergedClusterInstance_);
 
-    std::cout << "MTDSuperClusterProducer: Time threshold = " << timeThreshold_ << " sigma" << std::endl;
-    std::cout << "MTDSuperClusterProducer: Energy threshold = " << energyThreshold_ << " MeV" << std::endl;
-    std::cout << "=== MTDSuperClusterProducer: Constructor finished ===" << std::endl;
+    std::cout << "MTDMergedClusterProducer: Time threshold = " << timeThreshold_ << " sigma" << std::endl;
+    std::cout << "MTDMergedClusterProducer: Energy threshold = " << energyThreshold_ << " MeV" << std::endl;
+    std::cout << "=== MTDMergedClusterProducer: Constructor finished ===" << std::endl;
 }
 
-bool MTDSuperClusterProducer::areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2) {
+bool MTDMergedClusterProducer::areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2) {
     double timeDiff = std::abs(c1->time() - c2->time());
     double timeError1 = c1->timeError();
     double timeError2 = c2->timeError();
@@ -77,7 +77,7 @@ bool MTDSuperClusterProducer::areTimingCompatible(const FTLCluster* c1, const FT
     return compatible;
 }
 
-FTLSuperCluster MTDSuperClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId) {
+FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId) {
     float totalEnergy = 0;
     float weightedTime = 0;
     float weightedTimeError2 = 0;
@@ -101,10 +101,10 @@ FTLSuperCluster MTDSuperClusterProducer::mergeClusters(const std::vector<const F
     float avgX = weightedX / totalEnergy;
     float avgY = weightedY / totalEnergy;
 
-    return FTLSuperCluster(seedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds);
+    return FTLMergedCluster(seedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds);
 }
 
-void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) {    
+void MTDMergedClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) {    
     // Get topology for navigation
     auto topologyHandle = es.getTransientHandle(mtdtopoToken_);
     const MTDTopology* topology = topologyHandle.product();
@@ -112,15 +112,15 @@ void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) 
     edm::Handle<FTLClusterCollection> btlClustersHandle;
     e.getByToken(btlClustersToken_, btlClustersHandle);
     
-    std::cout << "MTDSuperClusterProducer: Processing event " << e.id() << std::endl;
+    std::cout << "MTDMergedClusterProducer: Processing event " << e.id() << std::endl;
     std::cout << "Time threshold: " << timeThreshold_ << " sigma, Energy threshold: " << energyThreshold_ << " MeV" << std::endl;
     std::cout << "Input BTL clusters: " << btlClustersHandle->size() << std::endl;
 
-    auto btlOutput = std::make_unique<FTLSuperClusterCollection>();
+    auto btlOutput = std::make_unique<FTLMergedClusterCollection>();
     
     if (!btlClustersHandle.isValid() || btlClustersHandle->size() == 0) {
         std::cout << "No valid BTL clusters found in event" << std::endl;
-        e.put(std::move(btlOutput), btlSuperClusterInstance_);
+        e.put(std::move(btlOutput), btlMergedClusterInstance_);
         return;
     }
     
@@ -153,7 +153,7 @@ void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) 
     
     // Process clusters 
     for (const auto* cluster : allClusters) {
-        if (processedClusters.count(cluster)) continue; // already part of a supercluster
+        if (processedClusters.count(cluster)) continue; // already part of a mergedcluster
             
         BTLDetId cluId = cluster->id();
         /*std::cout << "Cluster 1: E=" << cluster.energy() 
@@ -161,7 +161,7 @@ void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) 
             << " x=" << cluster.x() 
             << " y=" << cluster.y();*/
             
-        std::vector<const FTLCluster*> superClusterClusters = {cluster};
+        std::vector<const FTLCluster*> mergedClusterClusters = {cluster};
         processedClusters.insert(cluster);
             
         // Check for edge hits in current cluster
@@ -223,7 +223,7 @@ void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) 
                               << " with " << adjDetId.rawId() << std::endl;
                     std::cout << "  -> Cluster 1 module: " << cluId.module() 
                               << ", Cluster 2 module: " << adjDetId.module() << std::endl;*/
-                    superClusterClusters.push_back(adjCluster);
+                    mergedClusterClusters.push_back(adjCluster);
                     processedClusters.insert(adjCluster);
                 }
             }
@@ -248,35 +248,35 @@ void MTDSuperClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) 
                 if (areTimingCompatible(&cluster, adjCluster)) {
                     std::cout << "  -> MERGING PHI neighbor: " << cluId.rawId() 
                               << " with " << adjDetId.rawId() << std::endl;
-                    superClusterClusters.push_back(adjCluster);
+                    mergedClusterClusters.push_back(adjCluster);
                     processedClusters.insert(adjCluster);
                 }
             }
         }*/
             
-        // Create supercluster from merged clusters
-        if (superClusterClusters.size() > 1) {
-            FTLSuperCluster superCluster = mergeClusters(superClusterClusters, cluId);
-            btlOutput->push_back(superCluster);
+        // Create mergedcluster from merged clusters
+        if (mergedClusterClusters.size() > 1) {
+            FTLMergedCluster mergedCluster = mergeClusters(mergedClusterClusters, cluId);
+            btlOutput->push_back(mergedCluster);
             
-            std::cout << "Created SuperCluster from " << superClusterClusters.size() 
-                    << " clusters: E=" << superCluster.energy() 
-                    << " MeV, t=" << superCluster.time() << " ns" << std::endl;
+            std::cout << "Created MergedCluster from " << mergedClusterClusters.size() 
+                    << " clusters: E=" << mergedCluster.energy() 
+                    << " MeV, t=" << mergedCluster.time() << " ns" << std::endl;
         }        
     }
     
-    std::cout << "About to put " << btlOutput->size() << " SuperClusters into event..." << std::endl;
-    e.put(std::move(btlOutput), btlSuperClusterInstance_);
-    std::cout << "=== Successfully put SuperClusters into event ===" << std::endl;
+    std::cout << "About to put " << btlOutput->size() << " MergedClusters into event..." << std::endl;
+    e.put(std::move(btlOutput), btlMergedClusterInstance_);
+    std::cout << "=== Successfully put MergedClusters into event ===" << std::endl;
 }
-void MTDSuperClusterProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+void MTDMergedClusterProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
     desc.add<edm::InputTag>("btlBarrel", edm::InputTag("mtdClusters", "FTLBarrel"));
-    desc.add<std::string>("btlSuperClusterInstance", "FTLBarrel");    
+    desc.add<std::string>("btlMergedClusterInstance", "FTLBarrel");    
     desc.add<double>("timeThreshold", 2.0);
     desc.add<double>("energyThreshold", 0.0);  // MeV
-    descriptions.add("MTDSuperClusterProducer", desc);
+    descriptions.add("MTDMergedClusterProducer", desc);
 }
 
-DEFINE_FWK_MODULE(MTDSuperClusterProducer);
+DEFINE_FWK_MODULE(MTDMergedClusterProducer);
 
