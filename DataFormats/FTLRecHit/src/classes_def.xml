@@ -58,4 +58,9 @@
   <class name="edm::Wrapper<FTLTrackingRecHitCollection>"/>
 
   <enum name="FTLSeverityLevel::SeverityLevel"/> 
+
+  <class name="FTLMergedCluster"/>
+  <class name="std::vector<FTLMergedCluster>"/>
+  <class name="edm::Wrapper<std::vector<FTLMergedCluster>>"/>
+  <class name="edm::Wrapper<FTLMergedCluster>"/>
 </lcgdict>

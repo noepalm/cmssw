@@ -62,6 +62,14 @@
   <class name="MtdSimTracksterRefProd"/>
   <class name="MtdSimTracksterContainer"/>
 
+  <class name="MtdSimMergedCluster"/>
+  <class name="MtdSimMergedClusterCollection"/>
+  <class name="edm::Wrapper<MtdSimMergedClusterCollection>"/>
+  <class name="MtdSimMergedClusterRef"/>
+  <class name="MtdSimMergedClusterRefVector"/>
+  <class name="MtdSimMergedClusterRefProd"/>
+  <class name="MtdSimMergedClusterContainer"/>
+
   <class name="SimTauCPLink" ClassVersion="3">
    <version ClassVersion="3" checksum="213448491"/>
   </class>
