@@ -62,6 +62,7 @@ void MergedClusterValidation_dev::beginJob() {
     h_simmc_time_ = fs->make<TH1F>("h_simmc_time", "MergedCluster Time;Time [ns];Count", 50, 0, 30);
     h_simmc_x_ = fs->make<TH1F>("h_simmc_x", "MergedCluster X;X [mm];Count", 50, -120, 120);
     h_simmc_y_ = fs->make<TH1F>("h_simmc_y", "MergedCluster Y;Y [mm];Count", 50, -120, 120);
+    h_simmc_eta_ = fs->make<TH1F>("h_simmc_eta", "MergedCluster Eta;#eta;Count", 50, -5, 5);
     h_simmc_nClusters_ = fs->make<TH1F>("h_simmc_nClusters", "Number of Clusters;N_{clusters};Count", 11, -0.5, 10.5);
     h_simmc_n_ = fs->make<TH1F>("h_simmc_n", "Number of MergedClusters;N_{MergedClusters};Count", 51, -0.5, 50.5);
 
@@ -111,11 +112,14 @@ void MergedClusterValidation_dev::beginJob() {
     // tree_->Branch("simmc_timeError", &simmc_timeError_);
     tree_->Branch("simmc_x", &simmc_x_);
     tree_->Branch("simmc_y", &simmc_y_);
+    tree_->Branch("simmc_eta", &simmc_eta_);
     tree_->Branch("simmc_nClusters", &simmc_nClusters_);
     tree_->Branch("simmc_iphi_perCluster", &simmc_iphi_perCluster_);
     tree_->Branch("simmc_ieta_perCluster", &simmc_ieta_perCluster_);
     tree_->Branch("simmc_energy_perCluster", &simmc_energy_perCluster_);
     tree_->Branch("simmc_time_perCluster", &simmc_time_perCluster_);
+    tree_->Branch("simmc_earliestHitTime_perCluster", &simmc_earliestHitTime_perCluster_);
+    tree_->Branch("simmc_hitCols_perCluster", &simmc_hitCols_perCluster_);
     tree_->Branch("simmc_clusterType", &simmc_clusterType_);
     tree_->Branch("simmc_primary_energy", &simmc_primary_energy_);
     tree_->Branch("simmc_primary_et", &simmc_primary_et_);
@@ -166,9 +170,10 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
     cluster_inMergedCluster_.clear();
 
     simmc_energy_.clear(); simmc_time_.clear();
-    simmc_x_.clear(); simmc_y_.clear(); simmc_nClusters_.clear(); 
+    simmc_x_.clear(); simmc_y_.clear(); simmc_eta_.clear(); simmc_nClusters_.clear(); 
     simmc_iphi_perCluster_.clear(); simmc_ieta_perCluster_.clear(); 
     simmc_energy_perCluster_.clear(); simmc_time_perCluster_.clear(); 
+    simmc_hitCols_perCluster_.clear(); simmc_earliestHitTime_perCluster_.clear();
     simmc_clusterType_.clear(); 
     simmc_primary_energy_.clear(); 
     simmc_primary_et_.clear(); simmc_primary_phi_.clear(); 
@@ -463,6 +468,7 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
 
         h_simmc_x_->Fill(global_point.x());
         h_simmc_y_->Fill(global_point.y());
+        h_simmc_eta_->Fill(global_point.eta());
 
         h_simmc_xy_->Fill(global_point.x(), global_point.y());
 
@@ -472,6 +478,7 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
         // simmc_timeError_.push_back(simmc.timeError());
         simmc_x_.push_back(global_point.x());
         simmc_y_.push_back(global_point.y());
+        simmc_eta_.push_back(global_point.eta());
         simmc_nClusters_.push_back(nClusters);
 
         // Collect per-cluster information for this mergedcluster
@@ -479,8 +486,10 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
         std::vector<uint32_t> ieta_perCluster;
         std::vector<float> energy_perCluster;
         std::vector<float> time_perCluster;
-        std::vector<uint32_t> clusterType_perCluster;
-        
+        std::vector<float> earliestHitTime;
+        std::vector<uint32_t> clusterType_perCluster;        
+        std::vector<std::vector<int>> hitCols;
+
         // Access individual clusters from the mergedcluster
         for (const auto& cluster_ref : simmc.clusters()) {
             const auto& cluster = *cluster_ref;
@@ -501,10 +510,26 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
             // Store cluster type (trackIdOffset)
             clusterType_perCluster.push_back(cluster.trackIdOffset());
 
+            std::vector<int> hitCols_singleCluster;
+            // Store list of hit cols for this cluster
+            for (const auto& detId_row : cluster.detIds_and_rows()) {
+                hitCols_singleCluster.push_back(detId_row.second.second);
+            }
+            hitCols.push_back(hitCols_singleCluster);
+
+            // take time of earliest hit in cluster
+            float earliestTime_cluster = 999;
+            for (const auto& hit_and_time : cluster.hits_and_times()) {
+                if (hit_and_time.second < earliestTime_cluster) {
+                    earliestTime_cluster = hit_and_time.second;
+                }
+            }
+            earliestHitTime.push_back(earliestTime_cluster);
+
             // Fill histograms
             h_simmc_logEnergy_perCluster_->Fill(log10(convertUnitsTo(0.001_MeV, cluster.simLCEnergy())));
             h_simmc_time_perCluster_->Fill(cluster.simLCTime());
-            h_simmc_clusterType_->Fill(cluster.trackIdOffset());
+            h_simmc_clusterType_->Fill(cluster.trackIdOffset());            
             
             #if DEBUG>0
             std::cout << "\t\t cluster detId: " << clusterDetId.rawId() 
@@ -521,6 +546,8 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
         simmc_energy_perCluster_.push_back(energy_perCluster);
         simmc_time_perCluster_.push_back(time_perCluster);
         simmc_clusterType_.push_back(clusterType_perCluster);
+        simmc_hitCols_perCluster_.push_back(hitCols);
+        simmc_earliestHitTime_perCluster_.push_back(earliestHitTime);
         
         // Find primary tracking particle for this mergedcluster
         float primary_energy = -999.0;

@@ -25,22 +25,39 @@ void MtdSimMergedCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, co
 }
 
 float MtdSimMergedCluster::simTime() const {
-    if(clusters_.empty()) {
+    // if(clusters_.empty()) {
+    //     return -999;
+    // } else {
+    //     // FIRST IMPLEMENTATION: take time of earliest cluster
+    //     return (*clusters_.begin())->simLCTime();
+    // }
+
+    // ALT IMPLEMENTATION: take position of earliest hit across all clusters
+    auto hitTimesAndPositions = getHitTimesAndPositions();
+    if(hitTimesAndPositions.empty()) {
         return -999;
     } else {
-        // FIRST IMPLEMENTATION: take time of earliest cluster
-        return (*clusters_.begin())->simLCTime();
+        return hitTimesAndPositions.front().first;
     }
 }
 
 LocalPoint MtdSimMergedCluster::simPos() const {
-    if(clusters_.empty()) {
+    // if(clusters_.empty()) {
+    //     return LocalPoint(-999, -999, -999);
+    // } else {
+    //     // // FIRST IMPLEMENTATION: take position of earliest cluster
+    //     // // (TO BE CHANGED: take energy-weighted position?)
+    //     return (*clusters_.begin())->simLCPos();
+    // }
+
+    // ALT IMPLEMENTATION: take position of earliest hit across all clusters
+    auto hitTimesAndPositions = getHitTimesAndPositions();
+    if(hitTimesAndPositions.empty()) {
         return LocalPoint(-999, -999, -999);
     } else {
-        // FIRST IMPLEMENTATION: take position of earliest cluster
-        // (TO BE CHANGED: take energy-weighted position?)
-        return (*clusters_.begin())->simLCPos();
+        return hitTimesAndPositions.front().second;
     }
+
 }
 
 float MtdSimMergedCluster::simEnergy() const {
@@ -77,6 +94,69 @@ std::vector<DetId> MtdSimMergedCluster::detIds() const {
 
     return ids;
 }
+
+// // FIRST IMPLEMENTATION: RETURNS MAP
+// std::map<uint64_t, std::pair<float, LocalPoint>> MtdSimMergedCluster::getHitTimesAndPositions() const {
+//     std::map<uint64_t, std::pair<float, LocalPoint>> hitTimesAndPositions; // key: hit detId, value: pair<time, position>
+
+//     for (const auto& clu : clusters_) {
+//         const auto& cluster_hit_times = clu->hits_and_times();
+//         const auto& cluster_hit_positions = clu->hits_and_positions();
+        
+//         // iterate over the two maps in parallel
+//         std::transform(cluster_hit_times.begin(), cluster_hit_times.end(),
+//                       cluster_hit_positions.begin(),
+//                       std::inserter(hitTimesAndPositions, hitTimesAndPositions.end()),
+//                       [](const auto& time_pair, const auto& pos_pair) {
+//                           // time_pair is pair<detId, time>, pos_pair is pair<detId, position>
+//                           uint64_t hitDetId = time_pair.first;
+//                           float hitTime = time_pair.second;
+//                           LocalPoint hitPosition = pos_pair.second;
+//                           if (hitDetId != pos_pair.first) {
+//                               std::cout << "Warning: Mismatched detIds in hit times and positions!" << std::endl;
+//                               return std::make_pair(uint64_t(0), std::make_pair(-1.0f, LocalPoint(-999, -999, -999)));
+//                           } else {
+//                             return std::make_pair(hitDetId, std::make_pair(hitTime, hitPosition));
+//                           }
+//                       });
+//     }
+
+//     return hitTimesAndPositions;
+// }
+
+std::vector<std::pair<float, LocalPoint>> MtdSimMergedCluster::getHitTimesAndPositions() const {
+    std::vector<std::pair<float, LocalPoint>> hitTimesAndPositions;
+
+    for (const auto& clu : clusters_) {
+        const auto& cluster_hit_times = clu->hits_and_times();
+        const auto& cluster_hit_positions = clu->hits_and_positions();
+        
+        // iterate over the two maps in parallel
+        std::transform(cluster_hit_times.begin(), cluster_hit_times.end(),
+                      cluster_hit_positions.begin(),
+                      std::inserter(hitTimesAndPositions, hitTimesAndPositions.end()),
+                      [](const auto& time_pair, const auto& pos_pair) {
+                          // time_pair is pair<detId, time>, pos_pair is pair<detId, position>
+                          float hitTime = time_pair.second;
+                          LocalPoint hitPosition = pos_pair.second;                          
+                          if (time_pair.first != pos_pair.first) {
+                              std::cout << "Warning: Mismatched detIds in hit times and positions!" << std::endl;
+                              return std::make_pair(-1.0f, LocalPoint(-999, -999, -999));
+                          } else {
+                            return std::make_pair(hitTime, hitPosition);
+                          }
+                      });
+    }
+
+    // before returning, sort by time
+    std::sort(hitTimesAndPositions.begin(), hitTimesAndPositions.end(),
+              [](const std::pair<float, LocalPoint>& a, const std::pair<float, LocalPoint>& b) {
+                  return a.first < b.first;
+              });
+
+    return hitTimesAndPositions;
+}
+
 
 std::ostream& operator<<(std::ostream& s, const MtdSimMergedCluster& sc) {
     s << "MtdSimMergedCluster with " << sc.clusters_.size() << " clusters and TrackingParticles: = " << sc.trackingParticles_.size() << "\n";

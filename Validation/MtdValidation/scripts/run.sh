@@ -1,3 +1,31 @@
+python3 plot_script_from_tree.py ../test/tree_vali_dev_forDev_271125_bis.root \
+        --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_271125_bis \
+        --config configs/plot_config_forDev271125.py
+python3 plot_complicated_plots.py ../test/tree_vali_dev_forDev_271125_bis.root \
+        --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_271125_bis \
+
+# python3 plot_script_from_tree.py ../test/tree_vali_dev_forDev_271125.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_271125 \
+#         --config configs/plot_config_forDev271125.py
+# python3 plot_complicated_plots.py ../test/tree_vali_dev_forDev_271125.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_271125 \
+
+# python3 plot_script_from_tree.py ../test/tree_vali_dev_forDev_261125.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_261125 \
+#         --config configs/plot_config_forDev261125.py
+# python3 plot_complicated_plots.py ../test/tree_vali_dev_forDev_261125.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_261125 \
+
+# python3 plot_script_from_tree.py ../test/tree_vali_dev.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_251125 \
+#         --config configs/plot_config_forDev251125.py
+# python3 plot_complicated_plots.py ../test/tree_vali_dev_forDev_251125.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forDev_251125 \
+
+# python3 plot_script_from_tree.py ../test/tree_vali_dev.root \
+#         --output-dir /eos/home-n/npalmeri/www/MTD/MergedCluster/forPresentation_251024/photonGun \
+#         --config configs/plot_config_forPresentation251024.py
+
 # cd ../../; scram b -j 16; cd -
 
 # if --plot argument passed, only run plotting scripts

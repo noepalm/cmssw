@@ -78,6 +78,7 @@ private:
     TH1F* h_simmc_time_;
     TH1F* h_simmc_x_;
     TH1F* h_simmc_y_;
+    TH1F* h_simmc_eta_;
     TH1F* h_simmc_nClusters_;
     TH1F* h_simmc_n_;
 
@@ -111,11 +112,13 @@ private:
 
     // SIM
     int simmc_n_;
-    std::vector<float> simmc_energy_, simmc_time_, simmc_timeError_, simmc_x_, simmc_y_;
+    std::vector<float> simmc_energy_, simmc_time_, simmc_timeError_, simmc_x_, simmc_y_, simmc_eta_;
     std::vector<int> simmc_nClusters_;
     std::vector<std::vector<uint32_t>> simmc_iphi_perCluster_, simmc_ieta_perCluster_;
     std::vector<std::vector<float>> simmc_energy_perCluster_, simmc_time_perCluster_;
+    std::vector<std::vector<float>> simmc_earliestHitTime_perCluster_;
     std::vector<std::vector<uint32_t>> simmc_clusterType_;
+    std::vector<std::vector<std::vector<int>>> simmc_hitCols_perCluster_;
     
     // Primary particle information per mergedcluster
     std::vector<float> simmc_primary_energy_, simmc_primary_et_, simmc_primary_phi_, simmc_primary_eta_;
