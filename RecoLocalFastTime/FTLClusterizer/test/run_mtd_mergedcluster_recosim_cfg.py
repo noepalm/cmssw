@@ -35,8 +35,8 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 process.source = cms.Source("PoolSource",
-    # fileNames = cms.untracked.vstring("file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root")
-    fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_164835/0000/step3_{i}.root" for i in range(1, 11)]),
+     fileNames = cms.untracked.vstring("file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root")
+    #fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_164835/0000/step3_{i}.root" for i in range(1, 11)]),
 )
 
 # Load SimMergedCluster producer
@@ -66,11 +66,6 @@ process.output = cms.OutputModule("PoolOutputModule",
     outputCommands = cms.untracked.vstring(
         #'keep *'
         'drop *',
-        #'keep *_mtdRecHits_*_*',            # keep rec hits
-        #'keep *_mtdClusters_*_*',           # keep original clusters
-        #'keep *_mtdMergedClusters_*_*',      # keep MergedClusters
-        #'keep *_genParticles_*_*',          # keep gen info if needed?
-        #'keep *_simHits_*_*',               # keep sim hits if needed for validation?
 
         "keep *_genParticles_*_*",  # keep GenParticles
         "keep *_mtdSimLayerClusterToTPAssociation_*_*",
@@ -95,9 +90,6 @@ process.output = cms.OutputModule("PoolOutputModule",
         'keep *_mtdMergedClusters_*_*',  
         "keep *_mtdSimMergedClusterProducer_*_*",
     ),
-    #SelectEvents = cms.untracked.PSet(
-    #    SelectEvents = cms.vstring('p')
-    #)
 )
 
 process.mergedClusterSequence = cms.Sequence(process.mtdSimLayerClusterToTPAssociatorByTrackId + process.mtdSimLayerClusterToTPAssociation + process.mtdSimMergedClusterProducer + process.mtdMergedClusters)

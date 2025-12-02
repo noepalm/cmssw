@@ -2,8 +2,12 @@
 #define DataFormats_FTLRecHit_FTLMergedCluster_h
 
 #include "DataFormats/DetId/interface/DetId.h"
-#include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include <vector>
+#include "DataFormats/Common/interface/DetSetVector.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/Common/interface/DetSetRefVector.h"
+#include "DataFormats/Common/interface/Ref.h"
+#include "DataFormats/Common/interface/RefVector.h"
 
 class FTLMergedCluster {
 public:
@@ -34,6 +38,6 @@ private:
 
     std::vector<DetId> clusterIds_;
 };
-typedef std::vector<FTLMergedCluster> FTLMergedClusterCollection;
 
+typedef edmNew::DetSetVector<FTLMergedCluster> FTLMergedClusterCollection;
 #endif

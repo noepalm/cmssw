@@ -18,3 +18,7 @@
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/FTLRecHit/interface/FTLRecHitComparison.h"
+
+#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/Common/interface/Wrapper.h"

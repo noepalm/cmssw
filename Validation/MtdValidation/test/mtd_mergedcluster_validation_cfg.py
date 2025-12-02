@@ -7,11 +7,11 @@ options = VarParsing('analysis')
 options.register('inputFile',
                 #  'file:/eos/home-n/npalmeri/MTD/MTD_photonReco/CMSSW_15_1_0_pre2_mergedclusterDev/src/SimFastTiming/MtdSimMergedClusterProducers/test/mtdSimMergedClusters_history_1k.root',
                 #  'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_numEvent1000.root',
-                #  'file:/eos/user/p/pakrap/MTD/CMSSW_SC_TEST/src/RecoLocalFastTime/FTLClusterizer/mergedcluster_reco_singlepi.root'
-                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_numEvent1000.root',
-                 VarParsing.multiplicity.singleton,
-                 VarParsing.varType.string,
-                 "Input ROOT file")
+                  'file:/eos/user/p/pakrap/MTD/CMSSW_MC_CHECKS/src/RecoLocalFastTime/FTLClusterizer/output.root')
+                #  'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_numEvent1000.root','
+                # VarParsing.multiplicity.singleton,
+                # VarParsing.varType.string,
+                # "Input ROOT file")
 
 # Parse command line arguments
 options.parseArguments()
@@ -49,7 +49,9 @@ process.mtdMergedClusterValidation = cms.EDProducer("MergedClusterValidation",
     mergedClusters = cms.InputTag("mtdMergedClusters", "FTLBarrel"),
     clusters = cms.InputTag("mtdClusters", "FTLBarrel"),
     simMergedClusters = cms.InputTag("mtdSimMergedClusterProducer"),
-    simLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC")
+    simLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC"),
+    sim2tpAssociationMapTag = cms.InputTag("mtdSimLayerClusterToTPAssociation", ""),  
+    r2sAssociationMapTag = cms.InputTag("mtdRecoClusterToSimLayerClusterAssociation", "")
 )
 
 process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
