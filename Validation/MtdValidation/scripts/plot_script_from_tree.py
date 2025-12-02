@@ -235,7 +235,7 @@ def plot_1d_from_tree(tree, plot_def, output_dir):
                     y_pos = c + max(0.02 * max(counts.max(), 1), 1)
 
                 ax.text(x_pos, y_pos, f"{int(c)}",
-                        ha='center', va='bottom', fontsize=7, rotation=45, color=main_color, alpha=0.9)
+                        ha='center', va='bottom', fontsize=15, rotation=45, color=main_color, alpha=0.9)
 
         # If this definition requests a type breakdown, draw them
         if all_type_info[idx] is not None:

@@ -113,7 +113,7 @@ private:
     // SIM
     int simmc_n_;
     std::vector<float> simmc_energy_, simmc_time_, simmc_timeError_, simmc_x_, simmc_y_, simmc_eta_;
-    std::vector<int> simmc_nClusters_;
+    std::vector<int> simmc_nClusters_, simmc_nModules_;
     std::vector<std::vector<uint32_t>> simmc_iphi_perCluster_, simmc_ieta_perCluster_;
     std::vector<std::vector<float>> simmc_energy_perCluster_, simmc_time_perCluster_;
     std::vector<std::vector<float>> simmc_earliestHitTime_perCluster_;

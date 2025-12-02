@@ -8,29 +8,29 @@ import argparse
 from pathlib import Path
 from importlib import import_module
 
-# Set matplotlib style
-plt.style.use(hep.style.CMS)
-
 def main():
+    # Set matplotlib style
+    plt.style.use(hep.style.CMS)
+
     parser = argparse.ArgumentParser(description='Plot complicated MTD MergedCluster plots')
     parser.add_argument('input_file', nargs='?', default='../test/tree_vali_dev.root',
-                       help='Input ROOT file (default: ../test/tree_vali_dev.root)')
+                        help='Input ROOT file (default: ../test/tree_vali_dev.root)')
     parser.add_argument('--output-dir', '-o', default='/eos/home-n/npalmeri/www/MTD/MergedCluster/forPresentation_251024/photonGun',
-                       help='Output directory for plots')
-    
+                        help='Output directory for plots')
+
     args = parser.parse_args()
-    
+
     # Check if input file exists
     if not os.path.exists(args.input_file):
         print(f"Error: Input file {args.input_file} not found!")
-        return 1
-    
+        return
+
     # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     print(f"Reading data from {args.input_file}...")
-    
+
     f = uproot.open(args.input_file)
     tree = f["mtdMergedClusterValidation/MTDMergedClusters"]
     arrays = tree.arrays()
@@ -144,6 +144,39 @@ def main():
     plt.savefig(output_path)
     print(f"Saved plot: {output_path}")
 
+    ### plot the same as above, but with fractions instead of absolute numbers
+
+    plt.figure(figsize=(10, 8.5))
+    plt.hist2d(type1, type2, bins=[np.arange(-0.5, 4.5, 1), np.arange(-0.5, 4.5, 1)])
+    plt.colorbar(label='Counts')
+    plt.xlabel('Cluster Type 1')
+    plt.ylabel('Cluster Type 2')
+
+    plt.grid(True, linestyle='--', alpha=0.3, color="white")
+    # write number of entries on the plot
+    n_entries = len(type1)
+    plt.text(0.95, 0.95, f'Entries: {n_entries}', horizontalalignment='right', verticalalignment='top', transform=plt.gca().transAxes,
+                color='white', fontsize=12, bbox=dict(facecolor='black', alpha=0.5, pad=5))
+    # set ticks to be at integers only
+    plt.xticks(np.arange(0, 4, 1))
+    plt.yticks(np.arange(0, 4, 1))
+
+    # write number of entries in each BIN
+    for i in range(4):
+        for j in range(4):
+            # count number of entries in each bin
+            count = np.sum((np.array(type1) == i) & (np.array(type2) == j)) / n_entries * 100
+            if count > 0:
+                plt.text(i, j, f"{count:.1f}%", color='white', fontsize=20, ha='center', va='center')
+
+    # add cms label
+    hep.cms.label("Preliminary", data=False, com = 13.6)
+    # save figure
+    output_path = output_dir / "clustertype_fractions_2clusters.png"
+    plt.tight_layout()
+    plt.savefig(output_path)
+    print(f"Saved plot: {output_path}")
+
     ### 3. plot time, energy by cluster type for MERGED CLUSTERS ONLY
     clusterTypes = arrays["simmc_clusterType"]
     nClusters = arrays["simmc_nClusters"]
@@ -213,6 +246,38 @@ def main():
     plt.savefig(output_path)
     print(f"Saved plot: {output_path}")
 
+    # plot nClusters by cluster type
+    plt.figure(figsize=(10, 8.5))
+    ncluster_to_plot = nClusters[mask][good_evts]
+    ncluster_bins = np.arange(-0.5, 10.5, 1)
+    for ctype in range(4):
+        sel = clusterType_to_plot == ctype
+        data = ak.flatten(ncluster_to_plot[sel])
+        counts, bin_edges = np.histogram(data, bins=ncluster_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        errors = np.sqrt(counts)
+        # Plot histogram and get the color
+        hist_plot = plt.hist(data, bins=ncluster_bins, histtype='step', label=cluster_labels[ctype], linewidth=1.5, alpha=0.8)
+        hist_color = hist_plot[2][0].get_edgecolor()
+        # Plot error bars with matching color and central marker
+        plt.errorbar(bin_centers, counts, yerr=errors, fmt='o', markersize=3, elinewidth=1.2, capsize=2.5, capthick=1.2, color=hist_color, alpha=0.9)
+    plt.xlabel('Number of clusters in Merged Clusters [ns]')
+    plt.ylabel('Entries')
+    plt.legend()
+    # set y log scale
+    plt.yscale('log')
+    # add cms label
+    hep.cms.label("Preliminary", data=False, com = 13.6)
+    # save figure
+    output_path = output_dir / "nClusters_byClusterType_reallyMergedOnly.png"
+    plt.tight_layout()
+    plt.savefig(output_path)
+    print(f"Saved plot: {output_path}")
+
+    # -----------------------------------------
+    # -------- CLUSTER SIZE BY TYPE -----------
+    # -----------------------------------------
+
     # plot cluster size in #crystals per cluster type
     mask = nClusters > 1
     good_evts = ak.sum(mask, axis = 1) > 0
@@ -228,7 +293,7 @@ def main():
 
     # finally, plot cluster size by cluster type
     plt.figure(figsize=(10, 8.5))
-    size_bins = np.arange(0.5, 40.5, 1)
+    size_bins = np.arange(0.5, 13.5, 1)
     for ctype in range(4):
         sel = clusterType_to_plot == ctype
         data = ak.flatten(cluster_len[sel])
@@ -244,6 +309,7 @@ def main():
     plt.xlabel('MergedCluster Size [#crystal range]')
     plt.ylabel('Entries')
     plt.legend()
+    plt.yscale('log')
     # add cms label
     hep.cms.label("Preliminary", data=False, com = 13.6)
     # save figure
@@ -252,14 +318,82 @@ def main():
     plt.savefig(output_path)
     print(f"Saved plot: {output_path}")
 
-    # finally, plot cluster size by cluster type
+    # ---------------------------------
+
+    # Also split by NUMBER OF MODULES
+    # (=> count unique numbers in ieta)
+
+    ### 1 module
+    plt.figure(figsize=(10, 8.5))
+    size_bins = np.arange(0.5, 13.5, 1)
+    nmodules = arrays["simmc_nModules"][mask][good_evts]
+
+    for ctype in range(4):
+        sel = clusterType_to_plot == ctype
+        sel2 = nmodules == 1
+        data = ak.flatten(cluster_len[sel * sel2])
+        counts, bin_edges = np.histogram(data, bins=size_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        errors = np.sqrt(counts)
+        # Plot histogram and get the color
+        hist_plot = plt.hist(data, bins=size_bins, histtype='step', label=cluster_labels[ctype], linewidth=1.5, alpha=0.8)
+        hist_color = hist_plot[2][0].get_edgecolor()
+        # Plot error bars with matching color and central marker
+        plt.errorbar(bin_centers, counts, yerr=errors, fmt='o', markersize=3, elinewidth=1.2, capsize=2.5, capthick=1.2, color=hist_color, alpha=0.9)
+
+    plt.xlabel('MergedCluster Size [#crystal range]')
+    plt.ylabel('Entries')
+    plt.legend()
+    plt.yscale('log')
+    # add cms label
+    hep.cms.label("Preliminary", data=False, com = 13.6)
+    # save figure
+    output_path = output_dir / "sizeInCrystals_byClusterType_reallyMergedOnly_1module.png"
+    plt.tight_layout()
+    plt.savefig(output_path)
+    print(f"Saved plot: {output_path}")
+
+    ### >=2 modules
+    plt.figure(figsize=(10, 8.5))
+    size_bins = np.arange(0.5, 13.5, 1)
+    nmodules = arrays["simmc_nModules"][mask][good_evts]
+
+    for ctype in range(4):
+        sel = clusterType_to_plot == ctype
+        sel2 = nmodules >= 2
+        data = ak.flatten(cluster_len[sel * sel2])
+        counts, bin_edges = np.histogram(data, bins=size_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        errors = np.sqrt(counts)
+        # Plot histogram and get the color
+        hist_plot = plt.hist(data, bins=size_bins, histtype='step', label=cluster_labels[ctype], linewidth=1.5, alpha=0.8)
+        hist_color = hist_plot[2][0].get_edgecolor()
+        # Plot error bars with matching color and central marker
+        plt.errorbar(bin_centers, counts, yerr=errors, fmt='o', markersize=3, elinewidth=1.2, capsize=2.5, capthick=1.2, color=hist_color, alpha=0.9)
+
+    plt.xlabel('MergedCluster Size [#crystal range]')
+    plt.ylabel('Entries')
+    plt.legend()
+    plt.yscale('log')
+    # add cms label
+    hep.cms.label("Preliminary", data=False, com = 13.6)
+    # save figure
+    output_path = output_dir / "sizeInCrystals_byClusterType_reallyMergedOnly_2+modules.png"
+    plt.tight_layout()
+    plt.savefig(output_path)
+    print(f"Saved plot: {output_path}")    
+
+    # ---------------------------------
+
+    # For comparison, plot cluster size for 1-cluster MCs
     mask = nClusters == 1
     good_evts = ak.sum(mask, axis = 1) > 0
     cluster_len = max_col - min_col + 1
     cluster_len = cluster_len[mask][good_evts]
+    clusterType_to_plot = ak.firsts(clusterTypes[mask][good_evts], axis = 2)
 
     plt.figure(figsize=(10, 8.5))
-    size_bins = np.arange(0.5, 40.5, 1)
+    size_bins = np.arange(0.5, 13.5, 1)
     for ctype in range(4):
         sel = clusterType_to_plot == ctype
         data = ak.flatten(cluster_len[sel])
@@ -275,6 +409,7 @@ def main():
     plt.xlabel('MergedCluster Size [#crystal range]')
     plt.ylabel('Entries')
     plt.legend()
+    plt.yscale('log')
     # add cms label
     hep.cms.label("Preliminary", data=False, com = 13.6)
     # save figure
@@ -282,7 +417,6 @@ def main():
     plt.tight_layout()
     plt.savefig(output_path)
     print(f"Saved plot: {output_path}")
-
 
     print(f"\nAll plots saved to {output_dir}")
     return 0

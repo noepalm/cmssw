@@ -114,6 +114,7 @@ void MergedClusterValidation_dev::beginJob() {
     tree_->Branch("simmc_y", &simmc_y_);
     tree_->Branch("simmc_eta", &simmc_eta_);
     tree_->Branch("simmc_nClusters", &simmc_nClusters_);
+    tree_->Branch("simmc_nModules", &simmc_nModules_);
     tree_->Branch("simmc_iphi_perCluster", &simmc_iphi_perCluster_);
     tree_->Branch("simmc_ieta_perCluster", &simmc_ieta_perCluster_);
     tree_->Branch("simmc_energy_perCluster", &simmc_energy_perCluster_);
@@ -170,7 +171,7 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
     cluster_inMergedCluster_.clear();
 
     simmc_energy_.clear(); simmc_time_.clear();
-    simmc_x_.clear(); simmc_y_.clear(); simmc_eta_.clear(); simmc_nClusters_.clear(); 
+    simmc_x_.clear(); simmc_y_.clear(); simmc_eta_.clear(); simmc_nClusters_.clear(); simmc_nModules_.clear();
     simmc_iphi_perCluster_.clear(); simmc_ieta_perCluster_.clear(); 
     simmc_energy_perCluster_.clear(); simmc_time_perCluster_.clear(); 
     simmc_hitCols_perCluster_.clear(); simmc_earliestHitTime_perCluster_.clear();
@@ -487,8 +488,10 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
         std::vector<float> energy_perCluster;
         std::vector<float> time_perCluster;
         std::vector<float> earliestHitTime;
-        std::vector<uint32_t> clusterType_perCluster;        
+        std::vector<uint32_t> clusterType_perCluster;
         std::vector<std::vector<int>> hitCols;
+        // std::vector<std::vector<float>> hitTimes;
+        // std::vector<std::vector<float>> hitEnergies;
 
         // Access individual clusters from the mergedcluster
         for (const auto& cluster_ref : simmc.clusters()) {
@@ -517,14 +520,23 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
             }
             hitCols.push_back(hitCols_singleCluster);
 
-            // take time of earliest hit in cluster
-            float earliestTime_cluster = 999;
-            for (const auto& hit_and_time : cluster.hits_and_times()) {
-                if (hit_and_time.second < earliestTime_cluster) {
-                    earliestTime_cluster = hit_and_time.second;
-                }
-            }
-            earliestHitTime.push_back(earliestTime_cluster);
+            // // take time of earliest hit in cluster
+            // std::vector<float> hitTimes_singleCluster;
+            // float earliestTime_cluster = 999;
+            // for (const auto& hit_and_time : cluster.hits_and_times()) {
+            //     hitTimes_singleCluster.push_back(hit_and_time.second);
+            //     if (hit_and_time.second < earliestTime_cluster) {
+            //         earliestTime_cluster = hit_and_time.second;
+            //     }
+            // }
+            // hitTimes.push_back(hitTimes_singleCluster);
+            // earliestHitTime.push_back(earliestTime_cluster);
+
+            // std::vector<float> hitEnergies_singleCluster;
+            // for (const auto& hit_and_energy : cluster.hits_and_energies()) {
+            //     hitEnergies_singleCluster.push_back(convertUnitsTo(0.001_MeV, hit_and_energy.second)); // convert GeV to MeV
+            // }
+            // hitEnergies.push_back(hitEnergies_singleCluster);
 
             // Fill histograms
             h_simmc_logEnergy_perCluster_->Fill(log10(convertUnitsTo(0.001_MeV, cluster.simLCEnergy())));
@@ -548,6 +560,10 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
         simmc_clusterType_.push_back(clusterType_perCluster);
         simmc_hitCols_perCluster_.push_back(hitCols);
         simmc_earliestHitTime_perCluster_.push_back(earliestHitTime);
+
+        // count the number of unique ieta entries: that's your number of modules
+        std::set<uint32_t> unique_modules(ieta_perCluster.begin(), ieta_perCluster.end());
+        simmc_nModules_.push_back(int(unique_modules.size()));
         
         // Find primary tracking particle for this mergedcluster
         float primary_energy = -999.0;

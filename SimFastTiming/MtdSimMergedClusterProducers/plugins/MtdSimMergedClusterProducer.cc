@@ -173,19 +173,91 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
     outputClusters->reserve(trackingParticles->size());
 
     // Create cluster map for fast lookup (can have multiple clusters per DetId)
-    std::map<BTLDetId, std::vector<const MtdSimLayerCluster*>> clusterMap;
+    std::vector<const MtdSimLayerCluster*> allsimLClusters;
+
     for (const auto& cluster : *simLClusters) {
         if (!cluster.detIds_and_rows().empty() && MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::ETL) continue;
 
-        if (cluster.energy() >= minEnergy_) {
+        // if (cluster.energy() >= minEnergy_) {
+        //     // retrieve detId from first hit
+        //     BTLDetId detId = cluster.detIds_and_rows()[0].first;
+        //     // retrieve GEOGRAPHICAL id
+        //     BTLDetId geoDetId = detId.geographicalId(BTLDetId::CrysLayout::v3);
+
+        //     clusterMap[geoDetId].push_back(&cluster);
+        // }
+
+        allsimLClusters.push_back(&cluster);
+    }
+
+    // Sort simLClusters collection
+    std::sort(allsimLClusters.begin(), allsimLClusters.end(), [&topology](const MtdSimLayerCluster* a, const MtdSimLayerCluster* b) {
+        const auto& detIdsA = a->detIds_and_rows();
+        const auto& detIdsB = b->detIds_and_rows();
+
+        BTLDetId idA(detIdsA[0].first);
+        BTLDetId idB(detIdsB[0].first);
+
+        // side -> rod -> module
+        if (idA.zside() != idB.zside()) return idA.zside() < idB.zside();
+        if (idA.mtdRR() != idB.mtdRR()) return idA.mtdRR() < idB.mtdRR();
+
+        auto [iphiA, ietaA] = topology->btlIndex(idA.geographicalId(BTLDetId::CrysLayout::v3).rawId()); //uint32_t
+        auto [iphiB, ietaB] = topology->btlIndex(idB.geographicalId(BTLDetId::CrysLayout::v3).rawId());
+
+        if (iphiA != iphiB) return iphiA < iphiB;
+        if (ietaA != ietaB) return ietaA < ietaB;
+
+        // if (idA.module() != idB.module()) return idA.module() < idB.module();
+        // if same module, sort by column range
+
+        // Get min and max columns for both clusters
+        auto [minA, maxA] = std::minmax_element(detIdsA.begin(), detIdsA.end(), [](auto const& x, auto const& y){
+            return x.second.second < y.second.second;
+        });
+        auto [minB, maxB] = std::minmax_element(detIdsB.begin(), detIdsB.end(), [](auto const& x, auto const& y){
+            return x.second.second < y.second.second;
+        });
+
+        int lowest_icol_A = minA->second.second;
+        int highest_icol_A = maxA->second.second;
+        int lowest_icol_B = minB->second.second;
+        int highest_icol_B = maxB->second.second;
+
+        if (lowest_icol_A != lowest_icol_B) return lowest_icol_A < lowest_icol_B;
+        return highest_icol_A > highest_icol_B; // larger cluster first
+    });
+
+    // DEBUG: check ordering
+    std::cout << "DEBUG: Checking cluster ordering" << std::endl;
+    for(const auto* cluster : allsimLClusters ){
+        // retrieve iphi, ieta
+        BTLDetId cluId(cluster->detIds_and_rows()[0].first);
+        std::pair<uint32_t, uint32_t> indices = topology->btlIndex(cluId.geographicalId(BTLDetId::CrysLayout::v3).rawId());
+        uint32_t iphi = indices.first;
+        uint32_t ieta = indices.second;
+        std::cout << "CLUSTER #" << cluster - &(*simLClusters->begin()) << " zside = " << cluId.zside() << ", RR = " << cluId.mtdRR() << ", module = " << cluId.module() << "; iphi = " << iphi << ", ieta = " << ieta << " with hits at columns: ";
+        for (auto const& detId_row_col : cluster->detIds_and_rows()) {
+            int col = detId_row_col.second.second;
+            std::cout << col << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // Now, construct cluster map from ordered collection
+    std::map<BTLDetId, std::vector<const MtdSimLayerCluster*>> clusterMap;
+
+    for (const auto* cluster : allsimLClusters) {
+        if (cluster->energy() >= minEnergy_) {
             // retrieve detId from first hit
-            BTLDetId detId = cluster.detIds_and_rows()[0].first;
+            BTLDetId detId = cluster->detIds_and_rows()[0].first;
             // retrieve GEOGRAPHICAL id
             BTLDetId geoDetId = detId.geographicalId(BTLDetId::CrysLayout::v3);
 
-            clusterMap[geoDetId].push_back(&cluster);
+            clusterMap[geoDetId].push_back(cluster);
         }
     }
+
 
     edm::LogInfo("MtdSimMergedClusterProducer") << "Found " << clusterMap.size() << " MTD SimLayerClusters above energy threshold";
 
@@ -198,7 +270,9 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
         std::set<const MtdSimLayerCluster*> processedClusters;
 
         // Process clusters with full merging logic
-        for (const auto& cluster : *simLClusters) {
+        for (const auto* clusterPointer : allsimLClusters) {
+            const auto& cluster = *clusterPointer;
+
             if (cluster.energy() < minEnergy_ || processedClusters.count(&cluster)) continue;
 
             // // TEMPORARY: forget about ETL hits
@@ -263,6 +337,7 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
             // ETA DIRECTION MERGING
             std::vector<int> etaOffsets = {1, 0, -1};
             for (int etaOffset : etaOffsets) {
+                std::cout << "  Eta offset = " << etaOffset << std::endl;
                 if ((hasEdgeHitCurrent && iphi != std::numeric_limits<uint32_t>::max() && ieta != std::numeric_limits<uint32_t>::max()) || etaOffset == 0) {
                     // LogDebug("MtdSimMergedClusterProducer") << "  Attempting eta-direction merging...";
                     std::cout << "  Attempting eta-direction merging..." << std::endl;
@@ -311,10 +386,14 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
                         }
 
                         // bool hasAdjacentCols = (abs(leftmost_col - adj_rightmost_col) == 1) || (abs(rightmost_col - adj_leftmost_col) == 1);
-
                         int clu_len = rightmost_col - leftmost_col + 1;
-                        bool isLeftEdgeOverlapping = (abs(adj_leftmost_col  - leftmost_col) <= clu_len) && (abs(rightmost_col - adj_rightmost_col) <= clu_len); // equality includes adjacent clusters
-                        bool isRightEdgeOverlapping = (abs(adj_rightmost_col - rightmost_col) <= clu_len) && (abs(leftmost_col - adj_leftmost_col) <= clu_len);
+
+                        // bool isLeftEdgeOverlapping = (abs(adj_leftmost_col  - leftmost_col) <= clu_len) && (abs(rightmost_col - adj_rightmost_col) <= clu_len); // equality includes adjacent clusters
+                        // bool isRightEdgeOverlapping = (abs(adj_rightmost_col - rightmost_col) <= clu_len) && (abs(leftmost_col - adj_leftmost_col) <= clu_len);
+
+                        bool isLeftEdgeOverlapping = (abs(adj_leftmost_col  - leftmost_col) <= clu_len) && (abs(rightmost_col - adj_leftmost_col) <= clu_len); // equality includes adjacent clusters
+                        bool isRightEdgeOverlapping = (abs(adj_rightmost_col - rightmost_col) <= clu_len) && (abs(leftmost_col - adj_rightmost_col) <= clu_len);
+
                         bool areClustersOverlapping = isLeftEdgeOverlapping || isRightEdgeOverlapping;
 
                         if (areClustersOverlapping && etaOffset == 0) {
@@ -356,6 +435,15 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
                                                 << std::endl;
                                     mergedClusterClusters.push_back(adjCluster);
                                     processedClusters.insert(adjCluster);
+                                    
+                                    // update lowest/highest icol
+                                    if (etaOffset == 0) {
+                                        std::cout << "  SAME MODULE MERGING: current col range = ( " << leftmost_col << ", " << rightmost_col << ")" << std::endl;
+                                        if (adj_leftmost_col < leftmost_col) leftmost_col = adj_leftmost_col;
+                                        if (adj_rightmost_col > rightmost_col) rightmost_col = adj_rightmost_col;
+                                        std::cout << "  SAME MODULE MERGING: updated col range = ( " << leftmost_col << ", " << rightmost_col << ")" << std::endl;
+                                    }
+
                                 } else {
                                     std::cout << "  NOT MERGING CLUSTER THOUGH WE SHOULD HAVE!: offset of first = " << mergedClusterClusters[0]->trackIdOffset()
                                                 << "( isBackscatterMerged Cluster " << isBackscatterMergedcluster << ")"
