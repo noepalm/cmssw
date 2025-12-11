@@ -27,9 +27,8 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', '')
 
-# process.MessageLogger.cerr.threshold = 'INFO'
-process.MessageLogger.cerr.threshold = 'DEBUG'
-# process.MessageLogger.debugModules = ["*"]
+process.MessageLogger.cerr.threshold = 'INFO'
+# process.MessageLogger.cerr.threshold = 'DEBUG'
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(options.maxEvents)
@@ -67,11 +66,6 @@ process.output = cms.OutputModule("PoolOutputModule",
     outputCommands = cms.untracked.vstring(
         #'keep *'
         'drop *',
-        #'keep *_mtdRecHits_*_*',            # keep rec hits
-        #'keep *_mtdClusters_*_*',           # keep original clusters
-        #'keep *_mtdMergedClusters_*_*',      # keep MergedClusters
-        #'keep *_genParticles_*_*',          # keep gen info if needed?
-        #'keep *_simHits_*_*',               # keep sim hits if needed for validation?
 
         "keep *_genParticles_*_*",  # keep GenParticles
         "keep *_mtdSimLayerClusterToTPAssociation_*_*",
