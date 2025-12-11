@@ -9,7 +9,7 @@
 #include "TrackingTools/TrajectoryState/interface/TrajectoryStateOnSurface.h"
 
 #include "DataFormats/FTLRecHit/interface/FTLCluster.h"
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 #include "FWCore/Utilities/interface/Exception.h"
 
 #include <tuple>

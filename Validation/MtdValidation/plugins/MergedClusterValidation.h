@@ -19,20 +19,13 @@
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 
-<<<<<<< HEAD
 #include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
-#include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
-#include "DataFormats/ForwardDetId/interface/BTLDetId.h"
-
-=======
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
 
 #include "SimDataFormats/Associations/interface/MtdRecoClusterToSimLayerClusterAssociationMap.h"
 #include "SimDataFormats/Associations/interface/MtdSimLayerClusterToTPAssociatorBaseImpl.h"
 
->>>>>>> mtd-trackingrechit-compatibility
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedClusterFwd.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
@@ -58,43 +51,23 @@ private:
     edm::EDGetTokenT<MtdSimLayerClusterCollection> simClustersToken_;
     edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
 
-<<<<<<< HEAD
-=======
     edm::EDGetTokenT<reco::SimToTPCollectionMtd> sim2tpAssociationMapToken_;
     edm::EDGetTokenT<MtdRecoClusterToSimLayerClusterAssociationMap> r2sAssociationMapToken_;
 
->>>>>>> mtd-trackingrechit-compatibility
     edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 
     // RECO
-<<<<<<< HEAD
-=======
     int totalMC2DFilled_ = 0;
     int totalMCClusterNotFound_ = 0;
     int totalMCGeometryFailed_ = 0;
     int totalMCWrongSize_ = 0;
     
->>>>>>> mtd-trackingrechit-compatibility
     MonitorElement* h_mc_energy_;
     MonitorElement* h_mc_time_;
     MonitorElement* h_mc_timeError_;
     MonitorElement* h_mc_x_;
     MonitorElement* h_mc_y_;
-<<<<<<< HEAD
-    MonitorElement* h_mc_nClusters_;
-    MonitorElement* h_cluster_energy_;
-    MonitorElement* h_cluster_time_;
-    
-    MonitorElement* h_eta_adjacent_pairs_;
-    MonitorElement* h_eta_merged_pairs_;
-    MonitorElement* h_eta_merging_efficiency_;
-
-    MonitorElement* h_mc_energy_vs_time_;
-    MonitorElement* h_mc_xy_;
-    MonitorElement* h_mc_energy_vs_nClusters_;
-    MonitorElement* h_merging_efficiency_;
-=======
     MonitorElement* h_mc_eta_;
     MonitorElement* h_mc_nClusters_;
     MonitorElement* h_cluster_energy_;
@@ -136,7 +109,6 @@ private:
     MonitorElement* h_merging_efficiency_vs_eta_;
     MonitorElement* h_eta_sameTrackID_pairs_;
     MonitorElement* h_eta_merged_sameTrackID_pairs_;
->>>>>>> mtd-trackingrechit-compatibility
 
     // SIM
     MonitorElement* h_simmc_energy_;
@@ -187,12 +159,9 @@ private:
 
     int totalAdjacentPairs_;
     int totalMergedPairs_;
-<<<<<<< HEAD
-=======
 
     int sameTrackIdPairs_;
     int mergedSameTrackIDPairs_;
->>>>>>> mtd-trackingrechit-compatibility
 };
 
 #endif

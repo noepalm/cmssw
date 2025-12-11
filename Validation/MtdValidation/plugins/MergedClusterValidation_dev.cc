@@ -196,7 +196,16 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
     simmc_primary_et_.clear(); simmc_primary_phi_.clear(); 
     simmc_primary_eta_.clear(); simmc_primary_pdgId_.clear();
 
-    mc_n_ = mergedClustersHandle->size();
+    // flatten detsetvector
+    std::vector<const FTLMergedCluster*> mergedVec;
+    mergedVec.reserve(mergedClustersHandle->size());
+    for (const auto& detSet : *mergedClustersHandle) {
+        for (const auto& mc : detSet) {
+            mergedVec.push_back(&mc);
+        }
+    }
+
+    mc_n_ = mergedVec.size();
     simmc_n_ = simMergedClustersHandle->size();
     
     std::set<uint32_t> clusterDetIds;
@@ -208,7 +217,8 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
     // -------- RECO -------- //
     // ---------------------- //
 
-    for (const auto& mc : *mergedClustersHandle) {
+    for (const auto* mcPtr : mergedVec) {
+        const auto& mc = *mcPtr;
         h_mc_energy_->Fill(mc.energy());
         h_mc_time_->Fill(mc.time());
         h_mc_timeError_->Fill(mc.timeError());

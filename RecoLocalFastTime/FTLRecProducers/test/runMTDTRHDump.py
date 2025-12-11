@@ -6,7 +6,7 @@ process = cms.Process("MTDTrackDump", Phase2C17I13M9)
 
 process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/eos/user/p/pakrap/MTD/CMSSW_MC_CHECKS/src/RecoLocalFastTime/FTLClusterizer/output.root')  
+    fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_merge/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_mergetest_numEvent1000.root')  
 )
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")

@@ -9,8 +9,8 @@
 
 #include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
 
-// typedef edmNew::DetSetVector<FTLMergedCluster> FTLMergedClusterCollection;
-typedef std::vector<FTLMergedCluster> FTLMergedClusterCollection;
+// typedef std::vector<FTLMergedCluster> FTLMergedClusterCollection;
+typedef edmNew::DetSetVector<FTLMergedCluster> FTLMergedClusterCollection;
 typedef edm::Ref<FTLMergedClusterCollection, FTLMergedCluster> FTLMergedClusterRef;
 typedef edm::DetSetRefVector<FTLMergedCluster> FTLMergedClusterRefs;
 typedef edm::RefProd<FTLMergedClusterCollection> FTLMergedClustersRef;

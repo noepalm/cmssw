@@ -219,46 +219,49 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
     // -------- RECO VS SIM -------- //
     // ----------------------------- //
 
-    for (const auto& mc : *mergedClustersHandle) {
-        // look for match in association map
-        FTLMergedClusterRef recoMergedClusRef(mergedClustersHandle, &mc - &(*mergedClustersHandle->begin()));
-        
-        // check if reference is valid
-        if (!recoMergedClusRef.isNonnull()) {
-            std::cout << "ERROR: Invalid recoMergedClusRef!" << std::endl;
-            continue;
-        }
-
-        auto itp = mergedRecoToSimMap.equal_range(recoMergedClusRef);
-        if (itp.first == itp.second) {
-            std::cout << "No matching SimMergedCluster found for Reco MergedCluster" << std::endl;
-            continue;
-        }
-        
-        const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp. first->second;
-        
-        std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << "reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
-        std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
-    
-        // iterate over matches and print all properties
-        for (const auto& simRef : simMergedRefs){
-            if (!simRef.isNonnull()) {
-                std::cout << "ERROR: Invalid simMergedClusRef!" << std::endl;
+    for (const auto& detSet : *mergedClustersHandle) {
+        for (const auto& mc : detSet) {
+            // look for match in association map
+            FTLMergedClusterRef recoMergedClusRef = edmNew::makeRefTo(mergedClustersHandle, &mc);
+            // FTLMergedClusterRef recoMergedClusRef(mergedClustersHandle, &mc - &(*mergedClustersHandle->begin()));
+            
+            // check if reference is valid
+            if (!recoMergedClusRef.isNonnull()) {
+                std::cout << "ERROR: Invalid recoMergedClusRef!" << std::endl;
                 continue;
             }
 
-            std::cout << "    Sim MergedCluster: E=" << convertUnitsTo(0.001_MeV, simRef->simEnergy()) << " MeV, t=" << simRef->simTime() << " ns" 
-                      << ", trackIdOffset = " << simRef->clusters()[0]->trackIdOffset() << " (nClusters = " << simRef->clusters().size() << ")" << std::endl;
-            std::cout << "                        particles =";
-            if(simRef->trackingParticles().size() > 0){
-                for(auto const& p : simRef->trackingParticles()){
-                    std::cout << " " << p->pdgId();
-                }
-            } else {
-                std::cout << "(no valid TP refs)";
+            auto itp = mergedRecoToSimMap.equal_range(recoMergedClusRef);
+            if (itp.first == itp.second) {
+                std::cout << "No matching SimMergedCluster found for Reco MergedCluster" << std::endl;
+                continue;
             }
-            std::cout << std::endl;
-                      
+            
+            const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp. first->second;
+            
+            std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << " reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
+            std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
+        
+            // iterate over matches and print all properties
+            for (const auto& simRef : simMergedRefs){
+                if (!simRef.isNonnull()) {
+                    std::cout << "ERROR: Invalid simMergedClusRef!" << std::endl;
+                    continue;
+                }
+
+                std::cout << "    Sim MergedCluster: E=" << convertUnitsTo(0.001_MeV, simRef->simEnergy()) << " MeV, t=" << simRef->simTime() << " ns" 
+                        << ", trackIdOffset = " << simRef->clusters()[0]->trackIdOffset() << " (nClusters = " << simRef->clusters().size() << ")" << std::endl;
+                std::cout << "                        particles =";
+                if(simRef->trackingParticles().size() > 0){
+                    for(auto const& p : simRef->trackingParticles()){
+                        std::cout << " " << p->pdgId();
+                    }
+                } else {
+                    std::cout << "(no valid TP refs)";
+                }
+                std::cout << std::endl;
+                        
+            }
         }
     }
 

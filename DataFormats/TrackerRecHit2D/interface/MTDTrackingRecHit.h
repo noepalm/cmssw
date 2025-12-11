@@ -6,7 +6,7 @@
 #include <cassert>
 #include "DataFormats/TrackerRecHit2D/interface/TrackerSingleRecHit.h"
 #include "DataFormats/FTLRecHit/interface/FTLRecHitCollections.h"
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 #include "DataFormats/Common/interface/Ref.h"
 
 class MTDTrackingRecHit : public TrackerSingleRecHit {

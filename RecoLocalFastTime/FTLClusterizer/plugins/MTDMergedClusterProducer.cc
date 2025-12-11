@@ -50,7 +50,7 @@ private:
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;    
 
     bool areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2);
-    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> btlClustersHandle);
+    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> btlClustersHandle);
 };
 
 MTDMergedClusterProducer::MTDMergedClusterProducer(const edm::ParameterSet& conf) 

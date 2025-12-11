@@ -6,8 +6,9 @@
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 
 // FTLMergedClusters
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
 #include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
+#include "DataFormats/Common/interface/DetSetVectorNew.h"
+#include "DataFormats/Common/interface/Wrapper.h"
 
 #include "DataFormats/FTLRecHit/interface/FTLTrackingRecHit.h"
 #include "DataFormats/FTLRecHit/interface/FTLSeverityLevel.h"
@@ -22,7 +23,3 @@
 #include "DataFormats/Common/interface/DetSet.h"
 #include "DataFormats/Common/interface/DetSetVector.h"
 #include "DataFormats/FTLRecHit/interface/FTLRecHitComparison.h"
-
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
-#include "DataFormats/Common/interface/DetSetVectorNew.h"
-#include "DataFormats/Common/interface/Wrapper.h"

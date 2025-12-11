@@ -14,6 +14,13 @@ options.register('useSimTopologicalClustering',
                  VarParsing.varType.bool,
                  "Enable topological clustering in SIM MergedCluster producer")
 
+options.register('inputFile',
+                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_merge/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_mergetest_numEvent1000.root',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "Input ROOT file")
+
+
 # Parse command line arguments
 options.parseArguments()
 
@@ -36,8 +43,7 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 process.source = cms.Source("PoolSource",
-    # fileNames = cms.untracked.vstring("file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root")
-    fileNames = cms.untracked.vstring(f"file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_forDev031225_numEvent1000.root"),
+    fileNames = cms.untracked.vstring(options.inputFile),
 )
 
 

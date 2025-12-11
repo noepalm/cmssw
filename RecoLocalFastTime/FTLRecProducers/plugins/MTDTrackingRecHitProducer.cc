@@ -6,7 +6,7 @@
 
 #include "DataFormats/Common/interface/Handle.h"
 //#include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 
 #include "Geometry/Records/interface/MTDDigiGeometryRecord.h"
 #include "Geometry/CommonTopologies/interface/Topology.h"

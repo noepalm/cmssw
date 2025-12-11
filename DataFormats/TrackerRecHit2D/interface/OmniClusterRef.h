@@ -8,7 +8,7 @@
 #include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 
 class OmniClusterRef {
   static const unsigned int kInvalid = 0x80000000;  // bit 31 on
