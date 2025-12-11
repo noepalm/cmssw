@@ -19,7 +19,7 @@
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
 

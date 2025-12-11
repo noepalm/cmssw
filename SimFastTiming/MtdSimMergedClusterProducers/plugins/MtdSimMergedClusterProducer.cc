@@ -507,6 +507,10 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
                     for (const auto& tpRef : TPs->val) {
                         simMergedCluster.addCluster(simLayerClusterRef, tpRef);
                     }
+                } else {
+                    LogDebug("MtdSimMergedClusterProducer") << "No TP associated to cluster index " << clusterIndex;
+                    // add null reference
+                    simMergedCluster.addCluster(simLayerClusterRef, TrackingParticleRef());
                 }
             }
 

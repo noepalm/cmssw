@@ -1,5 +1,5 @@
-#ifndef Validation_MtdValidation_MergedClusterValidation_dev_h
-#define Validation_MtdValidation_MergedClusterValidation_dev_h
+#ifndef Validation_MtdValidation_MergedClusterValidation_withAssociationMaps_h
+#define Validation_MtdValidation_MergedClusterValidation_withAssociationMaps_h
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
@@ -28,14 +28,18 @@
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticleFwd.h"
 
+#include "SimDataFormats/Associations/interface/MtdRecoMergedClusterToSimMergedClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdSimMergedClusterToRecoMergedClusterAssociationMap.h"
+#include "SimDataFormats/Associations/interface/MtdRecoMergedClusterToSimMergedClusterAssociatorBaseImpl.h"
+
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TTree.h"
 
-class MergedClusterValidation_dev : public edm::one::EDAnalyzer<edm::one::SharedResources> {
+class MergedClusterValidation_withAssociationMaps : public edm::one::EDAnalyzer<edm::one::SharedResources> {
 public:
-    explicit MergedClusterValidation_dev(const edm::ParameterSet&);
-    ~MergedClusterValidation_dev() = default;
+    explicit MergedClusterValidation_withAssociationMaps(const edm::ParameterSet&);
+    ~MergedClusterValidation_withAssociationMaps() = default;
 
 private:
     void analyze(const edm::Event&, const edm::EventSetup&) override;
@@ -49,6 +53,8 @@ private:
     edm::EDGetTokenT<MtdSimMergedClusterCollection> simMergedClustersToken_;
     edm::EDGetTokenT<MtdSimLayerClusterCollection> simClustersToken_;
     edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
+    edm::EDGetTokenT<reco::MergedRecoToSimCollectionMtd> mergedRecoToSimMap_;
+    edm::EDGetTokenT<reco::MergedSimToRecoCollectionMtd> mergedSimToRecoMap_;
 
     edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;

@@ -9,12 +9,14 @@ MtdSimMergedCluster::MtdSimMergedCluster(const MtdSimLayerClusterRef& clusterRef
 void MtdSimMergedCluster::addCluster(const MtdSimLayerClusterRef& clusterRef, const TrackingParticleRef& tpRef) {
     clusters_.push_back(clusterRef);
 
-    // check if tpRef is already in trackingParticles_
-    auto it = std::find(trackingParticles_.begin(), trackingParticles_.end(), tpRef);
-    if (it == trackingParticles_.end()) {
-      trackingParticles_.push_back(tpRef);
+    // check if tpRef is valid
+    if (tpRef.isNonnull()) {
+        // check if tpRef is already in trackingParticles_
+        auto it = std::find(trackingParticles_.begin(), trackingParticles_.end(), tpRef);
+        if (it == trackingParticles_.end()) {
+            trackingParticles_.push_back(tpRef);
+        }
     }
-    // trackingParticles_.push_back(tpRef);
 
     // Sort clusters by time (earliest first)
     std::vector<MtdSimLayerClusterRef> sortedRefs(clusters_.begin(), clusters_.end());

@@ -144,6 +144,22 @@ void MergedClusterValidation_dev::analyze(const edm::Event& iEvent, const edm::E
     edm::Handle<MtdSimLayerClusterCollection> mtdSimLCHandle;
     iEvent.getByToken(simClustersToken_, mtdSimLCHandle);
 
+    std::cout << "Analyzing event " << iEvent.id().event() << " in run " << iEvent.id().run() << std::endl;
+    std::cout << "Number of MTD MergedClusters: " << mergedClustersHandle->size() << std::endl;
+    std::cout << "Number of MTD Clusters: " << clustersHandle->size() << std::endl;
+    std::cout << "Number of MTD SimMergedClusters: " << simMergedClustersHandle->size() << std::endl;
+    std::cout << "Number of MTD SimLayerClusters: " << mtdSimLCHandle->size() << std::endl;
+
+    // count BTL SimLayerClusters
+    int nBTLSimLCs = 0;
+    for (const auto& simLC : *mtdSimLCHandle) {
+        BTLDetId detId(simLC.detIds_and_rows()[0].first);
+        if (detId.mtdSubDetector() == MTDDetId::BTL) {
+            nBTLSimLCs++;
+        }
+    }
+    std::cout << "Number of BTL SimLayerClusters: " << nBTLSimLCs << std::endl;
+
     
     if (!mergedClustersHandle.isValid() || !clustersHandle.isValid() || !simMergedClustersHandle.isValid() || !mtdSimLCHandle.isValid()) {
         std::cout << "Invalid handles!" << std::endl;

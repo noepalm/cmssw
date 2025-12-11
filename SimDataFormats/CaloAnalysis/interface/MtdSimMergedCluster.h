@@ -14,8 +14,11 @@ public:
     MtdSimMergedCluster() = default;
 
     // Construct with one TrackingParticle ref (the main track)
-    MtdSimMergedCluster(const TrackingParticleRef& tpRef) : mainTrack_(tpRef) {
-        trackingParticles_.push_back(tpRef);
+    MtdSimMergedCluster(const TrackingParticleRef& tpRef) {
+        if (tpRef.isNonnull()){
+            mainTrack_ = tpRef;
+            trackingParticles_.push_back(tpRef);
+        }
     }
 
     // Construct with one MtdSimLayerCluster ref and one TrackingParticle ref

@@ -8,7 +8,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
 
-#include "DataFormats/FTLRecHit/interface/FTLMergedCluster.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/ForwardDetId/interface/BTLDetId.h"
@@ -44,7 +44,7 @@ private:
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;    
 
     bool areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2);
-    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId);
+    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId, edm::Handle<FTLClusterCollection> btlClustersHandle);
 };
 
 MTDMergedClusterProducer::MTDMergedClusterProducer(const edm::ParameterSet& conf) 
@@ -77,13 +77,14 @@ bool MTDMergedClusterProducer::areTimingCompatible(const FTLCluster* c1, const F
     return compatible;
 }
 
-FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId) {
+FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const BTLDetId& seedId, edm::Handle<FTLClusterCollection> btlClustersHandle){
     float totalEnergy = 0;
     float weightedTime = 0;
     float weightedTimeError2 = 0;
     float weightedX = 0;
     float weightedY = 0;
     std::vector<DetId> clusterIds;
+    std::vector<FTLClusterRef> clusterRefs;
 
     for (const auto* cluster : clusters) {
         float energy = cluster->energy();
@@ -94,6 +95,7 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
         weightedX += energy * cluster->x();
         weightedY += energy * cluster->y();
         clusterIds.push_back(cluster->id());
+        clusterRefs.push_back(edmNew::makeRefTo(btlClustersHandle, cluster)); // if needed
     }
 
     float avgTime = weightedTime / totalEnergy;
@@ -101,7 +103,7 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
     float avgX = weightedX / totalEnergy;
     float avgY = weightedY / totalEnergy;
 
-    return FTLMergedCluster(seedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds);
+    return FTLMergedCluster(seedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds, clusterRefs);
 }
 
 void MTDMergedClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) {    
@@ -255,8 +257,8 @@ void MTDMergedClusterProducer::produce(edm::Event& e, const edm::EventSetup& es)
         }*/
             
         // Create mergedcluster from merged clusters
-        if (mergedClusterClusters.size() > 1) {
-            FTLMergedCluster mergedCluster = mergeClusters(mergedClusterClusters, cluId);
+        if (mergedClusterClusters.size() > 0) {
+            FTLMergedCluster mergedCluster = mergeClusters(mergedClusterClusters, cluId, btlClustersHandle);
             btlOutput->push_back(mergedCluster);
             
             std::cout << "Created MergedCluster from " << mergedClusterClusters.size() 
