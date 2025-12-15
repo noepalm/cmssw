@@ -14,8 +14,11 @@ public:
     MtdSimMergedCluster() = default;
 
     // Construct with one TrackingParticle ref (the main track)
-    MtdSimMergedCluster(const TrackingParticleRef& tpRef) : mainTrack_(tpRef) {
-        trackingParticles_.push_back(tpRef);
+    MtdSimMergedCluster(const TrackingParticleRef& tpRef) {
+        if (tpRef.isNonnull()){
+            mainTrack_ = tpRef;
+            trackingParticles_.push_back(tpRef);
+        }
     }
 
     // Construct with one MtdSimLayerCluster ref and one TrackingParticle ref
@@ -39,6 +42,10 @@ public:
 
     /// Retrieve list of all DetIds from clusters
     std::vector<DetId> detIds() const;
+
+    /// Retrieve list of times and positions of all sim hits in the clusters
+    // std::map<uint64_t, std::pair<float, LocalPoint>> getHitTimesAndPositions() const;
+    std::vector<std::pair<float, LocalPoint>> getHitTimesAndPositions() const;
 
     /// Accessors
     const MtdSimLayerClusterRefVector& clusters() const { return clusters_; }

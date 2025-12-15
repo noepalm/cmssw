@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
-process = cms.Process("TEST", Phase2C17I13M9)
+process = cms.Process("MtdMergedAssociationMapTest", Phase2C17I13M9)
 
 # Set up command line argument parsing
 options = VarParsing('analysis')
@@ -13,6 +13,13 @@ options.register('useSimTopologicalClustering',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.bool,
                  "Enable topological clustering in SIM MergedCluster producer")
+
+options.register('inputFile',
+                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_merge/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_mergetest_numEvent1000.root',
+                 VarParsing.multiplicity.singleton,
+                 VarParsing.varType.string,
+                 "Input ROOT file")
+
 
 # Parse command line arguments
 options.parseArguments()
@@ -27,45 +34,47 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', '')
 
-process.MessageLogger.cerr.threshold = 'INFO'
+# process.MessageLogger.cerr.threshold = 'INFO'
 # process.MessageLogger.cerr.threshold = 'DEBUG'
+# process.MessageLogger.debugModules = ["*"]
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(options.maxEvents)
 )
 
 process.source = cms.Source("PoolSource",
-    # fileNames = cms.untracked.vstring("file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root")
-    fileNames = cms.untracked.vstring([f"file:/eos/home-n/npalmeri/ntuples/MTD/PhotonReco/crab_MTDPhotonReco/CRAB_UserFiles/SingleGammaFlatPt0p1To10_Run4D110_aging1000_noPU_MTDPhotonReco/250424_164835/0000/step3_{i}.root" for i in range(1, 11)]),
+    fileNames = cms.untracked.vstring(options.inputFile),
 )
 
-# Load SimMergedCluster producer
-from SimFastTiming.MtdSimMergedClusterProducers.mtdSimMergedClusterProducer_cfi import mtdSimMergedClusterProducer
 
-process.mtdSimMergedClusterProducer = mtdSimMergedClusterProducer.clone(
-    useTopologicalClustering = cms.bool(options.useSimTopologicalClustering)
-)
+# Looking for type: reco::MtdRecoMergedClusterToSimMergedClusterAssociator
+# Looking for module label: MtdRecoMergedClusterToSimMergedClusterAssociatorByHits
 
-process.mtdMergedClusters = cms.EDProducer("MTDMergedClusterProducer",
-    btlBarrel = cms.InputTag("mtdClusters", "FTLBarrel"),
-    btlMergedClusterInstance = cms.string("FTLBarrel"),
-    timeThreshold = cms.double(10.0),
-    energyThreshold = cms.double(1.0)
-)
+# first, create associator instance through producer
+# MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer
 
-# Load MTD truth map associators (needed for the producer)
-from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociatorByTrackId_cfi import mtdSimLayerClusterToTPAssociatorByTrackId
-from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociation_cfi import mtdSimLayerClusterToTPAssociation
+from SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits_cfi import mtdRecoMergedClusterToSimMergedClusterAssociatorByHits
+process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits = mtdRecoMergedClusterToSimMergedClusterAssociatorByHits.clone()
 
-# clone and add label 
-process.mtdSimLayerClusterToTPAssociatorByTrackId = mtdSimLayerClusterToTPAssociatorByTrackId.clone()
-process.mtdSimLayerClusterToTPAssociation = mtdSimLayerClusterToTPAssociation.clone()
+# Load reco merged cluster => sim merged cluster producer
+from SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociation_cfi import mtdRecoMergedClusterToSimMergedClusterAssociation
+
+process.mtdRecoMergedClusterToSimMergedClusterAssociation = mtdRecoMergedClusterToSimMergedClusterAssociation.clone()
+
+# # Load MTD truth map associators (needed for the producer)
+# from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociatorByTrackId_cfi import mtdSimLayerClusterToTPAssociatorByTrackId
+# from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociation_cfi import mtdSimLayerClusterToTPAssociation
 
 process.output = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string(options.outputFile),
     outputCommands = cms.untracked.vstring(
         #'keep *'
         'drop *',
+        #'keep *_mtdRecHits_*_*',            # keep rec hits
+        #'keep *_mtdClusters_*_*',           # keep original clusters
+        #'keep *_mtdMergedClusters_*_*',      # keep MergedClusters
+        #'keep *_genParticles_*_*',          # keep gen info if needed?
+        #'keep *_simHits_*_*',               # keep sim hits if needed for validation?
 
         "keep *_genParticles_*_*",  # keep GenParticles
         "keep *_mtdSimLayerClusterToTPAssociation_*_*",
@@ -76,6 +85,8 @@ process.output = cms.OutputModule("PoolOutputModule",
         'keep *_mtdSimLayerClusterToRecoClusterAssociation_*_*',
         'keep *_mtdSimLayerClusterToTPAssociation_*_*',
         "keep *_mtdSimLayerClusterToTPAssociatorByTrackId_*_*",
+        'keep *_mtdRecoMergedClusterToSimMergedClusterAssociation_*_*',
+        'keep *_mtdSimMergedClusterToRecoMergedClusterAssociation_*_*',
         'keep *_mtdRecHits_FTLBarrel_*',
         'keep *_mtdRecHits_FTLEndcap_*',
         'keep *_mtdUncalibratedRecHits_FTLBarrel_*',
@@ -95,7 +106,10 @@ process.output = cms.OutputModule("PoolOutputModule",
     #)
 )
 
-process.mergedClusterSequence = cms.Sequence(process.mtdSimLayerClusterToTPAssociatorByTrackId + process.mtdSimLayerClusterToTPAssociation + process.mtdSimMergedClusterProducer + process.mtdMergedClusters)
+process.mergedClusterSequence = cms.Sequence(
+    process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits + 
+    process.mtdRecoMergedClusterToSimMergedClusterAssociation
+)
 
 process.p = cms.Path(process.mergedClusterSequence)
 process.out_step = cms.EndPath(process.output)
@@ -104,4 +118,3 @@ process.schedule = cms.Schedule(process.p, process.out_step)
 print("Testing BTL MTDMergedClusterProducer with adjacent cluster algorithm...")
 print(f"Output file: {options.outputFile}")
 print(f"Max events: {options.maxEvents}")
-print(f"Use topological clustering (for SIM merged clusters): {options.useSimTopologicalClustering}")

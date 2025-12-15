@@ -8,6 +8,7 @@
 #include "DataFormats/Phase2TrackerCluster/interface/Phase2TrackerCluster1D.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
 #include "DataFormats/FTLRecHit/interface/FTLClusterCollections.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
 
 class OmniClusterRef {
   static const unsigned int kInvalid = 0x80000000;  // bit 31 on
@@ -26,6 +27,7 @@ public:
   typedef edm::Ref<edmNew::DetSetVector<SiStripCluster>, SiStripCluster> ClusterStripRef;
   typedef edm::Ref<edmNew::DetSetVector<Phase2TrackerCluster1D>, Phase2TrackerCluster1D> Phase2Cluster1DRef;
   typedef edm::Ref<FTLClusterCollection, FTLCluster> ClusterMTDRef;
+  typedef edm::Ref<FTLMergedClusterCollection, FTLMergedCluster> MergedClusterRef;
 
   OmniClusterRef() : me(edm::RefCore(), kInvalid) {}
   OmniClusterRef(edm::ProductID const& id, SiStripCluster const* clu, unsigned int key) : me(id, clu, key | kIsStrip) {}
@@ -36,6 +38,8 @@ public:
   explicit OmniClusterRef(Phase2Cluster1DRef const& ref, unsigned int subClus = 0)
       : me(ref.refCore(), (ref.isNonnull() ? (ref.key() | kIsPhase2) | (subClus << subClusShift) : kInvalid)) {}
   explicit OmniClusterRef(ClusterMTDRef const& ref)
+      : me(ref.refCore(), (ref.isNonnull() ? (ref.key() | kIsTiming) : kInvalid)) {}
+  explicit OmniClusterRef(MergedClusterRef const& ref) 
       : me(ref.refCore(), (ref.isNonnull() ? (ref.key() | kIsTiming) : kInvalid)) {}
 
   ClusterPixelRef cluster_pixel() const {
@@ -52,10 +56,13 @@ public:
 
   ClusterMTDRef cluster_mtd() const { return isTiming() ? ClusterMTDRef(me.toRefCore(), index()) : ClusterMTDRef(); }
 
+  MergedClusterRef cluster_merged_mtd() const { return isTiming() ? MergedClusterRef(me.toRefCore(), index()) : MergedClusterRef(); }
+
   SiPixelCluster const& pixelCluster() const { return *ClusterPixelRef(me.toRefCore(), index()); }
   SiStripCluster const& stripCluster() const { return *ClusterStripRef(me.toRefCore(), index()); }
   Phase2TrackerCluster1D const& phase2OTCluster() const { return *Phase2Cluster1DRef(me.toRefCore(), index()); }
   FTLCluster const& mtdCluster() const { return *ClusterMTDRef(me.toRefCore(), index()); }
+  FTLMergedCluster const& mtdMergedCluster() const { return *MergedClusterRef(me.toRefCore(), index()); }
 
   bool operator==(OmniClusterRef const& lh) const {
     return rawIndex() == lh.rawIndex();  // in principle this is enough!

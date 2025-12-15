@@ -49,7 +49,9 @@ process.mtdMergedClusterValidation = cms.EDProducer("MergedClusterValidation",
     mergedClusters = cms.InputTag("mtdMergedClusters", "FTLBarrel"),
     clusters = cms.InputTag("mtdClusters", "FTLBarrel"),
     simMergedClusters = cms.InputTag("mtdSimMergedClusterProducer"),
-    simLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC")
+    simLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC"),
+    sim2tpAssociationMapTag = cms.InputTag("mtdSimLayerClusterToTPAssociation", ""),  
+    r2sAssociationMapTag = cms.InputTag("mtdRecoClusterToSimLayerClusterAssociation", "")
 )
 
 process.DQMoutput = cms.OutputModule("DQMRootOutputModule",

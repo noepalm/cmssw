@@ -6,6 +6,8 @@
 #include <cassert>
 #include "DataFormats/TrackerRecHit2D/interface/TrackerSingleRecHit.h"
 #include "DataFormats/FTLRecHit/interface/FTLRecHitCollections.h"
+#include "DataFormats/FTLRecHit/interface/FTLMergedClusterCollections.h"
+#include "DataFormats/Common/interface/Ref.h"
 
 class MTDTrackingRecHit : public TrackerSingleRecHit {
 public:
@@ -20,6 +22,11 @@ public:
   bool isPhase2() const final { return true; }
   void getKfComponents(KfComponentsHolder& holder) const final;
 
+  // constructor accepting a merged-cluster Ref 
+  using FTLMergedClusterRef = edm::Ref<FTLMergedClusterCollection, FTLMergedCluster>;
+  MTDTrackingRecHit(const LocalPoint& p, const LocalError& e, const GeomDet& idet, const FTLMergedClusterRef& objref)
+      : TrackerSingleRecHit(p, e, idet, trackerHitRTTI::mipTiming, objref) {}
+      
   int dimension() const final { return 2; }
 
   //specific timing stuff
