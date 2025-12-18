@@ -59,46 +59,33 @@ private:
     edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 
-    // RECO
-    TH1F* h_mc_energy_;
-    TH1F* h_mc_time_;
-    TH1F* h_mc_timeError_;
-    TH1F* h_mc_x_;
-    TH1F* h_mc_y_;
-    TH1F* h_mc_nClusters_;
-    TH1F* h_cluster_energy_;
-    TH1F* h_cluster_time_;
+    // reco - sim
+    TH1F* h_deltaTime_;
+    TH1F* h_deltaEnergy_;
+    TH1F* h_deltaX_;
+    TH1F* h_deltaY_;
+
+    TH1F* h_deltaNclu_;
+    TH1F* h_deltaNhits_;
+    TH1F* h_nSimPerReco_;
     
-    TH1F* h_eta_adjacent_pairs_;
-    TH1F* h_eta_merged_pairs_;
-    TH1F* h_eta_merging_efficiency_;
+    TH1F* h_deltaTime_multiClu_;
+    TH1F* h_deltaEnergy_multiClu_;
+    TH1F* h_deltaX_multiClu_;
+    TH1F* h_deltaY_multiClu_;
 
-    TH2F* h_mc_energy_vs_time_;
-    TH2F* h_mc_xy_;
-    TH2F* h_mc_energy_vs_nClusters_;
-    TH2F* h_merging_efficiency_;
+    TH1F* h_deltaNclu_multiClu_;
+    TH1F* h_deltaNhits_multiClu_;
+    TH1F* h_nSimPerReco_multiClu_;
 
-    // SIM
-    TH1F* h_simmc_energy_;
-    TH1F* h_simmc_logEnergy_;
-    TH1F* h_simmc_time_;
-    TH1F* h_simmc_x_;
-    TH1F* h_simmc_y_;
-    TH1F* h_simmc_eta_;
-    TH1F* h_simmc_nClusters_;
-    TH1F* h_simmc_n_;
+    TH1F* h_deltaTime_singleClu_;
+    TH1F* h_deltaEnergy_singleClu_;
+    TH1F* h_deltaX_singleClu_;
+    TH1F* h_deltaY_singleClu_;
 
-    TH1F* h_simmc_logEnergy_perCluster_;
-    TH1F* h_simmc_time_perCluster_;
-    TH1F* h_simmc_clusterType_;
-
-    TH2F* h_simmc_xy_;
-    TH2F* h_simmc_energy_vs_time_;
-    TH2F* h_simmc_energy_vs_nClusters_;
-    TH2F* h_simmc_primaryPt_vs_nClusters_;
-    TH2F* h_simmc_primaryPt_vs_energy_;
-    TH2F* h_simmc_primaryEnergy_vs_energy_;
-    TH2F* h_simmc_primaryEnergy_vs_nClusters_;
+    // 2D
+    TH2F* h_deltaTime_vs_Eta_;
+    TH2F* h_deltaEnergy_vs_Eta_;
 
     TTree* tree_;
     

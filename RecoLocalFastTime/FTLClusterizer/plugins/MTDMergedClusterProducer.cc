@@ -21,6 +21,9 @@
 #include "Geometry/CommonDetUnit/interface/GeomDet.h"
 #include "DataFormats/GeometryVector/interface/LocalPoint.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
+#include "DataFormats/GeometryCommonDetAlgo/interface/MeasurementPoint.h"
+#include "Geometry/MTDGeometryBuilder/interface/RectangularMTDTopology.h"
+#include "Geometry/MTDGeometryBuilder/interface/ProxyMTDTopology.h"
 
 #include <iostream>
 #include <vector>
@@ -50,7 +53,7 @@ private:
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;    
 
     bool areTimingCompatible(const FTLCluster* c1, const FTLCluster* c2);
-    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> btlClustersHandle);
+    FTLMergedCluster mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> btlClustersHandle); 
 };
 
 MTDMergedClusterProducer::MTDMergedClusterProducer(const edm::ParameterSet& conf) 
@@ -86,7 +89,7 @@ bool MTDMergedClusterProducer::areTimingCompatible(const FTLCluster* c1, const F
     return compatible;
 }
 
-FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> mtdClustersHandle) { 
+/*FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> mtdClustersHandle) { 
     float totalEnergy = 0;
     float weightedTime = 0;
     float weightedTimeError2 = 0;
@@ -117,44 +120,76 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
         const GeomDet* seedDet = geom.idToDetUnit(seedId);
         GlobalPoint gp_local_to_global(0., 0., 0.), gp_roundtrip(0., 0., 0.);
         if (det) {
-            const LocalPoint lp_in(c->x(), c->y(), 0.0f); 
+            const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+            const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+            
+            float localX = c->getClusterPosX();
+            float localY = 0.0f;
+            
+            if (c->getClusterErrorX() < 0.) {
+                MeasurementPoint mp(c->x(), c->y());
+                const LocalPoint localPos = topo.localPosition(mp);
+                localX = localPos.x();
+                localY = localPos.y();
+            } else {
+                localY = topo.localY(c->y());
+            }
+            
+            const LocalPoint lp_in(localX, localY, 0.0f);
             gp_local_to_global = det->surface().toGlobal(lp_in);
         }
         if (seedDet) {
             const LocalPoint lp_rt = seedDet->surface().toLocal(gp_local_to_global);
             gp_roundtrip = GlobalPoint(lp_rt.x(), lp_rt.y(), lp_rt.z());
         }
-        /*std::cout << "[hmm] single cluster det = " << c->id().rawId()
+        std::cout << "[DEBUG avgx] single cluster det = " << c->id().rawId()
                   << " cluster.x/y = (" << c->x() << ", " << c->y() << ")"
                   << " computed avgGlobal = (" << gp_local_to_global.x() << ", " << gp_local_to_global.y() << ")"
                   << " roundtrip local = " << "(" << gp_roundtrip.x() << ", " << gp_roundtrip.y() << ")"
-                  << " seedid = " << seedId.rawId() << std::endl;*/
+                  << " seedid = " << seedId.rawId() << std::endl; // zajeb!
 
     }
     // primary first, then the rest
-    clusterIds.reserve(clusters.size());
-    clusterIds.push_back(primary->id());
+    std::vector <const FTLCluster*> orderedClusters;
+    orderedClusters.reserve(clusters.size());
+    orderedClusters.push_back(primary);
     for (const auto* c : clusters) {
-        if (c->id() != primary->id()) clusterIds.push_back(c->id());
+        if (c != primary) orderedClusters.push_back(c);
     }
 
-    for (const auto* cluster : clusters) {
+    for (const auto* cluster : orderedClusters) {
         float energy = cluster->energy();
         
         totalEnergy += energy;
         weightedTime += energy * cluster->time();
         weightedTimeError2 += energy * energy * cluster->timeError() * cluster->timeError();
+
+        clusterIds.push_back(cluster->id());
+        clusterRefs.push_back(edmNew::makeRefTo(mtdClustersHandle, cluster));
         
         // convert
         const GeomDet* det = geom.idToDetUnit(cluster->id());
         if (det) {
-            const LocalPoint localPos(cluster->x(), cluster->y(), 0.0f);
+            const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+            const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+    
+            float localX = cluster->getClusterPosX(); // get from the cluster the position along crystal length (in cm)
+            float localY = 0.0f;
+
+            if (cluster->getClusterErrorX() < 0.) { // in case its not set, use topology
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                const LocalPoint localPos = topo.localPosition(mp);
+                localX = localPos.x();
+                localY = localPos.y();
+            } else { // valid x from SiPM readout, but get y from topology (rows/cols)
+                localY = topo.localY(cluster->y());
+            }
+
+            const LocalPoint localPos(localX, localY, 0.0f);
             const GlobalPoint gp = det->surface().toGlobal(localPos);
             weightedGlobalX += static_cast<double>(energy) * gp.x();
             weightedGlobalY += static_cast<double>(energy) * gp.y();
-            weightedGlobalZ += static_cast<double>(energy) * gp.z(); 
-            clusterIds.push_back(cluster->id());
-            clusterRefs.push_back(edmNew::makeRefTo(mtdClustersHandle, cluster)); // if needed
+            weightedGlobalZ += static_cast<double>(energy) * gp.z();
         } else {
             std::cout << "[MTDMergedClusterProducer -- debug] Warning: Unable to convert cluster DetId " 
                       << cluster->id().rawId() << " to GlobalPoint, geometry not available" <<std::endl;
@@ -185,17 +220,88 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
     const GeomDet* seedDet = geom.idToDetUnit(seedId);
     if (seedDet && totalEnergy > 0) {
         LocalPoint lp = seedDet->surface().toLocal(avgGlobal);
-        avgX = lp.x();
-        avgY = lp.y();
+        avgX = lp.x(); // along crystal (phi)
+        avgY = lp.y(); // perpendicular to crystal (eta)
     } else {
         std::cout << "[MTDMergedClusterProducer -- debug] Warning: Unable to convert avgGlobal to seed-local coordinates for seedId " 
                   << seedId.rawId() << " , geometry not available" <<std::endl;
     }
 
+    float avgXError = 0.f;
+    float avgYError = 0.f;
+
+    if (totalEnergy > 0) {
+        double weightedErrorX2 = 0.;
+        double weightedErrorY2 = 0.;
+
+        for (const auto* cluster : clusters) {
+            float energy = cluster->energy();
+            const GeomDet* det = geom.idToDetUnit(cluster->id());
+            if (!det) continue;
+
+            const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+            const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+
+            float localXError = 0.f;
+            float localYError = 0.f;
+
+            if (cluster->getClusterErrorX() < 0.) {
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                float sigma_flat = 1.0f / std::sqrt(12.0f);
+                float sigma2 = cluster->positionError(sigma_flat);
+                sigma2 *= sigma2;
+                MeasurementError posErr(sigma2, 0, sigma2);
+                LocalError localErr = topo.localError(mp, posErr);
+                localXError = std::sqrt(localErr.xx());
+                localYError = std::sqrt(localErr.yy());
+            } else { // use cluster provided error
+                localXError = cluster->getClusterErrorX();
+                // Y error from topology
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                float sigma_flat = 1.0f / std::sqrt(12.0f);
+                float sigma2 = cluster->positionError(sigma_flat);
+                sigma2 *= sigma2;
+                MeasurementError posErr(sigma2, 0, sigma2);
+                LocalError localErr = topo.localError(mp, posErr);
+                localYError = std::sqrt(localErr.yy());
+            } 
+
+            std::cout << "[DEBUG error] cluster " << cluster->id().rawId() 
+              << " localXError=" << localXError 
+              << " energy=" << energy 
+              << " contribution=" << (energy*energy*localXError*localXError) << std::endl;
+    
+            weightedErrorX2 += energy * energy * localXError * localXError; //approx -- lets say they're in the same ref frame
+            weightedErrorY2 += energy * energy * localYError * localYError;
+        }
+
+        std::cout << "[DEBUG ERROR] Total: weightedErrorX2=" << weightedErrorX2 
+          << " totalEnergy=" << totalEnergy 
+          << " avgXError=" << (std::sqrt(weightedErrorX2) / totalEnergy) << std::endl;
+
+        avgXError = std::sqrt(weightedErrorX2) / totalEnergy;
+        avgYError = std::sqrt(weightedErrorY2) / totalEnergy;
+    }
+
+    /*std::cout << "[DEBUG avgX] seedId=" << seedId.rawId() 
+          << " weightedGlobalX=" << weightedGlobalX
+          << " totalEnergy=" << totalEnergy
+          << " avgGlobal.x=" << avgGlobal.x()
+          << " avgGlobal.y=" << avgGlobal.y()
+          << " avgGlobal.z=" << avgGlobal.z()
+          << " avgX=" << avgX
+          << " avgY=" << avgY
+    << std::endl;
+    
     //return FTLMergedCluster(seedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds);
     DetId mergedId = DetId(seedId.rawId());
+    FTLMergedCluster mergedCluster(mergedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, avgXError, avgYError, clusterIds, clusterRefs);
 
-    FTLMergedCluster mergedCluster(mergedId, totalEnergy, avgTime, avgTimeError, avgX, avgY, clusterIds, clusterRefs);
+    std::cout << "[DEBUG MERGED] Created mergedCluster: id=" << mergedCluster.id().rawId()
+          << " xError()=" << mergedCluster.xError()
+          << " yError()=" << mergedCluster.yError()
+          << " x()=" << mergedCluster.x()
+          << " y()=" << mergedCluster.y() << std::endl;
 
     const double eps = 1e-6 * std::max(1.f, totalEnergy);
     const double diff = static_cast<double>(mergedCluster.energy()) - static_cast<double>(totalEnergy);
@@ -203,12 +309,12 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
         /*std::cout << "[MTDMergedClusterProducer -- debug] Energy mismatch in merge: N=" << clusters.size()
                   << " sum(E_i)=" << totalEnergy
                   << " merged.E=" << mergedCluster.energy()
-                  << " diff=" << diff << std::endl;*/
+                  << " diff=" << diff << std::endl;
         // Optional: list inputs
         for (const auto* c : clusters) {
-            /*std::cout << "    input DetId=" << c->id().rawId()
+            std::cout << "    input DetId=" << c->id().rawId()
                       << " E=" << c->energy()
-                      << " t=" << c->time() << std::endl;*/
+                      << " t=" << c->time() << std::endl;
         }
         std::cout << "[MTDMergedClusterProducer - debug] merged cluster suspicious (seed=" << seedId.rawId() << "). Nclusters=" << clusters.size()
                   << " sumE=" << totalEnergy << " mergedE=" << mergedCluster.energy()
@@ -220,6 +326,216 @@ FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const
         }
     }
     return mergedCluster;
+}*/
+
+FTLMergedCluster MTDMergedClusterProducer::mergeClusters(const std::vector<const FTLCluster*>& clusters, const DetId& seedId, const MTDGeometry& geom, edm::Handle<FTLClusterCollection> mtdClustersHandle) { 
+    
+    // Special handling for single clusters - use original position directly
+    if (clusters.size() == 1) {
+        const FTLCluster* c = clusters.front();
+        
+        // Get topology for Y position conversion
+        const GeomDet* det = geom.idToDetUnit(c->id());
+        if (!det) {
+            std::cout << "[MTDMergedClusterProducer] ERROR: Cannot get geometry for single cluster DetId " 
+                      << c->id().rawId() << std::endl;
+        }
+        
+        const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+        const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+        
+        // Use original cluster position - exactly as baseline does
+        float avgX = c->getClusterPosX();  // X from SiPM timing
+        float avgY = topo.localY(c->y());   // Y from topology (column barycenter)
+        
+        // Get errors - exactly as baseline does
+        float avgXError = 0.f;
+        float avgYError = 0.f;
+        
+        if (c->getClusterErrorX() < 0.) {
+            // Use topology for both X and Y
+            MeasurementPoint mp(c->x(), c->y());
+            float sigma_flat = 1.0f / std::sqrt(12.0f);
+            float sigma2 = c->positionError(sigma_flat);
+            sigma2 *= sigma2;
+            MeasurementError posErr(sigma2, 0, sigma2);
+            LocalError localErr = topo.localError(mp, posErr);
+            avgXError = std::sqrt(localErr.xx());
+            avgYError = std::sqrt(localErr.yy());
+        } else {
+            // X error from cluster, Y error from topology
+            avgXError = c->getClusterErrorX();
+            MeasurementPoint mp(c->x(), c->y());
+            float sigma_flat = 1.0f / std::sqrt(12.0f);
+            float sigma2 = c->positionError(sigma_flat);
+            sigma2 *= sigma2;
+            MeasurementError posErr(sigma2, 0, sigma2);
+            LocalError localErr = topo.localError(mp, posErr);
+            avgYError = std::sqrt(localErr.yy());
+        }
+        
+        std::vector<DetId> clusterIds = {c->id()};
+        std::vector<FTLClusterRef> clusterRefs = {edmNew::makeRefTo(mtdClustersHandle, c)};
+        
+        std::cout << "[DEBUG] Single cluster: using original position directly - "
+                  << "pos=(" << avgX << ", " << avgY << ") "
+                  << "err=(" << avgXError << ", " << avgYError << ")" << std::endl;
+        
+        return FTLMergedCluster(c->id(), 
+                               avgX, avgY, 
+                               c->time(), c->timeError(), 
+                               c->energy(), 
+                               avgXError, avgYError,
+                               clusterIds, clusterRefs);
+    }
+    
+    // Multi-cluster merging - use global averaging
+    float totalEnergy = 0;
+    float weightedTime = 0;
+    float weightedTimeError2 = 0;
+    double weightedGlobalX = 0;
+    double weightedGlobalY = 0;
+    double weightedGlobalZ = 0;
+    std::vector<DetId> clusterIds;
+    std::vector<FTLClusterRef> clusterRefs;
+
+    // get primary cluster (earliest time, or highest energy if same time)
+    const FTLCluster* primary = clusters.front();
+    for (const auto* c : clusters) {
+        if (c->time() < primary->time()) {
+            primary = c;
+        } else if (c->time() == primary->time() && c->energy() > primary->energy()) {
+            primary = c;
+        }
+    }
+
+    // primary first, then the rest
+    std::vector<const FTLCluster*> orderedClusters;
+    orderedClusters.reserve(clusters.size());
+    orderedClusters.push_back(primary);
+    for (const auto* c : clusters) {
+        if (c != primary) orderedClusters.push_back(c);
+    }
+
+    for (const auto* cluster : orderedClusters) {
+        float energy = cluster->energy();
+        
+        totalEnergy += energy;
+        weightedTime += energy * cluster->time();
+        weightedTimeError2 += energy * energy * cluster->timeError() * cluster->timeError();
+
+        clusterIds.push_back(cluster->id());
+        clusterRefs.push_back(edmNew::makeRefTo(mtdClustersHandle, cluster));
+        
+        // convert to global coordinates
+        const GeomDet* det = geom.idToDetUnit(cluster->id());
+        if (det) {
+            const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+            const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+    
+            float localX = cluster->getClusterPosX();
+            float localY = 0.0f;
+
+            if (cluster->getClusterErrorX() < 0.) {
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                const LocalPoint localPos = topo.localPosition(mp);
+                localX = localPos.x();
+                localY = localPos.y();
+            } else {
+                localY = topo.localY(cluster->y());
+            }
+
+            const LocalPoint localPos(localX, localY, 0.0f);
+            const GlobalPoint gp = det->surface().toGlobal(localPos);
+            weightedGlobalX += static_cast<double>(energy) * gp.x();
+            weightedGlobalY += static_cast<double>(energy) * gp.y();
+            weightedGlobalZ += static_cast<double>(energy) * gp.z();
+        } else {
+            std::cout << "[MTDMergedClusterProducer] Warning: Unable to convert cluster DetId " 
+                      << cluster->id().rawId() << " to GlobalPoint" << std::endl;
+        }
+    }
+
+    float avgTime = 0.f;
+    float avgTimeError = 0.f;
+    if (totalEnergy > 0) {
+        avgTime = weightedTime / totalEnergy;
+        avgTimeError = std::sqrt(weightedTimeError2) / totalEnergy;
+    }
+    
+    GlobalPoint avgGlobal(0., 0., 0.);
+    if (totalEnergy > 0) {
+        avgGlobal = GlobalPoint(weightedGlobalX / totalEnergy,
+                                weightedGlobalY / totalEnergy,
+                                weightedGlobalZ / totalEnergy);
+    }
+
+    // convert to seed-local coordinates
+    float avgX = 0;
+    float avgY = 0;
+    const GeomDet* seedDet = geom.idToDetUnit(seedId);
+    if (seedDet && totalEnergy > 0) {
+        LocalPoint lp = seedDet->surface().toLocal(avgGlobal);
+        avgX = lp.x();
+        avgY = lp.y();
+    } else {
+        std::cout << "[MTDMergedClusterProducer] Warning: Unable to convert avgGlobal to seed-local for seedId " 
+                  << seedId.rawId() << std::endl;
+    }
+
+    // Calculate errors
+    float avgXError = 0.f;
+    float avgYError = 0.f;
+
+    if (totalEnergy > 0) {
+        double weightedErrorX2 = 0.;
+        double weightedErrorY2 = 0.;
+
+        for (const auto* cluster : clusters) {
+            float energy = cluster->energy();
+            const GeomDet* det = geom.idToDetUnit(cluster->id());
+            if (!det) continue;
+
+            const ProxyMTDTopology& topoproxy = static_cast<const ProxyMTDTopology&>(det->topology());
+            const RectangularMTDTopology& topo = static_cast<const RectangularMTDTopology&>(topoproxy.specificTopology());
+
+            float localXError = 0.f;
+            float localYError = 0.f;
+
+            if (cluster->getClusterErrorX() < 0.) {
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                float sigma_flat = 1.0f / std::sqrt(12.0f);
+                float sigma2 = cluster->positionError(sigma_flat);
+                sigma2 *= sigma2;
+                MeasurementError posErr(sigma2, 0, sigma2);
+                LocalError localErr = topo.localError(mp, posErr);
+                localXError = std::sqrt(localErr.xx());
+                localYError = std::sqrt(localErr.yy());
+            } else {
+                localXError = cluster->getClusterErrorX();
+                MeasurementPoint mp(cluster->x(), cluster->y());
+                float sigma_flat = 1.0f / std::sqrt(12.0f);
+                float sigma2 = cluster->positionError(sigma_flat);
+                sigma2 *= sigma2;
+                MeasurementError posErr(sigma2, 0, sigma2);
+                LocalError localErr = topo.localError(mp, posErr);
+                localYError = std::sqrt(localErr.yy());
+            }
+    
+            weightedErrorX2 += energy * energy * localXError * localXError;
+            weightedErrorY2 += energy * energy * localYError * localYError;
+        }
+
+        avgXError = std::sqrt(weightedErrorX2) / totalEnergy;
+        avgYError = std::sqrt(weightedErrorY2) / totalEnergy;
+    }
+
+    std::cout << "[DEBUG] Multi-cluster merge: " << clusters.size() << " clusters -> "
+              << "pos=(" << avgX << ", " << avgY << ") "
+              << "err=(" << avgXError << ", " << avgYError << ")" << std::endl;
+
+    return FTLMergedCluster(seedId, avgX, avgY, avgTime, avgTimeError, totalEnergy, 
+                           avgXError, avgYError, clusterIds, clusterRefs);
 }
 
 void MTDMergedClusterProducer::produce(edm::Event& e, const edm::EventSetup& es) {    
@@ -245,8 +561,8 @@ void MTDMergedClusterProducer::produce(edm::Event& e, const edm::EventSetup& es)
         std::cout << "No valid BTL clusters found in event" << std::endl;
         e.put(std::move(btlOutput), btlMergedClusterInstance_);
         return;
-    }
-    
+    } // FIXME add else {...} so it continues to process ETL clusters too
+     
     // collect clusters and sort by module ID 
     std::vector<const FTLCluster*> allClusters;
     std::map<BTLDetId, std::vector<const FTLCluster*>> clusterMap;

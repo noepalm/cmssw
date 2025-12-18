@@ -1,5 +1,6 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
+<use name="CommonTools/UtilAlgos"/>
 <use name="DataFormats/FTLRecHit"/>
 <use name="DataFormats/TrackerRecHit2D"/>
 

@@ -5,6 +5,11 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
 
+#include "Geometry/MTDGeometryBuilder/interface/ProxyMTDTopology.h"
+#include "Geometry/MTDGeometryBuilder/interface/RectangularMTDTopology.h"
+
+#include "Geometry/MTDCommonData/interface/MTDTopologyMode.h"
+
 #define DEBUG 0
 
 MergedClusterValidation_withAssociationMaps::MergedClusterValidation_withAssociationMaps(const edm::ParameterSet& iConfig):
@@ -28,61 +33,6 @@ MergedClusterValidation_withAssociationMaps::MergedClusterValidation_withAssocia
 void MergedClusterValidation_withAssociationMaps::beginJob() {
     edm::Service<TFileService> fs;
     
-    // -------------------- //
-    // ------- RECO ------- //
-    // -------------------- //
-
-    // MergedCluster histograms
-    h_mc_energy_ = fs->make<TH1F>("h_mc_energy", "MergedCluster Energy;Energy [MeV];Count", 100, 0, 50);
-    h_mc_time_ = fs->make<TH1F>("h_mc_time", "MergedCluster Time;Time [ns];Count", 100, -5, 20);
-    h_mc_timeError_ = fs->make<TH1F>("h_mc_timeError", "MergedCluster Time Error;Time Error [ns];Count", 100, 0, 1);
-    h_mc_x_ = fs->make<TH1F>("h_mc_x", "MergedCluster X;X [mm];Count", 100, -200, 200);
-    h_mc_y_ = fs->make<TH1F>("h_mc_y", "MergedCluster Y;Y [mm];Count", 100, -200, 200);
-    h_mc_nClusters_ = fs->make<TH1F>("h_mc_nClusters", "Number of Clusters;N_{clusters};Count", 10, 0.5, 10.5);
-    
-    // Cluster histograms for comparison
-    h_cluster_energy_ = fs->make<TH1F>("h_cluster_energy", "Cluster Energy;Energy [MeV];Count", 100, 0, 50);
-    h_cluster_time_ = fs->make<TH1F>("h_cluster_time", "Cluster Time;Time [ns];Count", 100, -5, 20);
-    
-    // 2D histograms
-    h_mc_energy_vs_time_ = fs->make<TH2F>("h_mc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 100, -5, 20, 100, 0, 50);
-    h_mc_xy_ = fs->make<TH2F>("h_mc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -200, 200, 100, -200, 200);
-    h_mc_energy_vs_nClusters_ = fs->make<TH2F>("h_mc_energy_vs_nClusters_", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 10, 0.5, 10.5, 100, 0, 50);
-    h_merging_efficiency_ = fs->make<TH2F>("h_merging_efficiency", "Merging Efficiency;Cluster Energy [MeV];Merged?", 50, 0, 50, 2, -0.5, 1.5);
-    
-    // efficiency
-    h_eta_adjacent_pairs_ = fs->make<TH1F>("h_eta_adjacent_pairs", "Adjacent Pairs vs Eta;#eta;Number of Adjacent Pairs", 100, -1.5, 1.5);
-    h_eta_merged_pairs_ = fs->make<TH1F>("h_eta_merged_pairs", "Merged Pairs vs Eta;#eta;Number of Merged Pairs", 100, -1.5, 1.5);
-    h_eta_merging_efficiency_ = fs->make<TH1F>("h_eta_merging_efficiency", "Merging Efficiency vs Eta;#eta;Efficiency", 100, -1.5, 1.5);
-    
-    // ------------------- //
-    // ------- SIM ------- //
-    // ------------------- //
-
-    // 1D histograms
-    h_simmc_energy_ = fs->make<TH1F>("h_simmc_energy", "MergedCluster Energy;Energy [MeV];Count", 50, 0, 50);
-    h_simmc_logEnergy_ = fs->make<TH1F>("h_simmc_logEnergy", "MergedCluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
-    h_simmc_time_ = fs->make<TH1F>("h_simmc_time", "MergedCluster Time;Time [ns];Count", 50, 0, 30);
-    h_simmc_x_ = fs->make<TH1F>("h_simmc_x", "MergedCluster X;X [mm];Count", 50, -120, 120);
-    h_simmc_y_ = fs->make<TH1F>("h_simmc_y", "MergedCluster Y;Y [mm];Count", 50, -120, 120);
-    h_simmc_eta_ = fs->make<TH1F>("h_simmc_eta", "MergedCluster Eta;#eta;Count", 50, -5, 5);
-    h_simmc_nClusters_ = fs->make<TH1F>("h_simmc_nClusters", "Number of Clusters;N_{clusters};Count", 11, -0.5, 10.5);
-    h_simmc_n_ = fs->make<TH1F>("h_simmc_n", "Number of MergedClusters;N_{MergedClusters};Count", 51, -0.5, 50.5);
-
-    // 1D histograms -- per simLC 
-    h_simmc_logEnergy_perCluster_ = fs->make<TH1F>("h_simmc_logEnergy_perCluster", "Cluster Log(Energy);Log(Energy [MeV]);Count", 100, -3, 3);
-    h_simmc_time_perCluster_ = fs->make<TH1F>("h_simmc_time_perCluster", "Cluster Time;Time [ns];Count", 50, 0, 30);
-    h_simmc_clusterType_ = fs->make<TH1F>("h_simmc_clusterType", "Cluster Type;Type;Count", 4, -0.5, 3.5);
-    
-    // 2D histograms
-    h_simmc_xy_ = fs->make<TH2F>("h_simmc_xy", "MergedCluster Position;X [mm];Y [mm]", 100, -120, 120, 100, -120, 120);
-    h_simmc_energy_vs_time_ = fs->make<TH2F>("h_simmc_energy_vs_time", "MergedCluster Energy vs Time;Time [ns];Energy [MeV]", 30, 4, 27, 20, 0, 1);
-    h_simmc_energy_vs_nClusters_ = fs->make<TH2F>("h_simmc_energy_vs_nClusters", "Energy vs N Clusters;N_{clusters};Energy [MeV]", 4, -0.5, 3.5, 20, 0, 1);
-    h_simmc_primaryPt_vs_nClusters_ = fs->make<TH2F>("h_simmc_primaryPt_vs_nClusters", "Primary Particle pT vs N Clusters;N_{clusters};p_{T} [GeV]", 4, -0.5, 3.5, 20, 0, 20);
-    h_simmc_primaryPt_vs_energy_ = fs->make<TH2F>("h_simmc_primaryPt_vs_energy", "Primary Particle pT vs MergedCluster Energy;MergedCluster Energy [MeV];p_{T} [GeV]", 20, 0, 1, 20, 0, 11);
-    h_simmc_primaryEnergy_vs_energy_ = fs->make<TH2F>("h_simmc_primaryEnergy_vs_energy", "Primary Particle Energy vs MergedCluster Energy;MergedCluster Energy [MeV];Primary Particle Energy [GeV]", 20, 0, 1, 20, 0, 40);
-    h_simmc_primaryEnergy_vs_nClusters_ = fs->make<TH2F>("h_simmc_primaryEnergy_vs_nClusters", "Primary Particle Energy vs N Clusters;N_{clusters};Primary Particle Energy [GeV]", 4, -0.5, 3.5, 20, 0, 40);
-
     // Analysis tree
     tree_ = fs->make<TTree>("MTDMergedClusters", "MTD MergedCluster Analysis Tree");
     
@@ -130,6 +80,33 @@ void MergedClusterValidation_withAssociationMaps::beginJob() {
     tree_->Branch("simmc_primary_phi", &simmc_primary_phi_);
     tree_->Branch("simmc_primary_eta", &simmc_primary_eta_);
     tree_->Branch("simmc_primary_pdgId", &simmc_primary_pdgId_);    
+
+    // histos -- resolution plots using association maps between reco <--> sim
+    h_deltaTime_ = fs->make<TH1F>("h_deltaTime", "Time Resolution (Reco - Sim);#Delta t [ns]; Entries", 50, -1, 1);
+    h_deltaEnergy_ = fs->make<TH1F>("h_deltaEnergy", "Energy Resolution (Reco - Sim); #Delta E [MeV]; Entries", 80, -20, 20);
+    h_deltaX_ = fs->make<TH1F>("h_deltaX", "Local X Resolution (Reco - Sim); #Delta X [cm]; Entries", 40, -10, 10);
+    h_deltaY_ = fs->make<TH1F>("h_deltaY", "Local Y Resolution (Reco - Sim); #Delta Y [cm]; Entries", 50, -3, 3);
+
+    h_deltaNclu_ = fs->make<TH1F>("h_deltaNclu", "Difference in Cluster Multiplicity (Reco - Sim); #Delta N_{clusters}; Entries", 20, -10, 10);
+    h_deltaNhits_ = fs->make<TH1F>("h_deltaNhits", "Difference in Hit Multiplicity (Reco - Sim); #Delta N_{hits}; Entries", 40, -20, 20);
+    h_nSimPerReco_ = fs->make<TH1F>("h_nSimPerReco", "Number of SimMergedClusters associated to each RecoMergedCluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
+
+    h_deltaTime_multiClu_ = fs->make<TH1F>("h_deltaTime_multiClu", "Time Resolution (Reco - Sim) Multi-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
+    h_deltaEnergy_multiClu_ = fs->make<TH1F>("h_deltaEnergy_multiClu", "Energy Resolution (Reco - Sim) Multi-Cluster; #Delta E [MeV]; Entries", 80, -5, 5);
+    h_deltaX_multiClu_ = fs->make<TH1F>("h_deltaX_multiClu", "Local X Resolution (Reco - Sim) Multi-Cluster; #Delta X [cm]; Entries", 40, -10, 10);
+    h_deltaY_multiClu_ = fs->make<TH1F>("h_deltaY_multiClu", "Local Y Resolution (Reco - Sim) Multi-Cluster; #Delta Y [cm]; Entries", 50, -3, 3);
+
+    h_deltaNclu_multiClu_ = fs->make<TH1F>("h_deltaNclu_multiClu", "Difference in Cluster Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{clusters}; Entries", 20, -10, 10);
+    h_deltaNhits_multiClu_ = fs->make<TH1F>("h_deltaNhits_multiClu", "Difference in Hit Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{hits}; Entries", 40, -20, 20);
+    h_nSimPerReco_multiClu_ = fs->make<TH1F>("h_nSimPerReco_multiClu", "Number of SimMergedClusters associated to each RecoMergedCluster Multi-Cluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
+
+    h_deltaTime_singleClu_ = fs->make<TH1F>("h_deltaTime_singleClu", "Time Resolution (Reco - Sim) Single-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
+    h_deltaEnergy_singleClu_ = fs->make<TH1F>("h_deltaEnergy_singleClu", "Energy Resolution (Reco - Sim) Single-Cluster; #Delta E [MeV]; Entries", 80, -5, 5);
+    h_deltaX_singleClu_ = fs->make<TH1F>("h_deltaX_singleClu", "Local X Resolution (Reco - Sim) Single-Cluster; #Delta X [cm]; Entries", 40, -10, 10);
+    h_deltaY_singleClu_ = fs->make<TH1F>("h_deltaY_singleClu", "Local Y Resolution (Reco - Sim) Single-Cluster; #Delta Y [cm]; Entries", 50, -3, 3);
+
+    h_deltaTime_vs_Eta_ = fs->make<TH2F>("h_deltaTime_vs_Eta", "Time Resolution vs Eta;#eta; #Delta t [ns]", 50, -1.5, 1.5, 50, -0.5, 0.5);
+    h_deltaEnergy_vs_Eta_ = fs->make<TH2F>("h_deltaEnergy_vs_Eta", "Energy Resolution vs Eta;#eta; #Delta E [MeV]", 50, -1.5, 1.5, 80, -20., 20.);
 }
 
 void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -223,7 +200,6 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
         for (const auto& mc : detSet) {
             // look for match in association map
             FTLMergedClusterRef recoMergedClusRef = edmNew::makeRefTo(mergedClustersHandle, &mc);
-            // FTLMergedClusterRef recoMergedClusRef(mergedClustersHandle, &mc - &(*mergedClustersHandle->begin()));
             
             // check if reference is valid
             if (!recoMergedClusRef.isNonnull()) {
@@ -239,15 +215,20 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
             
             const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp. first->second;
             
+            h_nSimPerReco_->Fill(simMergedRefs.size());
+
             std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << " reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
             std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
         
-            // iterate over matches and print all properties
+            // iterate over matches and plot 
             for (const auto& simRef : simMergedRefs){
                 if (!simRef.isNonnull()) {
                     std::cout << "ERROR: Invalid simMergedClusRef!" << std::endl;
                     continue;
                 }
+
+                float simEnergy = convertUnitsTo(0.001_MeV, simRef->simEnergy());
+                if (simEnergy < 1.0) continue;
 
                 std::cout << "    Sim MergedCluster: E=" << convertUnitsTo(0.001_MeV, simRef->simEnergy()) << " MeV, t=" << simRef->simTime() << " ns" 
                         << ", trackIdOffset = " << simRef->clusters()[0]->trackIdOffset() << " (nClusters = " << simRef->clusters().size() << ")" << std::endl;
@@ -260,7 +241,72 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                     std::cout << "(no valid TP refs)";
                 }
                 std::cout << std::endl;
-                        
+
+                float deltaTime = mc.time() - simRef->simTime();
+                float deltaEnergy = mc.energy() - simEnergy;
+                LocalPoint simCluPos = (*simRef->clusters().begin())->simLCPos();
+                float deltaX = mc.x() - simCluPos.x();
+                float deltaY = mc.y() - simCluPos.y();
+
+                int nClusters = mc.clusterIds().size();
+                int deltaNclu = nClusters - simRef->clusters().size();
+                
+                int recoHits = 0;
+                for (const auto& cluRef : mc.clusterRefs()) {
+                    recoHits += cluRef->size();  
+                }
+                int simHits = 0;
+                for (const auto& simCluRef : simRef->clusters()) {
+                    simHits += simCluRef->hits_and_fractions().size();
+                }
+                
+                int deltaNhits = recoHits - simHits;
+
+                h_deltaTime_->Fill(deltaTime);
+                h_deltaEnergy_->Fill(deltaEnergy);
+                h_deltaX_->Fill(deltaX);
+                h_deltaY_->Fill(deltaY);
+                h_deltaNclu_->Fill(deltaNclu);
+                h_deltaNhits_->Fill(deltaNhits);
+
+                //std::cout << "  deltaX = " << deltaX << " mm, deltaY = " << deltaY << " mm" << std::endl;
+                //std::cout << "  reco: x=" << mc.x() << " y=" << mc.y() << std::endl;
+                //std::cout << "  sim:  x=" << simRef->simPos().x() << " y=" << simRef->simPos().y() << std::endl;
+                
+                if (nClusters > 1) {
+                    h_deltaTime_multiClu_->Fill(deltaTime);
+                    h_deltaEnergy_multiClu_->Fill(deltaEnergy);
+                    h_deltaX_multiClu_->Fill(deltaX);
+                    h_deltaY_multiClu_->Fill(deltaY);
+
+                    h_deltaNclu_multiClu_->Fill(deltaNclu);
+                    h_deltaNhits_multiClu_->Fill(deltaNhits);
+                    h_nSimPerReco_multiClu_->Fill(simMergedRefs.size());
+                } else {
+                    h_deltaTime_singleClu_->Fill(deltaTime);
+                    h_deltaEnergy_singleClu_->Fill(deltaEnergy);
+                    h_deltaX_singleClu_->Fill(deltaX);
+                    h_deltaY_singleClu_->Fill(deltaY);
+                }
+
+                DetId simDetId = simRef->simDetId();
+                if (simDetId.rawId() != 0) {
+                    BTLDetId btlId(simDetId);
+                    DetId geoId = btlId.geographicalId(MTDTopologyMode::crysLayoutFromTopoMode(topology->getMTDTopologyMode()));
+                    const MTDGeomDet* thedet = geom->idToDet(geoId);
+
+                    if (thedet != nullptr) {
+                        GlobalPoint simGlobalPos = thedet->toGlobal(simRef->simPos());
+                        float simEta = simGlobalPos.eta();
+
+                        h_deltaTime_vs_Eta_->Fill(simEta, deltaTime);
+                        h_deltaEnergy_vs_Eta_->Fill(simEta, deltaEnergy);
+                    } else {
+                        std::cout << "WARNING - could not get thedet for geoId " << geoId.rawId() << std::endl;
+                    }
+                } else {
+                    std::cout << "WARNING - simDetId is zero!" << std::endl;
+                }
             }
         }
     }
