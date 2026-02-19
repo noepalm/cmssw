@@ -82,31 +82,48 @@ void MergedClusterValidation_withAssociationMaps::beginJob() {
     tree_->Branch("simmc_primary_pdgId", &simmc_primary_pdgId_);    
 
     // histos -- resolution plots using association maps between reco <--> sim
-    h_deltaTime_ = fs->make<TH1F>("h_deltaTime", "Time Resolution (Reco - Sim);#Delta t [ns]; Entries", 50, -1, 1);
-    h_deltaEnergy_ = fs->make<TH1F>("h_deltaEnergy", "Energy Resolution (Reco - Sim); #Delta E [MeV]; Entries", 80, -20, 20);
+    h_deltaTime_ = fs->make<TH1F>("h_deltaTime", "Time Resolution (Reco - Sim);#Delta t [ns]; Entries", 50, -0.5, .5);
+    h_deltaEnergy_ = fs->make<TH1F>("h_deltaEnergy", "Energy Resolution (Reco - Sim); #Delta E [MeV]; Entries", 80, -5, 5);
     h_deltaX_ = fs->make<TH1F>("h_deltaX", "Local X Resolution (Reco - Sim); #Delta X [cm]; Entries", 40, -10, 10);
     h_deltaY_ = fs->make<TH1F>("h_deltaY", "Local Y Resolution (Reco - Sim); #Delta Y [cm]; Entries", 50, -3, 3);
 
     h_deltaNclu_ = fs->make<TH1F>("h_deltaNclu", "Difference in Cluster Multiplicity (Reco - Sim); #Delta N_{clusters}; Entries", 20, -10, 10);
     h_deltaNhits_ = fs->make<TH1F>("h_deltaNhits", "Difference in Hit Multiplicity (Reco - Sim); #Delta N_{hits}; Entries", 40, -20, 20);
-    h_nSimPerReco_ = fs->make<TH1F>("h_nSimPerReco", "Number of SimMergedClusters associated to each RecoMergedCluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
+    h_nSimPerReco_ = fs->make<TH1F>("h_nSimPerReco", "Number of SimMergedClusters associated to each RecoMergedCluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 6, -0.5, 5.5);
 
-    h_deltaTime_multiClu_ = fs->make<TH1F>("h_deltaTime_multiClu", "Time Resolution (Reco - Sim) Multi-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
+    h_deltaTime_multiClu_ = fs->make<TH1F>("h_deltaTime_multiClu", "Time Resolution (Reco - Sim) Multi-Cluster;#Delta t [ns]; Entries", 50, -0.5, .5);
     h_deltaEnergy_multiClu_ = fs->make<TH1F>("h_deltaEnergy_multiClu", "Energy Resolution (Reco - Sim) Multi-Cluster; #Delta E [MeV]; Entries", 80, -5, 5);
     h_deltaX_multiClu_ = fs->make<TH1F>("h_deltaX_multiClu", "Local X Resolution (Reco - Sim) Multi-Cluster; #Delta X [cm]; Entries", 40, -10, 10);
     h_deltaY_multiClu_ = fs->make<TH1F>("h_deltaY_multiClu", "Local Y Resolution (Reco - Sim) Multi-Cluster; #Delta Y [cm]; Entries", 50, -3, 3);
 
     h_deltaNclu_multiClu_ = fs->make<TH1F>("h_deltaNclu_multiClu", "Difference in Cluster Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{clusters}; Entries", 20, -10, 10);
     h_deltaNhits_multiClu_ = fs->make<TH1F>("h_deltaNhits_multiClu", "Difference in Hit Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{hits}; Entries", 40, -20, 20);
-    h_nSimPerReco_multiClu_ = fs->make<TH1F>("h_nSimPerReco_multiClu", "Number of SimMergedClusters associated to each RecoMergedCluster Multi-Cluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
+    h_nSimPerReco_multiClu_ = fs->make<TH1F>("h_nSimPerReco_multiClu", "Number of SimMergedClusters associated to each RecoMergedCluster Multi-Cluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 6, -0.5, 5.5);
 
-    h_deltaTime_singleClu_ = fs->make<TH1F>("h_deltaTime_singleClu", "Time Resolution (Reco - Sim) Single-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
+    h_deltaTime_singleClu_ = fs->make<TH1F>("h_deltaTime_singleClu", "Time Resolution (Reco - Sim) Single-Cluster;#Delta t [ns]; Entries", 50, -0.5, 0.5);
     h_deltaEnergy_singleClu_ = fs->make<TH1F>("h_deltaEnergy_singleClu", "Energy Resolution (Reco - Sim) Single-Cluster; #Delta E [MeV]; Entries", 80, -5, 5);
     h_deltaX_singleClu_ = fs->make<TH1F>("h_deltaX_singleClu", "Local X Resolution (Reco - Sim) Single-Cluster; #Delta X [cm]; Entries", 40, -10, 10);
     h_deltaY_singleClu_ = fs->make<TH1F>("h_deltaY_singleClu", "Local Y Resolution (Reco - Sim) Single-Cluster; #Delta Y [cm]; Entries", 50, -3, 3);
 
+    // deltaEnergy histograms by trackIdOffset (only for single sim MC matches)
+    h_deltaEnergy_trackIdOffset_0_ = fs->make<TH1F>("h_deltaEnergy_trackIdOffset_0", "Energy Resolution (Primary); #Delta E [MeV]; Entries", 80, -5, 5);
+    h_deltaEnergy_trackIdOffset_1_ = fs->make<TH1F>("h_deltaEnergy_trackIdOffset_1", "Energy Resolution (Secondary); #Delta E [MeV]; Entries", 80, -5, 5);
+    h_deltaEnergy_trackIdOffset_2_ = fs->make<TH1F>("h_deltaEnergy_trackIdOffset_2", "Energy Resolution (Loopers); #Delta E [MeV]; Entries", 80, -5, 5);
+    h_deltaEnergy_trackIdOffset_3_ = fs->make<TH1F>("h_deltaEnergy_trackIdOffset_3", "Energy Resolution (Backscatter); #Delta E [MeV]; Entries", 80, -5, 5);
+
+    // deltaTime histograms by trackIdOffset (only for single sim MC matches)
+    h_deltaTime_trackIdOffset_0_ = fs->make<TH1F>("h_deltaTime_trackIdOffset_0", "Time Resolution (Primary); #Delta t [ns]; Entries", 50, -0.5, 0.5);
+    h_deltaTime_trackIdOffset_1_ = fs->make<TH1F>("h_deltaTime_trackIdOffset_1", "Time Resolution (Secondary); #Delta t [ns]; Entries", 50, -0.5, 0.5);
+    h_deltaTime_trackIdOffset_2_ = fs->make<TH1F>("h_deltaTime_trackIdOffset_2", "Time Resolution (Loopers); #Delta t [ns]; Entries", 50, -0.5, 0.5);
+    h_deltaTime_trackIdOffset_3_ = fs->make<TH1F>("h_deltaTime_trackIdOffset_3", "Time Resolution (Backscatter); #Delta t [ns]; Entries", 50, -0.5, 0.5);
+
+    h_nSimPerReco_trackIdOffset_0_ = fs->make<TH1F>("h_nSimPerReco_trackIdOffset_0", "Number of Primary SimMergedClusters per Reco; N_{SimMC} (Primary); Entries", 6, -0.5, 5.5);
+    h_nSimPerReco_trackIdOffset_1_ = fs->make<TH1F>("h_nSimPerReco_trackIdOffset_1", "Number of Secondary SimMergedClusters per Reco; N_{SimMC} (Secondary); Entries", 6, -0.5, 5.5);
+    h_nSimPerReco_trackIdOffset_2_ = fs->make<TH1F>("h_nSimPerReco_trackIdOffset_2", "Number of Looper SimMergedClusters per Reco; N_{SimMC} (Loopers); Entries", 6, -0.5, 5.5);
+    h_nSimPerReco_trackIdOffset_3_ = fs->make<TH1F>("h_nSimPerReco_trackIdOffset_3", "Number of Backscatter SimMergedClusters per Reco; N_{SimMC} (Backscatter); Entries", 6, -0.5, 5.5);
+
     h_deltaTime_vs_Eta_ = fs->make<TH2F>("h_deltaTime_vs_Eta", "Time Resolution vs Eta;#eta; #Delta t [ns]", 50, -1.5, 1.5, 50, -0.5, 0.5);
-    h_deltaEnergy_vs_Eta_ = fs->make<TH2F>("h_deltaEnergy_vs_Eta", "Energy Resolution vs Eta;#eta; #Delta E [MeV]", 50, -1.5, 1.5, 80, -20., 20.);
+    h_deltaEnergy_vs_Eta_ = fs->make<TH2F>("h_deltaEnergy_vs_Eta", "Energy Resolution vs Eta;#eta; #Delta E [MeV]", 50, -1.5, 1.5, 80, -5, 5.);
 }
 
 void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -213,13 +230,95 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                 continue;
             }
             
-            const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp. first->second;
+            const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp.first->second;
             
             h_nSimPerReco_->Fill(simMergedRefs.size());
+
+            // Count sim matches by trackIdOffset type
+            int nType0 = 0, nType1 = 0, nType2 = 0, nType3 = 0;
+            std::cout << "#sim matches for this reco merged cluster: " << simMergedRefs.size() << std::endl;
+            for (const auto& simRef : simMergedRefs) {
+                if (simRef.isNonnull() && !simRef->clusters().empty()) {
+                    int offset = simRef->clusters()[0]->trackIdOffset();
+                    if (offset == 0) nType0++;
+                    else if (offset == 1) nType1++;
+                    else if (offset == 2) nType2++;
+                    else if (offset == 3) nType3++;
+                } else {
+                    std::cout << "WARNING: invalid simMergedClusRef when counting trackIdOffset!" << std::endl;
+                    std::cout << "WARNING: out of " << simMergedRefs.size() << " sim matches for this reco merged cluster." << std::endl;
+                }
+            }
+            std::cout << "of which: " << nType0 << " primary, " << nType1 << " secondary, " << nType2 << " loopers, " << nType3 << " backscatter." << std::endl;
+            if (nType0 + nType1 + nType2 + nType3 != simMergedRefs.size()) {
+                std::cout << "WARNING: sum of type counts does not equal total number of sim matches!" << std::endl;
+            }
+            h_nSimPerReco_trackIdOffset_0_->Fill(nType0);
+            h_nSimPerReco_trackIdOffset_1_->Fill(nType1);
+            h_nSimPerReco_trackIdOffset_2_->Fill(nType2);
+            h_nSimPerReco_trackIdOffset_3_->Fill(nType3);
 
             std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << " reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
             std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
         
+            // For single sim MC matches, we'll extract trackIdOffset for classification
+            int trackIdOffset = -1;
+            if (simMergedRefs.size() == 1) {
+                const auto& simRef = simMergedRefs[0];
+                if (simRef.isNonnull() && !simRef->clusters().empty()) {
+                    trackIdOffset = simRef->clusters()[0]->trackIdOffset();
+                }
+            }
+
+            // Calculate total sim energy for energy resolution (sum over all matched sim MCs)
+            float totalSimEnergy = 0.0;
+            int totalSimHits = 0;
+            int totalSimClusters = 0;
+            for (const auto& simRef : simMergedRefs) {
+                if (!simRef.isNonnull()) continue;
+                float simEnergy = convertUnitsTo(0.001_MeV, simRef->simEnergy());
+                totalSimEnergy += simEnergy;
+                totalSimClusters += simRef->clusters().size();
+                for (const auto& simCluRef : simRef->clusters()) {
+                    totalSimHits += simCluRef->hits_and_fractions().size();
+                }
+            }
+
+            // Calculate reco hits
+            int nClusters = mc.clusterIds().size();
+            int recoHits = 0;
+            for (const auto& cluRef : mc.clusterRefs()) {
+                recoHits += cluRef->size();  
+            }
+
+            // Calculate deltas using total sim energy
+            float deltaEnergy = mc.energy() - totalSimEnergy;
+            int deltaNclu = nClusters - totalSimClusters;
+            int deltaNhits = recoHits - totalSimHits;
+
+            // Fill general histograms once per reco MC (using sum of sim energies)
+            h_deltaEnergy_->Fill(deltaEnergy);
+            h_deltaNclu_->Fill(deltaNclu);
+            h_deltaNhits_->Fill(deltaNhits);
+
+            if (nClusters > 1) {
+                h_deltaEnergy_multiClu_->Fill(deltaEnergy);
+                h_deltaNclu_multiClu_->Fill(deltaNclu);
+                h_deltaNhits_multiClu_->Fill(deltaNhits);
+                h_nSimPerReco_multiClu_->Fill(simMergedRefs.size());
+            } else {
+                h_deltaEnergy_singleClu_->Fill(deltaEnergy);
+            }
+
+            // Print warning for large total energy differences
+            if (deltaEnergy > 1) {
+                std::cout << "WARNING: Large TOTAL energy difference: DeltaE = " << deltaEnergy << " MeV" << std::endl;
+                std::cout << "         Reco E = " << mc.energy() << " MeV, Total Sim E = " << totalSimEnergy << " MeV" << std::endl;
+                std::cout << "         Reco nClusters = " << nClusters << ", Total Sim nClusters = " << totalSimClusters << std::endl;
+                std::cout << "         Reco nHits = " << recoHits << ", Total Sim nHits = " << totalSimHits << std::endl;
+                std::cout << "         Number of sim matches = " << simMergedRefs.size() << std::endl;
+            }
+
             // iterate over matches and plot 
             for (const auto& simRef : simMergedRefs){
                 if (!simRef.isNonnull()) {
@@ -243,31 +342,42 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                 std::cout << std::endl;
 
                 float deltaTime = mc.time() - simRef->simTime();
-                float deltaEnergy = mc.energy() - simEnergy;
+                float deltaEnergyThisMatch = mc.energy() - simEnergy;
                 LocalPoint simCluPos = (*simRef->clusters().begin())->simLCPos();
                 float deltaX = mc.x() - simCluPos.x();
                 float deltaY = mc.y() - simCluPos.y();
 
-                int nClusters = mc.clusterIds().size();
-                int deltaNclu = nClusters - simRef->clusters().size();
+                int deltaNcluThisMatch = nClusters - simRef->clusters().size();
                 
-                int recoHits = 0;
-                for (const auto& cluRef : mc.clusterRefs()) {
-                    recoHits += cluRef->size();  
-                }
                 int simHits = 0;
                 for (const auto& simCluRef : simRef->clusters()) {
                     simHits += simCluRef->hits_and_fractions().size();
                 }
                 
-                int deltaNhits = recoHits - simHits;
+                int deltaNhitsThisMatch = recoHits - simHits;
+                
+                std::cout << "    Delta t = " << deltaTime << " ns, Delta E (this match) = " << deltaEnergyThisMatch << " MeV" << "; Delta Nclu = " << deltaNcluThisMatch << ", Delta Nhits = " << deltaNhitsThisMatch << std::endl;
 
                 h_deltaTime_->Fill(deltaTime);
-                h_deltaEnergy_->Fill(deltaEnergy);
                 h_deltaX_->Fill(deltaX);
                 h_deltaY_->Fill(deltaY);
-                h_deltaNclu_->Fill(deltaNclu);
-                h_deltaNhits_->Fill(deltaNhits);
+
+                // Fill trackIdOffset-specific histograms for single sim MC matches
+                if (simMergedRefs.size() == 1 && trackIdOffset >= 0 && trackIdOffset <= 3) {
+                    if (trackIdOffset == 0) {
+                        h_deltaEnergy_trackIdOffset_0_->Fill(deltaEnergy);
+                        h_deltaTime_trackIdOffset_0_->Fill(deltaTime);
+                    } else if (trackIdOffset == 1) {
+                        h_deltaEnergy_trackIdOffset_1_->Fill(deltaEnergy);
+                        h_deltaTime_trackIdOffset_1_->Fill(deltaTime);
+                    } else if (trackIdOffset == 2) {
+                        h_deltaEnergy_trackIdOffset_2_->Fill(deltaEnergy);
+                        h_deltaTime_trackIdOffset_2_->Fill(deltaTime);
+                    } else if (trackIdOffset == 3) {
+                        h_deltaEnergy_trackIdOffset_3_->Fill(deltaEnergy);
+                        h_deltaTime_trackIdOffset_3_->Fill(deltaTime);
+                    }
+                }
 
                 //std::cout << "  deltaX = " << deltaX << " mm, deltaY = " << deltaY << " mm" << std::endl;
                 //std::cout << "  reco: x=" << mc.x() << " y=" << mc.y() << std::endl;
@@ -275,16 +385,10 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                 
                 if (nClusters > 1) {
                     h_deltaTime_multiClu_->Fill(deltaTime);
-                    h_deltaEnergy_multiClu_->Fill(deltaEnergy);
                     h_deltaX_multiClu_->Fill(deltaX);
                     h_deltaY_multiClu_->Fill(deltaY);
-
-                    h_deltaNclu_multiClu_->Fill(deltaNclu);
-                    h_deltaNhits_multiClu_->Fill(deltaNhits);
-                    h_nSimPerReco_multiClu_->Fill(simMergedRefs.size());
                 } else {
                     h_deltaTime_singleClu_->Fill(deltaTime);
-                    h_deltaEnergy_singleClu_->Fill(deltaEnergy);
                     h_deltaX_singleClu_->Fill(deltaX);
                     h_deltaY_singleClu_->Fill(deltaY);
                 }

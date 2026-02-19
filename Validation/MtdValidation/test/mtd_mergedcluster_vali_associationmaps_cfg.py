@@ -5,7 +5,8 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 options = VarParsing('analysis')
 
 options.register('inputFile',
-                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/SimFastTiming/MtdAssociatorProducers/test/mtdMergedAssociationMaps_forDev031225.root',
+                #  'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/CMSSW_15_1_0_pre2/src/SimFastTiming/MtdAssociatorProducers/test/mtdMergedAssociationMaps_forDev031225.root',
+                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_validation/src/SimFastTiming/MtdAssociatorProducers/test/output.root',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "Input ROOT file")
@@ -14,8 +15,7 @@ options.register('inputFile',
 options.parseArguments()
 
 from Configuration.Eras.Era_Phase2C17I13M9_cff import Phase2C17I13M9
-process = cms.Process("MergedClusterValidation", Phase2C17I13M9)
-
+process = cms.Process("vali", Phase2C17I13M9)
 
 # Load standard configurations
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')

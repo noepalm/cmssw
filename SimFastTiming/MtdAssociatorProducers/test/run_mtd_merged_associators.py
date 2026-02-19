@@ -15,11 +15,10 @@ options.register('useSimTopologicalClustering',
                  "Enable topological clustering in SIM MergedCluster producer")
 
 options.register('inputFile',
-                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_merge/src/RecoLocalFastTime/FTLClusterizer/test/mtdMergedClusters_mergetest_numEvent1000.root',
+                 'file:/eos/home-n/npalmeri/MTD/MTD_supercluster/association_maps_validation/src/RecoLocalFastTime/FTLClusterizer/test/output.root',
                  VarParsing.multiplicity.singleton,
                  VarParsing.varType.string,
                  "Input ROOT file")
-
 
 # Parse command line arguments
 options.parseArguments()

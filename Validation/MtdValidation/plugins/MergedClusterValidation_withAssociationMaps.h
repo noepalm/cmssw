@@ -83,6 +83,24 @@ private:
     TH1F* h_deltaX_singleClu_;
     TH1F* h_deltaY_singleClu_;
 
+    // deltaEnergy by trackIdOffset (only for reco MCs matched to single sim MC)
+    TH1F* h_deltaEnergy_trackIdOffset_0_;  // primary
+    TH1F* h_deltaEnergy_trackIdOffset_1_;  // secondary
+    TH1F* h_deltaEnergy_trackIdOffset_2_;  // loopers
+    TH1F* h_deltaEnergy_trackIdOffset_3_;  // backscatter
+
+    // deltaTime by trackIdOffset (only for reco MCs matched to single sim MC)
+    TH1F* h_deltaTime_trackIdOffset_0_;  // primary
+    TH1F* h_deltaTime_trackIdOffset_1_;  // secondary
+    TH1F* h_deltaTime_trackIdOffset_2_;  // loopers
+    TH1F* h_deltaTime_trackIdOffset_3_;  // backscatter
+
+    // nSimPerReco by trackIdOffset
+    TH1F* h_nSimPerReco_trackIdOffset_0_;  // primary
+    TH1F* h_nSimPerReco_trackIdOffset_1_;  // secondary
+    TH1F* h_nSimPerReco_trackIdOffset_2_;  // loopers
+    TH1F* h_nSimPerReco_trackIdOffset_3_;  // backscatter
+
     // 2D
     TH2F* h_deltaTime_vs_Eta_;
     TH2F* h_deltaEnergy_vs_Eta_;
