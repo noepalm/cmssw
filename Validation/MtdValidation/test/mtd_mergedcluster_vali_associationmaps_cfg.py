@@ -46,8 +46,11 @@ process.mtdMergedClusterValidation = cms.EDAnalyzer("MergedClusterValidation_wit
     clusters = cms.InputTag("mtdClusters", "FTLBarrel"),
     simMergedClusters = cms.InputTag("mtdSimMergedClusterProducer"),
     simLayerClusters = cms.InputTag("mix", "MergedMtdTruthLC"),
+    trackingParticles = cms.InputTag("mix", "MergedTrackTruth"),
     mergedRecoToSimMap = cms.InputTag("mtdRecoMergedClusterToSimMergedClusterAssociation", ""),
     mergedSimToRecoMap = cms.InputTag("mtdRecoMergedClusterToSimMergedClusterAssociation", ""),
+    mergedSimToTPMap = cms.InputTag("mtdSimMergedClusterToTPAssociation", ""),
+    mergedTPToSimMap = cms.InputTag("mtdSimMergedClusterToTPAssociation", ""),
 )
 
 # Path

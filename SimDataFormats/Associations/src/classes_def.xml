@@ -240,7 +240,6 @@
   <class name="std::pair<MtdSimMergedClusterRef, std::vector<FTLClusterRef> >" />
   <class name="std::vector<std::pair<MtdSimMergedClusterRef, std::vector<FTLClusterRef> > >" />
 
-
   <class name="reco::MtdSimLayerClusterToTPAssociator" persistent="false"/>
   <class name="edm::Wrapper<reco::MtdSimLayerClusterToTPAssociator>" persistent="false"/>
 
@@ -267,10 +266,11 @@
    <field name="transientMap_" transient="true"/>
   </class>
 
-
   <class name="edm::helpers::KeyVal<edm::RefProd<std::vector<MtdSimLayerCluster> >, edm::RefProd<std::vector<TrackingParticle> > >" />
   <class name="edm::helpers::KeyVal<edm::RefProd<std::vector<TrackingParticle> >, edm::RefProd<std::vector<MtdSimLayerCluster> > >" />
 
+  <class name="edm::helpers::KeyVal<edm::RefProd<std::vector<MtdSimMergedCluster> >, edm::RefProd<std::vector<TrackingParticle> > >" />
+  <class name="edm::helpers::KeyVal<edm::RefProd<std::vector<TrackingParticle> >, edm::RefProd<std::vector<MtdSimMergedCluster> > >" />
 
   <class name="edm::RefProd<TTClusterAssociationMap<edm::Ref<edm::DetSetVector<Phase2TrackerDigi>, Phase2TrackerDigi, edm::refhelper::FindForDetSetVector<Phase2TrackerDigi> > > >" />
 

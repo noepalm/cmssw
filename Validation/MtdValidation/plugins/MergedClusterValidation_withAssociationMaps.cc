@@ -22,9 +22,13 @@ MergedClusterValidation_withAssociationMaps::MergedClusterValidation_withAssocia
 
     simMergedClustersToken_ = consumes<MtdSimMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("simMergedClusters"));
     simClustersToken_ = consumes<MtdSimLayerClusterCollection>(iConfig.getParameter<edm::InputTag>("simLayerClusters"));
+    trackingParticlesToken_ = consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles"));
 
     mergedRecoToSimMap_ = consumes<reco::MergedRecoToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedRecoToSimMap"));
     mergedSimToRecoMap_ = consumes<reco::MergedSimToRecoCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedSimToRecoMap"));
+
+    mergedSimToTPMap_ = consumes<reco::MergedSimToTPCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedSimToTPMap"));
+    mergedTPToSimMap_ = consumes<reco::TPToMergedSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedTPToSimMap"));
 
     totalAdjacentPairs_ = 0;
     totalMergedPairs_ = 0;
@@ -141,8 +145,14 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
     edm::Handle<MtdSimLayerClusterCollection> mtdSimLCHandle;
     iEvent.getByToken(simClustersToken_, mtdSimLCHandle);
 
+    edm::Handle<TrackingParticleCollection> trackingParticlesHandle;
+    iEvent.getByToken(trackingParticlesToken_, trackingParticlesHandle);
+
     const auto& mergedRecoToSimMap = iEvent.get(mergedRecoToSimMap_);
     const auto& mergedSimToRecoMap = iEvent.get(mergedSimToRecoMap_);
+
+    const auto& mergedSimToTPMap = iEvent.get(mergedSimToTPMap_);
+    const auto& mergedTPToSimMap = iEvent.get(mergedTPToSimMap_);
     
     // edm::Handle<reco::MergedRecoToSimCollectionMtd> mergedRecoToSimMapHandle;
     // iEvent.getByToken(mergedRecoToSimMap_, mergedRecoToSimMapHandle);
@@ -250,7 +260,7 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                 }
             }
             std::cout << "of which: " << nType0 << " primary, " << nType1 << " secondary, " << nType2 << " loopers, " << nType3 << " backscatter." << std::endl;
-            if (nType0 + nType1 + nType2 + nType3 != simMergedRefs.size()) {
+            if (nType0 + nType1 + nType2 + nType3 != int(simMergedRefs.size())) {
                 std::cout << "WARNING: sum of type counts does not equal total number of sim matches!" << std::endl;
             }
             h_nSimPerReco_trackIdOffset_0_->Fill(nType0);
@@ -415,6 +425,51 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
         }
     }
 
+    // ----------------------------------- //
+    // -------- SIM <-> TP testing --------- //
+    // ----------------------------------- //
+    
+    // let's just check multiplicity of association map: for each sim merged cluster, how many TP matches do we have?
+    for (const auto& simMergedCluster : *simMergedClustersHandle) {
+        // compute ref for sim merged cluster
+        MtdSimMergedClusterRef simMergedClusterRef = edm::Ref<MtdSimMergedClusterCollection>(simMergedClustersHandle, &simMergedCluster - &(*simMergedClustersHandle->begin()));
+        auto itp = mergedSimToTPMap.find(simMergedClusterRef);
+
+        if (itp != mergedSimToTPMap.end()){
+            int nTPMatches = std::distance(itp->val.begin(), itp->val.end());
+            std::cout << "Found " << nTPMatches << " TP matches to this SimMergedCluster." << std::endl;
+            for (const auto& tpMatch : itp->val){
+                if (tpMatch.isNonnull()) {
+                    std::cout << "  TP MATCH : pdgId=" << tpMatch->pdgId() << ", pt=" << tpMatch->pt() << " GeV, eta=" << tpMatch->eta() << ", phi=" << tpMatch->phi() << std::endl;
+                } else {
+                    std::cout << "  WARNING: invalid TP ref in mergedSimToTPMap!" << std::endl;
+                }
+            }
+        } else {
+            std::cout << "No TP matches found for this SimMergedCluster." << std::endl;
+        }
+    }
+
+    // and now do the opposite: for each TP, how many sim merged cluster matches do we have?
+    std::cout << "TrackingParticles collection size: " << trackingParticlesHandle->size() << std::endl;
+    for (const auto& tp : *trackingParticlesHandle) {
+        TrackingParticleRef tpRef = edm::Ref<TrackingParticleCollection>(trackingParticlesHandle, &tp - &(*trackingParticlesHandle->begin()));
+        auto itp = mergedTPToSimMap.find(tpRef);
+        if (itp != mergedTPToSimMap.end()) {
+            int nSimMatches = std::distance(itp->val.begin(), itp->val.end());
+            std::cout << "Found " << nSimMatches << " SimMergedCluster matches to this TP." << std::endl;
+            for (const auto& simMatch : itp->val) {
+                if (simMatch.isNonnull()) {
+                    std::cout << "  Matched SimMergedCluster: E=" << convertUnitsTo(0.001_MeV, simMatch->simEnergy()) << " MeV, t=" << simMatch->simTime() << " ns" << std::endl;
+                } else {
+                    std::cout << "  WARNING: invalid SimMergedCluster ref in mergedTPToSimMap!" << std::endl;
+                }
+            }
+        } else {
+            std::cout << "No SimMergedCluster matches found for this TP." << std::endl;
+        }
+    }
+    
 }
 
 void MergedClusterValidation_withAssociationMaps::endJob() {

@@ -51,7 +51,6 @@ process.source = cms.Source("PoolSource",
 
 # first, create associator instance through producer
 # MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer
-
 from SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits_cfi import mtdRecoMergedClusterToSimMergedClusterAssociatorByHits
 process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits = mtdRecoMergedClusterToSimMergedClusterAssociatorByHits.clone()
 
@@ -59,6 +58,14 @@ process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits = mtdRecoMergedCl
 from SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociation_cfi import mtdRecoMergedClusterToSimMergedClusterAssociation
 
 process.mtdRecoMergedClusterToSimMergedClusterAssociation = mtdRecoMergedClusterToSimMergedClusterAssociation.clone()
+
+
+# And now we do the same for SimMergedCluster <-> TP producer
+from SimFastTiming.MtdAssociatorProducers.mtdSimMergedClusterToTPAssociatorByTrackId_cfi import mtdSimMergedClusterToTPAssociatorByTrackId
+process.mtdSimMergedClusterToTPAssociatorByTrackId = mtdSimMergedClusterToTPAssociatorByTrackId.clone()
+
+from SimFastTiming.MtdAssociatorProducers.mtdSimMergedClusterToTPAssociation_cfi import mtdSimMergedClusterToTPAssociation
+process.mtdSimMergedClusterToTPAssociation = mtdSimMergedClusterToTPAssociation.clone()
 
 # # Load MTD truth map associators (needed for the producer)
 # from SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociatorByTrackId_cfi import mtdSimLayerClusterToTPAssociatorByTrackId
@@ -86,6 +93,8 @@ process.output = cms.OutputModule("PoolOutputModule",
         "keep *_mtdSimLayerClusterToTPAssociatorByTrackId_*_*",
         'keep *_mtdRecoMergedClusterToSimMergedClusterAssociation_*_*',
         'keep *_mtdSimMergedClusterToRecoMergedClusterAssociation_*_*',
+        'keep *_mtdSimMergedClusterToTPAssociation_*_*',
+        "keep *_mtdSimMergedClusterToTPAssociatorByTrackId_*_*",
         'keep *_mtdRecHits_FTLBarrel_*',
         'keep *_mtdRecHits_FTLEndcap_*',
         'keep *_mtdUncalibratedRecHits_FTLBarrel_*',
@@ -107,7 +116,9 @@ process.output = cms.OutputModule("PoolOutputModule",
 
 process.mergedClusterSequence = cms.Sequence(
     process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits + 
-    process.mtdRecoMergedClusterToSimMergedClusterAssociation
+    process.mtdRecoMergedClusterToSimMergedClusterAssociation +
+    process.mtdSimMergedClusterToTPAssociatorByTrackId +
+    process.mtdSimMergedClusterToTPAssociation
 )
 
 process.p = cms.Path(process.mergedClusterSequence)
