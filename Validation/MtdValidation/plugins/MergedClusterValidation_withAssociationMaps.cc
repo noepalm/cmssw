@@ -22,9 +22,13 @@ MergedClusterValidation_withAssociationMaps::MergedClusterValidation_withAssocia
 
     simMergedClustersToken_ = consumes<MtdSimMergedClusterCollection>(iConfig.getParameter<edm::InputTag>("simMergedClusters"));
     simClustersToken_ = consumes<MtdSimLayerClusterCollection>(iConfig.getParameter<edm::InputTag>("simLayerClusters"));
+    trackingParticlesToken_ = consumes<TrackingParticleCollection>(iConfig.getParameter<edm::InputTag>("trackingParticles"));    
 
     mergedRecoToSimMap_ = consumes<reco::MergedRecoToSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedRecoToSimMap"));
     mergedSimToRecoMap_ = consumes<reco::MergedSimToRecoCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedSimToRecoMap"));
+
+    mergedSimToTPMap_ = consumes<reco::MergedSimToTPCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedSimToTPMap"));
+    mergedTPToSimMap_ = consumes<reco::TPToMergedSimCollectionMtd>(iConfig.getParameter<edm::InputTag>("mergedTPToSimMap"));
 
     totalAdjacentPairs_ = 0;
     totalMergedPairs_ = 0;
@@ -87,8 +91,8 @@ void MergedClusterValidation_withAssociationMaps::beginJob() {
     h_deltaX_ = fs->make<TH1F>("h_deltaX", "Local X Resolution (Reco - Sim); #Delta X [cm]; Entries", 40, -10, 10);
     h_deltaY_ = fs->make<TH1F>("h_deltaY", "Local Y Resolution (Reco - Sim); #Delta Y [cm]; Entries", 50, -3, 3);
 
-    h_deltaNclu_ = fs->make<TH1F>("h_deltaNclu", "Difference in Cluster Multiplicity (Reco - Sim); #Delta N_{clusters}; Entries", 20, -10, 10);
-    h_deltaNhits_ = fs->make<TH1F>("h_deltaNhits", "Difference in Hit Multiplicity (Reco - Sim); #Delta N_{hits}; Entries", 40, -20, 20);
+    h_deltaNclu_ = fs->make<TH1F>("h_deltaNclu", "Difference in Cluster Multiplicity (Reco - Sim); #Delta N_{clusters}; Entries", 21, -10, 10);
+    h_deltaNhits_ = fs->make<TH1F>("h_deltaNhits", "Difference in Hit Multiplicity (Reco - Sim); #Delta N_{hits}; Entries", 41, -20, 20);
     h_nSimPerReco_ = fs->make<TH1F>("h_nSimPerReco", "Number of SimMergedClusters associated to each RecoMergedCluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
 
     h_deltaTime_multiClu_ = fs->make<TH1F>("h_deltaTime_multiClu", "Time Resolution (Reco - Sim) Multi-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
@@ -96,8 +100,8 @@ void MergedClusterValidation_withAssociationMaps::beginJob() {
     h_deltaX_multiClu_ = fs->make<TH1F>("h_deltaX_multiClu", "Local X Resolution (Reco - Sim) Multi-Cluster; #Delta X [cm]; Entries", 40, -10, 10);
     h_deltaY_multiClu_ = fs->make<TH1F>("h_deltaY_multiClu", "Local Y Resolution (Reco - Sim) Multi-Cluster; #Delta Y [cm]; Entries", 50, -3, 3);
 
-    h_deltaNclu_multiClu_ = fs->make<TH1F>("h_deltaNclu_multiClu", "Difference in Cluster Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{clusters}; Entries", 20, -10, 10);
-    h_deltaNhits_multiClu_ = fs->make<TH1F>("h_deltaNhits_multiClu", "Difference in Hit Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{hits}; Entries", 40, -20, 20);
+    h_deltaNclu_multiClu_ = fs->make<TH1F>("h_deltaNclu_multiClu", "Difference in Cluster Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{clusters}; Entries", 21, -10, 10);
+    h_deltaNhits_multiClu_ = fs->make<TH1F>("h_deltaNhits_multiClu", "Difference in Hit Multiplicity (Reco - Sim) Multi-Cluster; #Delta N_{hits}; Entries", 41, -20, 20);
     h_nSimPerReco_multiClu_ = fs->make<TH1F>("h_nSimPerReco_multiClu", "Number of SimMergedClusters associated to each RecoMergedCluster Multi-Cluster; N_{SimMergedClusters} per Reco MergedCluster; Entries", 10, 0, 10);
 
     h_deltaTime_singleClu_ = fs->make<TH1F>("h_deltaTime_singleClu", "Time Resolution (Reco - Sim) Single-Cluster;#Delta t [ns]; Entries", 50, -1, 1);
@@ -124,9 +128,15 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
     edm::Handle<MtdSimLayerClusterCollection> mtdSimLCHandle;
     iEvent.getByToken(simClustersToken_, mtdSimLCHandle);
 
+    edm::Handle<TrackingParticleCollection> trackingParticlesHandle;
+    iEvent.getByToken(trackingParticlesToken_, trackingParticlesHandle);
+
     const auto& mergedRecoToSimMap = iEvent.get(mergedRecoToSimMap_);
     const auto& mergedSimToRecoMap = iEvent.get(mergedSimToRecoMap_);
     
+    const auto& mergedSimToTPMap = iEvent.get(mergedSimToTPMap_);
+    const auto& mergedTPToSimMap = iEvent.get(mergedTPToSimMap_);
+
     // edm::Handle<reco::MergedRecoToSimCollectionMtd> mergedRecoToSimMapHandle;
     // iEvent.getByToken(mergedRecoToSimMap_, mergedRecoToSimMapHandle);
     // edm::Handle<reco::MergedSimToRecoCollectionMtd> mergedSimToRecoMapHandle;
@@ -196,7 +206,7 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
     // -------- RECO VS SIM -------- //
     // ----------------------------- //
 
-    for (const auto& detSet : *mergedClustersHandle) {
+    /*for (const auto& detSet : *mergedClustersHandle) {
         for (const auto& mc : detSet) {
             // look for match in association map
             FTLMergedClusterRef recoMergedClusRef = edmNew::makeRefTo(mergedClustersHandle, &mc);
@@ -219,7 +229,6 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
 
             std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << " reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
             std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
-        
             // iterate over matches and plot 
             for (const auto& simRef : simMergedRefs){
                 if (!simRef.isNonnull()) {
@@ -309,8 +318,202 @@ void MergedClusterValidation_withAssociationMaps::analyze(const edm::Event& iEve
                 }
             }
         }
+    }*/
+
+        // ----------------------------- //
+    // -------- RECO VS SIM -------- //
+    // ----------------------------- //
+
+    for (const auto& detSet : *mergedClustersHandle) {
+        for (const auto& mc : detSet) {
+            // look for match in association map
+            FTLMergedClusterRef recoMergedClusRef = edmNew::makeRefTo(mergedClustersHandle, &mc);
+            
+            // check if reference is valid
+            if (!recoMergedClusRef.isNonnull()) {
+                std::cout << "ERROR: Invalid recoMergedClusRef!" << std::endl;
+                continue;
+            }
+
+            auto itp = mergedRecoToSimMap.equal_range(recoMergedClusRef);
+            if (itp.first == itp.second) {
+                std::cout << "No matching SimMergedCluster found for Reco MergedCluster" << std::endl;
+                continue;
+            }
+            
+            const std::vector<MtdSimMergedClusterRef>& simMergedRefs = itp.first->second;
+            
+            h_nSimPerReco_->Fill(simMergedRefs.size());
+
+            std::cout << "RECO MergedCluster with " << mc.clusterRefs().size() << " reco clusters has " << simMergedRefs.size() << " matches in SIM." << std::endl;
+            std::cout << "E = " << mc.energy() << " MeV, t = " << mc.time() << " ns" << std::endl;
+        
+            // Calculate energy-weighted averages if multiple sim matches
+            float totalSimEnergy = 0.0;
+            float weightedSimTime = 0.0;
+            float weightedSimX = 0.0;
+            float weightedSimY = 0.0;
+            int totalSimClusters = 0;
+            int totalSimHits = 0;
+            float simEta = 0.0;
+            bool hasValidEta = false;
+            
+            // First pass: collect valid sim objects and calculate total energy
+            std::vector<std::pair<MtdSimMergedClusterRef, float>> validSimRefs;
+            for (const auto& simRef : simMergedRefs) {
+                if (!simRef.isNonnull()) {
+                    std::cout << "ERROR: Invalid simMergedClusRef!" << std::endl;
+                    continue;
+                }
+                
+                float simEnergy = convertUnitsTo(0.001_MeV, simRef->simEnergy());
+                if (simEnergy < 1.0) continue;
+                
+                validSimRefs.push_back(std::make_pair(simRef, simEnergy));
+                totalSimEnergy += simEnergy;
+            }
+            
+            if (validSimRefs.empty()) continue;
+            
+            // Second pass: calculate weighted averages
+            for (const auto& [simRef, simEnergy] : validSimRefs) {
+                std::cout << "    Sim MergedCluster: E=" << simEnergy << " MeV, t=" << simRef->simTime() << " ns" 
+                        << ", trackIdOffset = " << simRef->clusters()[0]->trackIdOffset() << " (nClusters = " << simRef->clusters().size() << ")" << std::endl;
+                std::cout << "                        particles =";
+                if(simRef->trackingParticles().size() > 0){
+                    for(auto const& p : simRef->trackingParticles()){
+                        std::cout << " " << p->pdgId();
+                    }
+                } else {
+                    std::cout << "(no valid TP refs)";
+                }
+                std::cout << std::endl;
+                
+                float weight = simEnergy / totalSimEnergy;
+                
+                weightedSimTime += simRef->simTime() * weight;
+                
+                LocalPoint simCluPos = (*simRef->clusters().begin())->simLCPos();
+                weightedSimX += simCluPos.x() * weight;
+                weightedSimY += simCluPos.y() * weight;
+                
+                totalSimClusters += simRef->clusters().size();
+                
+                for (const auto& simCluRef : simRef->clusters()) {
+                    totalSimHits += simCluRef->hits_and_fractions().size();
+                }
+                
+                // Get eta from first valid sim (or could also do weighted average)
+                if (!hasValidEta) {
+                    DetId simDetId = simRef->simDetId();
+                    if (simDetId.rawId() != 0) {
+                        BTLDetId btlId(simDetId);
+                        DetId geoId = btlId.geographicalId(MTDTopologyMode::crysLayoutFromTopoMode(topology->getMTDTopologyMode()));
+                        const MTDGeomDet* thedet = geom->idToDet(geoId);
+                        
+                        if (thedet != nullptr) {
+                            GlobalPoint simGlobalPos = thedet->toGlobal(simRef->simPos());
+                            simEta = simGlobalPos.eta();
+                            hasValidEta = true;
+                        }
+                    }
+                }
+            }
+            
+            // Calculate resolutions using energy-weighted averages
+            float deltaTime = mc.time() - weightedSimTime;
+            float deltaEnergy = mc.energy() - totalSimEnergy;
+            float deltaX = mc.x() - weightedSimX;
+            float deltaY = mc.y() - weightedSimY;
+            
+            int nClusters = mc.clusterIds().size();
+            int deltaNclu = nClusters - totalSimClusters;
+            
+            int recoHits = 0;
+            for (const auto& cluRef : mc.clusterRefs()) {
+                recoHits += cluRef->size();  
+            }
+            int deltaNhits = recoHits - totalSimHits;
+            
+            std::cout << "  Energy-weighted averages: simTime=" << weightedSimTime << " ns, simEnergy=" << totalSimEnergy 
+                      << " MeV, simX=" << weightedSimX << " cm, simY=" << weightedSimY << " cm" << std::endl;
+            std::cout << "  Resolutions: deltaT=" << deltaTime << " ns, deltaE=" << deltaEnergy 
+                      << " MeV, deltaX=" << deltaX << " cm, deltaY=" << deltaY << " cm" << std::endl;
+
+            h_deltaTime_->Fill(deltaTime);
+            h_deltaEnergy_->Fill(deltaEnergy);
+            h_deltaX_->Fill(deltaX);
+            h_deltaY_->Fill(deltaY);
+            h_deltaNclu_->Fill(deltaNclu);
+            h_deltaNhits_->Fill(deltaNhits);
+            
+            if (nClusters > 1) {
+                h_deltaTime_multiClu_->Fill(deltaTime);
+                h_deltaEnergy_multiClu_->Fill(deltaEnergy);
+                h_deltaX_multiClu_->Fill(deltaX);
+                h_deltaY_multiClu_->Fill(deltaY);
+
+                h_deltaNclu_multiClu_->Fill(deltaNclu);
+                h_deltaNhits_multiClu_->Fill(deltaNhits);
+                h_nSimPerReco_multiClu_->Fill(simMergedRefs.size());
+            } else {
+                h_deltaTime_singleClu_->Fill(deltaTime);
+                h_deltaEnergy_singleClu_->Fill(deltaEnergy);
+                h_deltaX_singleClu_->Fill(deltaX);
+                h_deltaY_singleClu_->Fill(deltaY);
+            }
+
+            if (hasValidEta) {
+                h_deltaTime_vs_Eta_->Fill(simEta, deltaTime);
+                h_deltaEnergy_vs_Eta_->Fill(simEta, deltaEnergy);
+            }
+        }
     }
 
+    // ----------------------------------- //
+    // -------- SIM <-> TP testing --------- //
+    // ----------------------------------- //
+    
+    // let's just check multiplicity of association map: for each sim merged cluster, how many TP matches do we have?
+    for (const auto& simMergedCluster : *simMergedClustersHandle) {
+        // compute ref for sim merged cluster
+        MtdSimMergedClusterRef simMergedClusterRef = edm::Ref<MtdSimMergedClusterCollection>(simMergedClustersHandle, &simMergedCluster - &(*simMergedClustersHandle->begin()));
+        auto itp = mergedSimToTPMap.find(simMergedClusterRef);
+
+        if (itp != mergedSimToTPMap.end()){
+            int nTPMatches = std::distance(itp->val.begin(), itp->val.end());
+            std::cout << "Found " << nTPMatches << " TP matches to this SimMergedCluster." << std::endl;
+            for (const auto& tpMatch : itp->val){
+                if (tpMatch.isNonnull()) {
+                    std::cout << "  TP MATCH : pdgId=" << tpMatch->pdgId() << ", pt=" << tpMatch->pt() << " GeV, eta=" << tpMatch->eta() << ", phi=" << tpMatch->phi() << std::endl;
+                } else {
+                    std::cout << "  WARNING: invalid TP ref in mergedSimToTPMap!" << std::endl;
+                }
+            }
+        } else {
+            std::cout << "No TP matches found for this SimMergedCluster." << std::endl;
+        }
+    }
+
+    // and now do the opposite: for each TP, how many sim merged cluster matches do we have?
+    std::cout << "TrackingParticles collection size: " << trackingParticlesHandle->size() << std::endl;
+    for (const auto& tp : *trackingParticlesHandle) {
+        TrackingParticleRef tpRef = edm::Ref<TrackingParticleCollection>(trackingParticlesHandle, &tp - &(*trackingParticlesHandle->begin()));
+        auto itp = mergedTPToSimMap.find(tpRef);
+        if (itp != mergedTPToSimMap.end()) {
+            int nSimMatches = std::distance(itp->val.begin(), itp->val.end());
+            std::cout << "Found " << nSimMatches << " SimMergedCluster matches to this TP." << std::endl;
+            for (const auto& simMatch : itp->val) {
+                if (simMatch.isNonnull()) {
+                    std::cout << "  Matched SimMergedCluster: E=" << convertUnitsTo(0.001_MeV, simMatch->simEnergy()) << " MeV, t=" << simMatch->simTime() << " ns" << std::endl;
+                } else {
+                    std::cout << "  WARNING: invalid SimMergedCluster ref in mergedTPToSimMap!" << std::endl;
+                }
+            }
+        } else {
+            std::cout << "No SimMergedCluster matches found for this TP." << std::endl;
+        }
+    }
 }
 
 void MergedClusterValidation_withAssociationMaps::endJob() {

@@ -17,8 +17,26 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic_T33', '')
 process.load('RecoLocalFastTime.FTLClusterizer.MTDCPEESProducer_cfi')
 process.load("Configuration.StandardSequences.Reconstruction_cff")
+#process.load('RecoLocalFastTime.FTLClusterizer.mtdMergedClusterProducer_cfi')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.mtdTrackingRecHits.barrelClusters = cms.InputTag("mtdMergedClusters", "FTLBarrel")
+#process.mtdTrackingRecHits.endcapClusters = cms.InputTag("mtdMergedClusters", "FTLEndcap")
+
+process.load('SimFastTiming.MtdSimMergedClusterProducers.mtdSimMergedClusterProducer_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdRecoMergedClusterToSimMergedClusterAssociation_cfi')
+process.load('SimGeneral.TrackingAnalysis.simHitTPAssociation_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdSimMergedClusterToTPAssociation_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociation_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdSimMergedClusterToTPAssociatorByTrackId_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdSimLayerClusterToTPAssociatorByTrackId_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdRecoClusterToSimLayerClusterAssociatorByHits_cfi')
+process.load('SimFastTiming.MtdAssociatorProducers.mtdRecoClusterToSimLayerClusterAssociation_cfi')
+process.load('SimTracker.TrackAssociatorProducers.quickTrackAssociatorByHits_cfi')
+process.load('SimTracker.TrackerHitAssociation.tpClusterProducer_cfi')
+process.load('SimTracker.TrackAssociation.trackingParticleRecoTrackAsssociation_cfi')
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 #Setup FWK for multithreaded
 process.options.numberOfThreads = 4
@@ -27,12 +45,14 @@ process.options.numberOfConcurrentLuminosityBlocks = 0
 process.options.eventSetup.numberOfConcurrentIOVs = 1
 
 process.MessageLogger.cerr.FwkReport  = cms.untracked.PSet(
-    reportEvery = cms.untracked.int32(10),
+    reportEvery = cms.untracked.int32(100),
 )
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:step3.root'
+        #'file:/eos/user/p/pakrap/MTD/CMSSW_15_0_0_pre2/src/Validation/MtdValidation/29706.0_SinglePiFlatPt0p7To10+Run4D110/1000evt/step3.root'
+        'file:/eos/user/p/pakrap/MTD/CMSSW_ASSOCMAP/src/Validation/MtdValidation/step3.root' # single pi
+        #'file:/eos/user/p/pakrap/MTD/CMSSW_ASSOCMAP/src/RecoLocalFastTime/FTLClusterizer/output.root' # single pi
     )
 )
 
@@ -42,19 +62,24 @@ for a in process.aliases: delattr(process, a)
 # --- BTL Validation
 process.load("Validation.MtdValidation.btlSimHitsValid_cfi")
 process.load("Validation.MtdValidation.btlDigiHitsValid_cfi")
-process.load("Validation.MtdValidation.btlLocalRecoValid_cfi")
-btlValidation = cms.Sequence(process.btlSimHitsValid + process.btlDigiHitsValid + process.btlLocalRecoValid)
+#process.load("Validation.MtdValidation.btlLocalRecoValid_cfi")
+#btlValidation = cms.Sequence(process.btlSimHitsValid + process.btlDigiHitsValid + process.btlLocalRecoValid)
+btlValidation = cms.Sequence(process.btlSimHitsValid + process.btlDigiHitsValid)
 
 # --- ETL Validation
-process.load("Validation.MtdValidation.etlSimHitsValid_cfi")
-process.load("Validation.MtdValidation.etlDigiHitsValid_cfi")
-process.load("Validation.MtdValidation.etlLocalRecoValid_cfi")
-etlValidation = cms.Sequence(process.etlSimHitsValid + process.etlDigiHitsValid + process.etlLocalRecoValid)
+#process.load("Validation.MtdValidation.etlSimHitsValid_cfi")
+#process.load("Validation.MtdValidation.etlDigiHitsValid_cfi")
+#process.load("Validation.MtdValidation.etlLocalRecoValid_cfi")
+#etlValidation = cms.Sequence(process.etlSimHitsValid + process.etlDigiHitsValid + process.etlLocalRecoValid)
 
 # --- Global Validation
 process.load("Validation.MtdValidation.mtdTracksValid_cfi")
-process.load("Validation.MtdValidation.mtdEleIsoValid_cfi")
-process.load("Validation.MtdValidation.vertices4DValid_cff")
+#process.load("Validation.MtdValidation.mtdEleIsoValid_cfi")
+#process.load("Validation.MtdValidation.vertices4DValid_cff")
+
+# Restrict to barrel
+process.mtdTracksValid.trackMinimumEtlEta = cms.double(10.0)
+process.mtdTracksValid.trackMaximumEtlEta = cms.double(10.0)
 
 # process.btlDigiHitsValid.optionalPlots = True
 # process.etlDigiHitsValid.optionalPlots = True
@@ -63,7 +88,14 @@ process.load("Validation.MtdValidation.vertices4DValid_cff")
 # process.mtdTracksValid.optionalPlots = True
 # process.vertices4DValid.optionalPlots = True
 
-process.validation = cms.Sequence(btlValidation + etlValidation + process.mtdTracksValid + process.mtdEleIsoValid + process.vertices4DValid)
+process.mtdTracksValid.useMergedClusters = cms.untracked.bool(True)
+process.mtdTracksValid.r2sAssociationMapTag = cms.InputTag("mtdRecoMergedClusterToSimMergedClusterAssociation")
+process.mtdTracksValid.tp2SimAssociationMapTag = cms.InputTag("mtdSimMergedClusterToTPAssociation")
+process.mtdTracksValid.recCluTagBTL = cms.InputTag('mtdMergedClusters', 'FTLBarrel')
+process.mtdTracksValid.recCluTagETL = cms.InputTag('mtdMergedClusters', 'FTLEndcap')
+#process.validation = cms.Sequence(btlValidation + etlValidation + process.mtdTracksValid + process.mtdEleIsoValid + process.vertices4DValid)
+
+process.validation = cms.Sequence(btlValidation + process.mtdTracksValid)
 
 process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
     dataset = cms.untracked.PSet(
@@ -75,7 +107,23 @@ process.DQMoutput = cms.OutputModule("DQMRootOutputModule",
     splitLevel = cms.untracked.int32(0)
 )
 
-process.p = cms.Path( process.mix + process.mtdTrackingRecHits + process.validation )
+process.p = cms.Path( process.mix + 
+                      process.mtdTrackingRecHits +
+                      process.simHitTPAssocProducer +
+                      process.tpClusterProducer +
+                      process.quickTrackAssociatorByHits +
+                      process.trackingParticleRecoTrackAsssociation +
+                      process.mtdSimLayerClusterToTPAssociatorByTrackId +
+                      process.mtdSimLayerClusterToTPAssociation +
+                      process.mtdRecoClusterToSimLayerClusterAssociatorByHits +
+                      process.mtdRecoClusterToSimLayerClusterAssociation +
+                      process.mtdSimMergedClusterProducer +
+                      process.mtdRecoMergedClusterToSimMergedClusterAssociatorByHits +
+                      process.mtdRecoMergedClusterToSimMergedClusterAssociation +
+                      process.mtdSimMergedClusterToTPAssociatorByTrackId + 
+                      process.mtdSimMergedClusterToTPAssociation + 
+                      process.validation )
+
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.DQMoutput_step = cms.EndPath( process.DQMoutput )
 

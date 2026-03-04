@@ -49,10 +49,20 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
         FTLMergedClusterRef recoMergedClusterRef = edmNew::makeRefTo(recoMergedClusH, &recoMergedClus);
         std::vector<MtdSimMergedClusterRef> simClusterRefs;
 
+        edm::LogWarning("MtdR2SAssoc") << "RecoMergedClus key=" << recoMergedClusterRef.key()
+            << " nComponents=" << recoMergedClus.clusterRefs().size();
+
         // iterate over component clusters
         for (const auto& recoClusRef : recoMergedClus.clusterRefs()) {
+          edm::LogWarning("MtdR2SAssoc") << "  Component id=" << recoClusRef.id() 
+              << " key=" << recoClusRef.key();
           auto recoToSimIt = recoToSimMap_.equal_range(recoClusRef);
           if (recoToSimIt.first == recoToSimIt.second) {
+            edm::LogWarning("MtdR2SAssoc") << "  -> NOT FOUND in recoToSimMap (size=" << recoToSimMap_.size() << ")";
+            if (!recoToSimMap_.empty()) {
+              edm::LogWarning("MtdR2SAssoc") << "  -> First entry id=" << recoToSimMap_.begin()->first.id()
+                  << " key=" << recoToSimMap_.begin()->first.key();
+            }
             // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No sim clusters associated to this reco cluster";
             continue;
           }
@@ -79,8 +89,12 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
                   << "(t_recoClus-t_simClus)/sigma_t = " << dtSig;
       
               // FIXME: when reintroducing ETL, only consider dtSig cut for those
-              if (dE < energyCut_ && dtSig < timeCut_) {              
+              if (dE < energyCut_ && dtSig < timeCut_) {  
+                edm::LogWarning("MtdR2SAssoc") << "  -> MATCH PASSES dE=" << dE << " dtSig=" << dtSig;
                 simClusterRefs.push_back(simMergedClusterRef);
+              } else {
+                edm::LogWarning("MtdR2SAssoc") << "  -> MATCH REJECTED dE=" << dE << " dtSig=" << dtSig
+                    << " energyCut=" << energyCut_ << " timeCut=" << timeCut_;
               }
             }
 

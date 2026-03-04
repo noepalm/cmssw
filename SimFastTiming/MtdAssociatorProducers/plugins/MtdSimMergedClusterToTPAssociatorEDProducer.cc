@@ -33,7 +33,7 @@ public:
 private:
   void produce(edm::StreamID, edm::Event &, const edm::EventSetup &) const override;
 
-  edm::EDGetTokenT<MtdSimMergedClusterCollection> simClustersToken_;
+  edm::EDGetTokenT<MtdSimMergedClusterCollection> simMergedClustersToken_;
   edm::EDGetTokenT<TrackingParticleCollection> tpToken_;
   edm::EDGetTokenT<reco::MtdSimMergedClusterToTPAssociator> associatorToken_;
 };
@@ -42,7 +42,7 @@ MtdSimMergedClusterToTPAssociatorEDProducer::MtdSimMergedClusterToTPAssociatorED
   produces<reco::MergedSimToTPCollectionMtd>();
   produces<reco::TPToMergedSimCollectionMtd>();
 
-  simClustersToken_ = consumes<MtdSimMergedClusterCollection>(pset.getParameter<edm::InputTag>("mtdSimClustersTag"));
+  simMergedClustersToken_ = consumes<MtdSimMergedClusterCollection>(pset.getParameter<edm::InputTag>("mtdSimMergedClustersTag"));
   tpToken_ = consumes<TrackingParticleCollection>(pset.getParameter<edm::InputTag>("trackingParticlesTag"));
   associatorToken_ = consumes<reco::MtdSimMergedClusterToTPAssociator>(pset.getParameter<edm::InputTag>("associator"));
 }
@@ -62,14 +62,14 @@ void MtdSimMergedClusterToTPAssociatorEDProducer::produce(edm::StreamID,
   edm::Handle<reco::MtdSimMergedClusterToTPAssociator> theAssociator;
   iEvent.getByToken(associatorToken_, theAssociator);
 
-  edm::Handle<MtdSimMergedClusterCollection> simClusters;
-  iEvent.getByToken(simClustersToken_, simClusters);
+  edm::Handle<MtdSimMergedClusterCollection> simMergedClusters;
+  iEvent.getByToken(simMergedClustersToken_, simMergedClusters);
 
   edm::Handle<TrackingParticleCollection> trackingParticles;
   iEvent.getByToken(tpToken_, trackingParticles);
 
-  reco::MergedSimToTPCollectionMtd simToTPColl = theAssociator->associateSimToTP(simClusters, trackingParticles);
-  reco::TPToMergedSimCollectionMtd tpToSimColl = theAssociator->associateTPToSim(simClusters, trackingParticles);
+  reco::MergedSimToTPCollectionMtd simToTPColl = theAssociator->associateSimToTP(simMergedClusters, trackingParticles);
+  reco::TPToMergedSimCollectionMtd tpToSimColl = theAssociator->associateTPToSim(simMergedClusters, trackingParticles);
 
   auto s2tp = std::make_unique<reco::MergedSimToTPCollectionMtd>(simToTPColl);
   auto tp2s = std::make_unique<reco::TPToMergedSimCollectionMtd>(tpToSimColl);
@@ -80,11 +80,11 @@ void MtdSimMergedClusterToTPAssociatorEDProducer::produce(edm::StreamID,
 
 void MtdSimMergedClusterToTPAssociatorEDProducer::fillDescriptions(edm::ConfigurationDescriptions &cfg) {
   edm::ParameterSetDescription desc;
-  desc.add<edm::InputTag>("associator", edm::InputTag("MtdSimMergedClusterToTPAssociatorByTrackId"));
-  desc.add<edm::InputTag>("mtdSimClustersTag", edm::InputTag("mtdSimMergedClusterProducer", ""));
+  desc.add<edm::InputTag>("associator", edm::InputTag("mtdSimMergedClusterToTPAssociatorByTrackId"));
+  desc.add<edm::InputTag>("mtdSimMergedClustersTag", edm::InputTag("mtdSimMergedClusterProducer", ""));
   desc.add<edm::InputTag>("trackingParticlesTag", edm::InputTag("mix", "MergedTrackTruth"));
 
-  cfg.add("MtdSimMergedClusterToTPAssociationDefault", desc);
+  cfg.add("mtdSimMergedClusterToTPAssociationDefault", desc);
 }
 
 // define this as a plug-in

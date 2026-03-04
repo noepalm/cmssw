@@ -65,9 +65,9 @@ MTDTrackingRecHitDump::MTDTrackingRecHitDump(const edm::ParameterSet& cfg)
   h_timeErr_ = fs->make<TH1F>("timeErr", "Hit time error;Time Error [ns];Hits", 100, 0, 0.1);
   h_energy_ = fs->make<TH1F>("energy", "Hit energy;Energy [MeV];Hits", 100, 0, 35);
   h_posX_ = fs->make<TH1F>("posX", "Hit local position X;x [cm];Hits", 100, -10, 10);
-  h_posY_ = fs->make<TH1F>("posY", "Hit local position Y;y [cm];Hits", 100, -10, 10);
+  h_posY_ = fs->make<TH1F>("posY", "Hit local position Y;y [cm];Hits", 80, -10, 10);
   h_errXX_ = fs->make<TH1F>("errXX", "Hit position error XX;#sigma_{xx} [cm^{2}];Hits", 100, 0, 0.4);
-  h_errYY_ = fs->make<TH1F>("errYY", "Hit position error YY;#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.02);
+  h_errYY_ = fs->make<TH1F>("errYY", "Hit position error YY;#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.01);
   h_posXY_ = fs->make<TH2F>("posXY", "Hit local position XY;x [cm];y [cm];Hits", 100, -10, 10, 100, -10, 10);
   //h_detId_ = fs->make<TH1F>("detId", "Detector ID;DetId;Hits", 100, 0, 1e9);
 
@@ -75,18 +75,18 @@ MTDTrackingRecHitDump::MTDTrackingRecHitDump(const edm::ParameterSet& cfg)
   h_timeErr_single_ = fs->make<TH1F>("timeErr_single", "Hit time error (single-cluster);Time Error [ns];Hits", 100, 0, 0.1);
   h_energy_single_ = fs->make<TH1F>("energy_single", "Hit energy (single-cluster);Energy [MeV];Hits", 100, 0, 35);
   h_posX_single_ = fs->make<TH1F>("posX_single", "Hit local position X (single-cluster);x [cm];Hits", 100, -10, 10);
-  h_posY_single_ = fs->make<TH1F>("posY_single", "Hit local position Y (single-cluster);y [cm];Hits", 100, -10, 10);
+  h_posY_single_ = fs->make<TH1F>("posY_single", "Hit local position Y (single-cluster);y [cm];Hits", 80, -10, 10);
   h_errXX_single_ = fs->make<TH1F>("errXX_single", "Hit position error XX (single-cluster);#sigma_{xx} [cm^{2}];Hits", 100, 0, 0.4);
-  h_errYY_single_ = fs->make<TH1F>("errYY_single", "Hit position error YY (single-cluster);#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.02);
+  h_errYY_single_ = fs->make<TH1F>("errYY_single", "Hit position error YY (single-cluster);#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.01);
   h_posXY_single_ = fs->make<TH2F>("posXY_single", "Hit local position XY (single-cluster);x [cm];y [cm];Hits", 100, -10, 10, 100, -10, 10);
 
   h_time_multi_ = fs->make<TH1F>("time_multi", "Hit time (multi-cluster);Time [ns];Hits", 100, 0, 25);
   h_timeErr_multi_ = fs->make<TH1F>("timeErr_multi", "Hit time error (multi-cluster);Time Error [ns];Hits", 100, 0, 0.1);
   h_energy_multi_ = fs->make<TH1F>("energy_multi", "Hit energy (multi-cluster);Energy [MeV];Hits", 100, 0, 35);
   h_posX_multi_ = fs->make<TH1F>("posX_multi", "Hit local position X (multi-cluster);x [cm];Hits", 100, -10, 10);
-  h_posY_multi_ = fs->make<TH1F>("posY_multi", "Hit local position Y (multi-cluster);y [cm];Hits", 100, -10, 10);     
+  h_posY_multi_ = fs->make<TH1F>("posY_multi", "Hit local position Y (multi-cluster);y [cm];Hits", 80, -10, 10);     
   h_errXX_multi_ = fs->make<TH1F>("errXX_multi", "Hit position error XX (multi-cluster);#sigma_{xx} [cm^{2}];Hits", 100, 0, 0.4);
-  h_errYY_multi_ = fs->make<TH1F>("errYY_multi", "Hit position error YY (multi-cluster);#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.02);
+  h_errYY_multi_ = fs->make<TH1F>("errYY_multi", "Hit position error YY (multi-cluster);#sigma_{yy} [cm^{2}];Hits", 100, 0, 0.01);
   h_posXY_multi_ = fs->make<TH2F>("posXY_multi", "Hit local position XY (multi-cluster);x [cm];y [cm];Hits", 100, -10, 10, 100, -10, 10);
 }
 
@@ -123,6 +123,21 @@ void MTDTrackingRecHitDump::analyze(const edm::Event& e, const edm::EventSetup&)
       auto lp = hit.localPosition();
       auto le = hit.localPositionError();
       
+      if (mergedClusterRef.isNonnull() && nClusters == 1) {
+        uint32_t rechitDetId = detId;
+        uint32_t clusterDetId = mergedClusterRef->id().rawId();
+        float clusterY = mergedClusterRef->y();
+        float rechitY = lp.y();
+        
+        /*std::cout << "[DUMPER CHECK] RecHitDetId=" << rechitDetId 
+                  << " ClusterDetId=" << clusterDetId
+                  << " match=" << (rechitDetId == clusterDetId)
+                  << " cluster.y()=" << clusterY
+                  << " rechit.y()=" << rechitY
+                  << " diff=" << (rechitY - clusterY)
+                  << std::endl;*/
+      }
+
       // Print to console
       std::cout << clusterType << "DetId " << detId << "  nClusters=" << nClusters
                 << "  pos = (" << lp.x() << "," << lp.y() << ")"
@@ -141,6 +156,10 @@ void MTDTrackingRecHitDump::analyze(const edm::Event& e, const edm::EventSetup&)
       //h_detId_->Fill(detId);
 
       if (clusterType == "[MULTI]") {
+        std::cout << "[DUMPER MULTI] ABOUT TO FILL MULTI; DETID" << detId 
+                  << " nClusters=" << nClusters
+                  << "  pos = (" << lp.x() << "," << lp.y() << ")"
+                  << std::endl;
         h_time_multi_->Fill(hit.time());
         h_timeErr_multi_->Fill(hit.timeError());
         h_energy_multi_->Fill(hit.energy());
@@ -150,6 +169,10 @@ void MTDTrackingRecHitDump::analyze(const edm::Event& e, const edm::EventSetup&)
         h_errYY_multi_->Fill(le.yy());
         h_posXY_multi_->Fill(lp.x(), lp.y());
       } else if (clusterType == "[SINGLE]") {
+        std::cout << "[DUMPER SINGLE] ABOUT TO FILL SINGLE; DETID" << detId 
+                  << " nClusters=" << nClusters
+                  << "  pos = (" << lp.x() << "," << lp.y() << ")"
+                  << std::endl;
         h_time_single_->Fill(hit.time());
         h_timeErr_single_->Fill(hit.timeError());
         h_energy_single_->Fill(hit.energy());

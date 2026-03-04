@@ -43,22 +43,22 @@ float MtdSimMergedCluster::simTime() const {
     }
 }
 
-LocalPoint MtdSimMergedCluster::simPos() const {
-    // if(clusters_.empty()) {
-    //     return LocalPoint(-999, -999, -999);
-    // } else {
-    //     // // FIRST IMPLEMENTATION: take position of earliest cluster
-    //     // // (TO BE CHANGED: take energy-weighted position?)
-    //     return (*clusters_.begin())->simLCPos();
-    // }
+LocalPoint MtdSimMergedCluster::simPos() const { 
+    if(clusters_.empty()) {
+         return LocalPoint(-999, -999, -999);
+    } else {
+         // // FIRST IMPLEMENTATION: take position of earliest cluster
+        // // (TO BE CHANGED: take energy-weighted position?)
+        return (*clusters_.begin())->simLCPos();
+    }
 
     // ALT IMPLEMENTATION: take position of earliest hit across all clusters
-    auto hitTimesAndPositions = getHitTimesAndPositions();
+    /*auto hitTimesAndPositions = getHitTimesAndPositions();
     if(hitTimesAndPositions.empty()) {
         return LocalPoint(-999, -999, -999);
     } else {
         return hitTimesAndPositions.front().second;
-    }
+    }*/
 
 }
 

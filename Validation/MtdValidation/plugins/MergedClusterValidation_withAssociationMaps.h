@@ -31,6 +31,7 @@
 #include "SimDataFormats/Associations/interface/MtdRecoMergedClusterToSimMergedClusterAssociationMap.h"
 #include "SimDataFormats/Associations/interface/MtdSimMergedClusterToRecoMergedClusterAssociationMap.h"
 #include "SimDataFormats/Associations/interface/MtdRecoMergedClusterToSimMergedClusterAssociatorBaseImpl.h"
+#include "SimDataFormats/Associations/interface/MtdSimMergedClusterToTPAssociator.h"
 
 #include "TH1F.h"
 #include "TH2F.h"
@@ -53,9 +54,13 @@ private:
     edm::EDGetTokenT<MtdSimMergedClusterCollection> simMergedClustersToken_;
     edm::EDGetTokenT<MtdSimLayerClusterCollection> simClustersToken_;
     edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
+    edm::EDGetTokenT<TrackingParticleCollection> trackingParticlesToken_;
     edm::EDGetTokenT<reco::MergedRecoToSimCollectionMtd> mergedRecoToSimMap_;
     edm::EDGetTokenT<reco::MergedSimToRecoCollectionMtd> mergedSimToRecoMap_;
 
+    edm::EDGetTokenT<reco::MergedSimToTPCollectionMtd> mergedSimToTPMap_;
+    edm::EDGetTokenT<reco::TPToMergedSimCollectionMtd> mergedTPToSimMap_;
+    
     edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> mtdgeoToken_;
     edm::ESGetToken<MTDTopology, MTDTopologyRcd> mtdtopoToken_;
 

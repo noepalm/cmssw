@@ -192,6 +192,7 @@ private:
   MonitorElement* meCluRhoRes_simLC_;
   MonitorElement* meCluPhiRes_simLC_;
   MonitorElement* meCluLocalXRes_simLC_;
+  MonitorElement* meCluLocalYRes_simLC_;
 
   MonitorElement* meCluLocalYResZGlobPlus_simLC_;
   MonitorElement* meCluLocalYResZGlobMinus_simLC_;
@@ -701,6 +702,7 @@ void BtlLocalRecoValidation::analyze(const edm::Event& iEvent, const edm::EventS
 
             if (matchClu && comp != nullptr) {
               meCluLocalXRes_simLC_->Fill(xlocal_res);
+              meCluLocalYRes_simLC_->Fill(ylocal_res);
 
               if (global_point.z() > 0) {
                 meCluLocalYResZGlobPlus_simLC_->Fill(ylocal_res);
@@ -1278,6 +1280,11 @@ void BtlLocalRecoValidation::bookHistograms(DQMStore::IBooker& ibook,
                                        100,
                                        -3.1,
                                        3.1);
+  meCluLocalYRes_simLC_ = ibook.book1D("BtlCluLocalYRes_simLC",
+                                       "BTL cluster local Y resolution (wrt MtdSimLayerClusters);Y_{RECO}-Y_{SIM} [cm]",
+                                       100,
+                                       -0.2,
+                                       0.2);
   meCluLocalYResZGlobPlus_simLC_ =
       ibook.book1D("BtlCluLocalYResZGlobPlus_simLC",
                    "BTL cluster local Y resolution (wrt MtdSimLayerClusters, glob Z > 0);Y_{RECO}-Y_{SIM} [cm]",
