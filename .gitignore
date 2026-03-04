@@ -1,23 +1,24 @@
-__init__.py
+# Root files
+*.root
+*.C
+
+# Text files (if needed)
+*.txt
+
+# Log files
+*.log
+
+# Python cache
+__pycache__/
 *.pyc
-.*.swp
-.#*
-#*#
+*.pyo
+*.pyd
+
+# Temporary files
+*.tmp
+*.swp
 *~
-*.pb
 
-# ignore partially applied patches and their backup
-*.rej
-*.orig
-
-
-# ignore files under the top level $CMSSW_BASE/src directory, but not its subdirectories
-/*
-!/*/
-
-# ignore some IDE related files
-*.xcodeproj
-.vscode
-
-#ignore mac specific file
+# OS files
 .DS_Store
+Thumbs.db
