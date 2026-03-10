@@ -586,9 +586,9 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
             numMTDBtlvalidhits++;
             const auto* mtdhit = static_cast<const MTDTrackingRecHit*>(hit);
             if (useMergedClusters_) {// hitCluster points to an FTLMergedCluster when useMergedClusters is true
-              //const auto& mergedHitCluster = mtdhit->omniCluster().mtdMergedCluster();
-              //auto recoClusterRef = edmNew::makeRefTo(btlRecMergedCluHandle, &mergedHitCluster);
-              auto recoClusterRef = mtdhit->omniCluster().cluster_merged_mtd();
+              const auto& mergedHitCluster = mtdhit->omniCluster().mtdMergedCluster();
+              auto recoClusterRef = edmNew::makeRefTo(btlRecMergedCluHandle, &mergedHitCluster);
+              //auto recoClusterRef = mtdhit->omniCluster().cluster_merged_mtd();
               recoMergedClustersRefs.push_back(recoClusterRef);
             } else {
               const auto& hitCluster = mtdhit->mtdCluster();
@@ -632,9 +632,11 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
 
             const auto* mtdhit = static_cast<const MTDTrackingRecHit*>(hit);
             if (useMergedClusters_) {
-              //const auto& mergedHitCluster = mtdhit->omniCluster().mtdMergedCluster();
+              const auto& mergedHitCluster = mtdhit->omniCluster().mtdMergedCluster();
               // hitCluster points to an FTLMergedCluster when useMergedClusters is true
-              auto recoClusterRef = mtdhit->omniCluster().cluster_merged_mtd();
+              //auto recoClusterRef = mtdhit->omniCluster().cluster_merged_mtd();
+              auto recoClusterRef = edmNew::makeRefTo(btlRecMergedCluHandle, &mergedHitCluster);
+              
               recoMergedClustersRefs.push_back(recoClusterRef); 
             } else {
               const auto& hitCluster = mtdhit->mtdCluster();
@@ -884,6 +886,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               // Check subdetector based on component SimLayerClusters
               for (const auto& simLayerClus : ref->clusters()) {
                 MTDDetId mtddetid = simLayerClus->detIds_and_rows().front().first;
+                std::cout << "DEBUG: TP SimMergedCluster ref key=" << ref.key() << " detid=" << mtddetid.rawId() << "subdetector=" << mtddetid.mtdSubDetector() << std::endl;
                 
                 if (mtddetid.mtdSubDetector() == 1) {
                   // BTL - identify direct vs other hits
@@ -898,6 +901,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                 } else if (mtddetid.mtdSubDetector() == 2) {
                   // ETL
                   ETLDetId detid(mtddetid.rawId());
+                  std::cout << "DEBUG: ETL DetId disc=" << detid.nDisc() << std::endl;
                   if (detid.nDisc() == 1)
                     isTPmtdETLD1 = true;
                   if (detid.nDisc() == 2)
@@ -957,6 +961,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                       // found a match...
                       for (const auto& simLayerClus : simMergedClusterRef_Match->clusters()) {
                         MTDDetId mtddetid = simLayerClus->detIds_and_rows().front().first;
+                        std::cout << "DEBUG: FOUND A MATCHING SIMLAYERCLUSTER detid=" << mtddetid.rawId() << " subdetector=" << mtddetid.mtdSubDetector() << std::endl;
                         
                         if (mtddetid.mtdSubDetector() == 1) {
                           // BTL - check if this matched SimMergedCluster contains a direct hit
@@ -968,6 +973,8 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
                         } else if (mtddetid.mtdSubDetector() == 2) {
                           // ETL
                           ETLDetId detid(mtddetid.rawId());
+                          std::cout << "DEBUG: MATCH FOUND IN ETL, disc=" << detid.nDisc() << std::endl;
+                          
                           if (detid.nDisc() == 1)
                             isTPmtdCorrectETLD1 = true;
                           if (detid.nDisc() == 2)
@@ -1195,6 +1202,8 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
         // == ETL
         else {
           // -- Track matched to TP with reco hits (one or two) correctly matched
+          std::cout << "DEBUG: ETL matching: ETLdisc1=" << ETLdisc1 << " isTPmtdCorrectETLD1=" << isTPmtdCorrectETLD1
+                    << " ETLdisc2=" << ETLdisc2 << " isTPmtdCorrectETLD2=" << isTPmtdCorrectETLD2 << std::endl;
           if ((ETLdisc1 && isTPmtdCorrectETLD1) || (ETLdisc2 && isTPmtdCorrectETLD2)) {
             meETLTrackMatchedTPEtaMtdCorrect_->Fill(std::abs(trackGen.eta()));
             meETLTrackMatchedTPPtMtdCorrect_->Fill(trackGen.pt());

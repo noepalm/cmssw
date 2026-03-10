@@ -26,8 +26,8 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
   MergedRecoToSimCollectionMtd outputCollection;
 
   // -- get the collections
-  // FIXME: reintroduce ETL when RecoMergedCluster available
-  std::array<edm::Handle<FTLMergedClusterCollection>, 1> inputRecoMergedClusH{{btlRecoClusH}};
+  // FIXME: reintroduce ETL when RecoMergedCluster available -> DONE
+  std::array<edm::Handle<FTLMergedClusterCollection>, 2> inputRecoMergedClusH{{btlRecoClusH, etlRecoClusH}};
 
   const auto& simMergedClusters = *simMergedClusH.product();
 
@@ -124,7 +124,7 @@ reco::MergedSimToRecoCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
   const auto& simMergedClusters = *simMergedClusH.product();
 
   // TODO: reintroduce ETL when RecoMergedCluster available
-  std::array<edm::Handle<FTLMergedClusterCollection>, 1> inputH{{btlRecoClusH}};
+  std::array<edm::Handle<FTLMergedClusterCollection>, 2> inputH{{btlRecoClusH, etlRecoClusH}};
 
   // make preliminary map: recoCluster => recoMergedCluster
   std::map<FTLClusterRef, std::vector<FTLMergedClusterRef>> recoClusToMergedMap;

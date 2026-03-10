@@ -174,9 +174,16 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
 
     // Create cluster map for fast lookup (can have multiple clusters per DetId)
     std::vector<const MtdSimLayerCluster*> allsimLClusters;
+    std::vector<const MtdSimLayerCluster*> allsimETLLClusters;
+    
 
     for (const auto& cluster : *simLClusters) {
-        if (!cluster.detIds_and_rows().empty() && MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::ETL) continue;
+        if (!cluster.detIds_and_rows().empty() && MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() == MTDDetId::ETL) {
+            allsimETLLClusters.push_back(&cluster);
+        }
+        else{
+            allsimLClusters.push_back(&cluster);
+        }
 
         // if (cluster.energy() >= minEnergy_) {
         //     // retrieve detId from first hit
@@ -187,7 +194,7 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
         //     clusterMap[geoDetId].push_back(&cluster);
         // }
 
-        allsimLClusters.push_back(&cluster);
+        
     }
 
     // Sort simLClusters collection
@@ -519,6 +526,32 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
             LogDebug("MtdSimMergedClusterProducer") << "Created MergedCluster from " << mergedClusterClusters.size() 
                         << " clusters: E=" << simMergedCluster.simEnergy() 
                         << " MeV, t=" << simMergedCluster.simTime() << " ns";
+        }
+        for (const auto* clusterPointer : allsimETLLClusters) {
+            const auto& cluster = *clusterPointer;
+
+            // // TEMPORARY: forget about ETL hits
+            // std::cout << "DEBUG: cluster detId: " << std::endl;
+            // std::cout << BTLDetId(cluster.detIds_and_rows()[0].first) << std::endl;
+            // std::cout << "Subdetector: " << BTLDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector() << " (BTL = " << MTDDetId::BTL << ", ETL = " << MTDDetId::ETL << ")" << std::endl;
+            MtdSimMergedCluster simMergedCluster;
+            // create simLC reference by finding the index in the original collection
+            size_t clusterIndex = clusterPointer - &(*simLClusters->begin());
+            MtdSimLayerClusterRef simLayerClusterRef(simLClusters, clusterIndex);
+            const auto& TPs = simClusToTPMap->find(simLayerClusterRef);
+            if (TPs != simClusToTPMap->end()) {
+                for (const auto& tpRef : TPs->val) {
+                    simMergedCluster.addCluster(simLayerClusterRef, tpRef);
+                }
+            } else {
+                LogDebug("MtdSimMergedClusterProducer") << "No TP associated to cluster index " << clusterIndex;
+                // add null reference
+                simMergedCluster.addCluster(simLayerClusterRef, TrackingParticleRef());
+            }
+            outputClusters->push_back(simMergedCluster);
+            LogDebug("MtdSimMergedClusterProducer") << "Created ETL MergedCluster from an ETL cluster" << " E=" << simMergedCluster.simEnergy() 
+                        << " MeV, t=" << simMergedCluster.simTime() << " ns";
+
         }
     } else {
         edm::LogInfo("MtdSimMergedClusterProducer") << "Using HISTORY-ONLY clustering algorithm";
