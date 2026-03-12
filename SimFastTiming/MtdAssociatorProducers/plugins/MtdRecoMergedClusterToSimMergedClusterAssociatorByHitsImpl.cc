@@ -26,7 +26,7 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
   MergedRecoToSimCollectionMtd outputCollection;
 
   // -- get the collections
-  // FIXME: reintroduce ETL when RecoMergedCluster available -> DONE
+  
   std::array<edm::Handle<FTLMergedClusterCollection>, 2> inputRecoMergedClusH{{btlRecoClusH, etlRecoClusH}};
 
   const auto& simMergedClusters = *simMergedClusH.product();
@@ -87,7 +87,7 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
                   << "   E_recoClus/E_simClus = " << dE;
               LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl")
                   << "(t_recoClus-t_simClus)/sigma_t = " << dtSig;
-      
+              /*
               // FIXME: when reintroducing ETL, only consider dtSig cut for those
               if (dE < energyCut_ && dtSig < timeCut_) {  
                 edm::LogWarning("MtdR2SAssoc") << "  -> MATCH PASSES dE=" << dE << " dtSig=" << dtSig;
@@ -95,7 +95,8 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
               } else {
                 edm::LogWarning("MtdR2SAssoc") << "  -> MATCH REJECTED dE=" << dE << " dtSig=" << dtSig
                     << " energyCut=" << energyCut_ << " timeCut=" << timeCut_;
-              }
+              }*/
+              simClusterRefs.push_back(simMergedClusterRef);
             }
 
           }

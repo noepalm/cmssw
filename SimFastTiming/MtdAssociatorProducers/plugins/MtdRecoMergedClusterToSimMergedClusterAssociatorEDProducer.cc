@@ -90,7 +90,7 @@ void MtdRecoMergedClusterToSimMergedClusterAssociatorEDProducer::fillDescription
   desc.add<edm::InputTag>("associator", edm::InputTag("mtdRecoMergedClusterToSimMergedClusterAssociatorByHits"));
   desc.add<edm::InputTag>("mtdSimMergedClustersTag", edm::InputTag("mtdSimMergedClusterProducer", ""));
   desc.add<edm::InputTag>("btlRecoClustersTag", edm::InputTag("mtdMergedClusters", "FTLBarrel"));
-  desc.add<edm::InputTag>("etlRecoClustersTag", edm::InputTag("mtdMergedClusters", "FTLBarrel")); //TEMPORARY: replace to Endcap once available
+  desc.add<edm::InputTag>("etlRecoClustersTag", edm::InputTag("mtdMergedClusters", "FTLEndcap")); 
 
   cfg.add("mtdRecoMergedClusterToSimMergedClusterAssociationDefault", desc);
 }

@@ -406,7 +406,7 @@ MtdTracksValidation::MtdTracksValidation(const edm::ParameterSet& iConfig)
   //r2sAssociationMapToken_ = consumes<MtdRecoClusterToSimLayerClusterAssociationMap>(
       //iConfig.getParameter<edm::InputTag>("r2sAssociationMapTag"));
 
-  useMergedClusters_ = iConfig.getUntrackedParameter<bool>("useMergedClusters", false);
+  useMergedClusters_ = iConfig.getUntrackedParameter<bool>("useMergedClusters", true);
 
   if (useMergedClusters_) {
     r2sAssociationMapMergedToken_ = consumes<MtdRecoMergedClusterToSimMergedClusterAssociationMap>(
@@ -635,7 +635,7 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
               const auto& mergedHitCluster = mtdhit->omniCluster().mtdMergedCluster();
               // hitCluster points to an FTLMergedCluster when useMergedClusters is true
               //auto recoClusterRef = mtdhit->omniCluster().cluster_merged_mtd();
-              auto recoClusterRef = edmNew::makeRefTo(btlRecMergedCluHandle, &mergedHitCluster);
+              auto recoClusterRef = edmNew::makeRefTo(etlRecMergedCluHandle, &mergedHitCluster);
               
               recoMergedClustersRefs.push_back(recoClusterRef); 
             } else {
@@ -839,10 +839,21 @@ void MtdTracksValidation::analyze(const edm::Event& iEvent, const edm::EventSetu
             for (const auto& recoMergedClusterRef : recoMergedClustersRefs) {
               if (recoMergedClusterRef.isNonnull()) {
                 auto itp = r2sAssociationMapMerged.equal_range(recoMergedClusterRef);
+                std::cout << "DEBUG R2S: recoMergedClusterRef id=" << recoMergedClusterRef.id()
+                          << " key=" << recoMergedClusterRef.key()
+                          << " mapRangeEmpty=" << (itp.first == itp.second) << std::endl;
                 
                 for (auto it = itp.first; it != itp.second; ++it) {
                   const auto& simMergedClusterRefs_RecoMatch = it->second;
-                  
+                  std::cout << "DEBUG R2S: nSimMatches=" << simMergedClusterRefs_RecoMatch.size()
+                            << " nTPSimRefs=" << simMergedClustersRefs.size() << std::endl;
+                  for (const auto& s : simMergedClusterRefs_RecoMatch) {
+                    std::cout << "DEBUG R2S: simRef id=" << s.id() << " key=" << s.key() << std::endl;
+                  }
+                  for (const auto& s : simMergedClustersRefs) {
+                    std::cout << "DEBUG R2S: TPsimRef id=" << s.id() << " key=" << s.key() << std::endl;
+                  }
+
                   for (const auto& simMergedClusterRef_Match : simMergedClusterRefs_RecoMatch) {
 
                     // does this sim match any of the TP's SimMergedClusters
