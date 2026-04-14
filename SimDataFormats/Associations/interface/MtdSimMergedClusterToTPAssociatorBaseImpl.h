@@ -1,15 +1,6 @@
 #ifndef SimDataFormats_Associations_MtdSimMergedClusterToTPAssociatorBaseImpl_h
 #define SimDataFormats_Associations_MtdSimMergedClusterToTPAssociatorBaseImpl_h
 
-/** \class MtdSimMergedClusterToTPAssociatorBaseImpl
- *
- * Base class for MtdSimMergedClusterToTPAssociator. Methods take as input
- * the handles of MtdSimMergedCluster and TrackingParticle collections and return an
- * AssociationMap (oneToMany)
- *
- *  \author M. Malberti
- */
-
 #include "DataFormats/Common/interface/Handle.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedCluster.h"
 #include "SimDataFormats/CaloAnalysis/interface/MtdSimMergedClusterFwd.h"

@@ -9,9 +9,9 @@ using namespace std;
 /* Constructor */
 
 MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl::MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl(
-    edm::EDProductGetter const& productGetter, double energyCut, double timeCut, mtd::MTDGeomUtil& geomTools, 
+    edm::EDProductGetter const& productGetter, mtd::MTDGeomUtil& geomTools, 
     reco::SimToRecoCollectionMtd simToRecoMap, reco::RecoToSimCollectionMtd recoToSimMap)
-    : productGetter_(&productGetter), energyCut_(energyCut), timeCut_(timeCut), geomTools_(geomTools), simToRecoMap_(simToRecoMap),
+    : productGetter_(&productGetter), geomTools_(geomTools), simToRecoMap_(simToRecoMap),
     recoToSimMap_(recoToSimMap) {}
 
 //
@@ -25,8 +25,7 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
 
   MergedRecoToSimCollectionMtd outputCollection;
 
-  // -- get the collections
-  
+  // -- get collections
   std::array<edm::Handle<FTLMergedClusterCollection>, 2> inputRecoMergedClusH{{btlRecoClusH, etlRecoClusH}};
 
   const auto& simMergedClusters = *simMergedClusH.product();
@@ -39,31 +38,32 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
     }
   }      
       
+  // loop over reco merged clusters
   for (auto const& recoMergedClusH : inputRecoMergedClusH) {
     for (const auto& detSet : *recoMergedClusH) {
       for (const auto& recoMergedClus : detSet) {
-
-        // FIXME: this print
-        // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "Reco cluster : " << clusId;
-
         FTLMergedClusterRef recoMergedClusterRef = edmNew::makeRefTo(recoMergedClusH, &recoMergedClus);
         std::vector<MtdSimMergedClusterRef> simClusterRefs;
 
-        edm::LogWarning("MtdR2SAssoc") << "RecoMergedClus key=" << recoMergedClusterRef.key()
-            << " nComponents=" << recoMergedClus.clusterRefs().size();
+        LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") 
+              << "RecoCluster: " << recoMergedClusterRef.key()
+              << " with nComponents=" << recoMergedClus.clusterRefs().size();
 
         // iterate over component clusters
         for (const auto& recoClusRef : recoMergedClus.clusterRefs()) {
-          edm::LogWarning("MtdR2SAssoc") << "  Component id=" << recoClusRef.id() 
-              << " key=" << recoClusRef.key();
+          LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") 
+              << "    Component id=" << recoClusRef.id() 
+              << "    key=" << recoClusRef.key();
           auto recoToSimIt = recoToSimMap_.equal_range(recoClusRef);
           if (recoToSimIt.first == recoToSimIt.second) {
-            edm::LogWarning("MtdR2SAssoc") << "  -> NOT FOUND in recoToSimMap (size=" << recoToSimMap_.size() << ")";
+            LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl")
+                    << "    -> NOT FOUND in recoToSimMap)";
             if (!recoToSimMap_.empty()) {
-              edm::LogWarning("MtdR2SAssoc") << "  -> First entry id=" << recoToSimMap_.begin()->first.id()
-                  << " key=" << recoToSimMap_.begin()->first.key();
+              LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl")
+                    << "    -> First entry id = " << recoToSimMap_.begin()->first.id()
+                    << " key = " << recoToSimMap_.begin()->first.key();
             }
-            // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No sim clusters associated to this reco cluster";
+            LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No sim clusters associated to this reco cluster";
             continue;
           }
           const auto& simClusterCandidates = (*recoToSimIt.first).second;
@@ -71,45 +71,21 @@ reco::MergedRecoToSimCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
             // retrieve simMergedClusters associated to this simLayerCluster
             auto const& simMergedClusters = simClusToMergedMap.find(simClusterRef);
             if (simMergedClusters == simClusToMergedMap.end()) {
-              // Note: SHOULD NEVER HAPPEN.
-              // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No sim merged clusters associated to this sim layer cluster";
+              LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No sim merged clusters associated to this sim layer cluster";
               continue;
             }
 
-
-            for (const auto& simMergedClusterRef : simMergedClusters->second){
-              // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  Found associated sim merged cluster: " << simMergedClusterRef.key();
-              float dE = recoClusRef->energy() * 0.001 / simMergedClusterRef->simEnergy();  // reco cluster energy is in MeV!
-              float dtSig = std::abs((recoClusRef->time() - simMergedClusterRef->simTime()) / recoClusRef->timeError());
-      
-              LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl")
-                  << "E_recoClus = " << recoClusRef->energy() << "   E_simClus = " << simMergedClusterRef->simEnergy()
-                  << "   E_recoClus/E_simClus = " << dE;
-              LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl")
-                  << "(t_recoClus-t_simClus)/sigma_t = " << dtSig;
-              /*
-              // FIXME: when reintroducing ETL, only consider dtSig cut for those
-              if (dE < energyCut_ && dtSig < timeCut_) {  
-                edm::LogWarning("MtdR2SAssoc") << "  -> MATCH PASSES dE=" << dE << " dtSig=" << dtSig;
-                simClusterRefs.push_back(simMergedClusterRef);
-              } else {
-                edm::LogWarning("MtdR2SAssoc") << "  -> MATCH REJECTED dE=" << dE << " dtSig=" << dtSig
-                    << " energyCut=" << energyCut_ << " timeCut=" << timeCut_;
-              }*/
-              simClusterRefs.push_back(simMergedClusterRef);
-            }
-
+            simClusterRefs.push_back(simMergedClusterRef);
           }
         }
         
-        // -- Now fill the output collection
-        // first remove duplicates from simClusterRefs
+        // Fill output collection after removing simClusterRefs duplicates
         std::sort(simClusterRefs.begin(), simClusterRefs.end());
         simClusterRefs.erase(std::unique(simClusterRefs.begin(), simClusterRefs.end()), simClusterRefs.end());
         outputCollection.emplace_back(recoMergedClusterRef, simClusterRefs);
       }
     }
-  }
+  } // end loop over reco merged clusters
 
   outputCollection.post_insert();
   return outputCollection;
@@ -123,14 +99,10 @@ reco::MergedSimToRecoCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
 
   // -- get the collections
   const auto& simMergedClusters = *simMergedClusH.product();
-
-  // TODO: reintroduce ETL when RecoMergedCluster available
   std::array<edm::Handle<FTLMergedClusterCollection>, 2> inputH{{btlRecoClusH, etlRecoClusH}};
 
   // make preliminary map: recoCluster => recoMergedCluster
   std::map<FTLClusterRef, std::vector<FTLMergedClusterRef>> recoClusToMergedMap;
-
-
   for (const auto& recoMergedClusH : inputH) {
     for (const auto& detSet : *recoMergedClusH) {
       for (const auto& recoMergedClus : detSet) {
@@ -155,13 +127,11 @@ reco::MergedSimToRecoCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
       if (simToRecoIt.first != simToRecoIt.second) {
         const auto& recoRefs = (*simToRecoIt.first).second;
         for (const auto& recoRef : recoRefs) {
-          // QUESTION: no constraint on compatibility here?
           // retrieve recoMergedClusters associated to this recoCluster
           auto const& recoMergedClusters = recoClusToMergedMap.find(recoRef);
           
           if (recoMergedClusters == recoClusToMergedMap.end()) {
-            // Note: SHOULD NEVER HAPPEN.
-            // LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No reco merged clusters associated to this reco cluster";
+            LogDebug("MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl") << "  No reco merged clusters associated to this reco cluster";
             continue;
           }
 
@@ -174,12 +144,13 @@ reco::MergedSimToRecoCollectionMtd MtdRecoMergedClusterToSimMergedClusterAssocia
       }
     }
 
+    // Remove duplicates from recoMergedClusterRefs
     std::sort(recoMergedClusterRefs.begin(), recoMergedClusterRefs.end());
     recoMergedClusterRefs.erase(std::unique(recoMergedClusterRefs.begin(), recoMergedClusterRefs.end()), recoMergedClusterRefs.end());
 
     outputCollection.emplace_back(simMergedClusterRef, recoMergedClusterRefs);
     
-  }  // -- end loop over sim clusters
+  }  // -- end loop over sim merged clusters
 
   outputCollection.post_insert();
   return outputCollection;

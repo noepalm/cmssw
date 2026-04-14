@@ -32,8 +32,6 @@ public:
 
 private:
   edm::EDProductGetter const *productGetter_;
-  const double energyCut_;
-  const double timeCut_;
   mtd::MTDGeomUtil geomTools_;
 
   reco::SimToRecoCollectionMtd simToRecoMap_;

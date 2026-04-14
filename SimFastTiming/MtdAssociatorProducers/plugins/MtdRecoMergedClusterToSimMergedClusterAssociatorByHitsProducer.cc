@@ -32,8 +32,6 @@ public:
 
 private:
   void produce(edm::StreamID, edm::Event &, const edm::EventSetup &) const override;
-  const double energyCut_;
-  const double timeCut_;
   edm::ESGetToken<MTDGeometry, MTDDigiGeometryRecord> geomToken_;
   edm::ESGetToken<MTDTopology, MTDTopologyRcd> topoToken_;
   edm::EDGetTokenT<reco::SimToRecoCollectionMtd> simToRecoMap_;
@@ -41,8 +39,7 @@ private:
 };
 
 MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer::MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer(
-    const edm::ParameterSet &ps)
-    : energyCut_(ps.getParameter<double>("energyCut")), timeCut_(ps.getParameter<double>("timeCut")) {
+    const edm::ParameterSet &ps){
   geomToken_ = esConsumes<MTDGeometry, MTDDigiGeometryRecord>();
   topoToken_ = esConsumes<MTDTopology, MTDTopologyRcd>();
 
@@ -74,16 +71,13 @@ void MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer::produce(edm
   reco::RecoToSimCollectionMtd recoToSimMap = *recoToSimMapHandle.product();
 
   auto impl = std::make_unique<MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsImpl>(
-      iEvent.productGetter(), energyCut_, timeCut_, geomTools_, simToRecoMap, recoToSimMap);
+      iEvent.productGetter(), geomTools_, simToRecoMap, recoToSimMap);
   auto toPut = std::make_unique<reco::MtdRecoMergedClusterToSimMergedClusterAssociator>(std::move(impl));
   iEvent.put(std::move(toPut));
 }
 
 void MtdRecoMergedClusterToSimMergedClusterAssociatorByHitsProducer::fillDescriptions(edm::ConfigurationDescriptions &cfg) {
   edm::ParameterSetDescription desc;
-  desc.add<double>("energyCut", 5.);
-  desc.add<double>("timeCut", 10.);
-
   desc.add<edm::InputTag>("simToRecoMap", edm::InputTag("mtdRecoClusterToSimLayerClusterAssociation"));
   desc.add<edm::InputTag>("recoToSimMap", edm::InputTag("mtdRecoClusterToSimLayerClusterAssociation"));
 

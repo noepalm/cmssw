@@ -44,7 +44,6 @@ public:
     std::vector<DetId> detIds() const;
 
     /// Retrieve list of times and positions of all sim hits in the clusters
-    // std::map<uint64_t, std::pair<float, LocalPoint>> getHitTimesAndPositions() const;
     std::vector<std::pair<float, LocalPoint>> getHitTimesAndPositions() const;
 
     /// Accessors
