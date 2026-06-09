@@ -428,21 +428,11 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
               if (areBothBackscatter || (areBothNotBackscatter && !areBothDirect) || areBothDirectfromSameTP) {
                 mergedClusterClusters.push_back(adjCluster);
                 processedClusters.insert(adjCluster);
-                std::cout << "Merging cluster at iphi " << iphi << ", ieta " << ieta << "hitProdType: " << mergedClusterClusters[0]->hitProdType() << " with cluster at iphi " << iphi_adj
-                        << ", ieta " << ieta_adj << "hitProdType: " << adjCluster->hitProdType() <<  "areBothDirectfromSameTP: " << areBothDirectfromSameTP <<
-                         "hasCommonAncestor"  << hasCommonAncestor << " areBothBackscatter: " << areBothBackscatter << " areBothNotBackscatter: " <<
-                        areBothNotBackscatter << "  areBothDirect: " << areBothDirect << " areBothDirectfromSameTP: "<< areBothDirectfromSameTP  << 
-                        " (areBothNotBackscatter && !areBothDirect) :" << (areBothNotBackscatter && !areBothDirect) << std::endl;
-
+                
               }
               else {
                 LogDebug("MtdSimMergedClusterProducer") << "    Not merging: different hitProdType and not both direct from the same TP";
-                std::cout << "NOT cluster at iphi " << iphi << ", ieta " << ieta << "hitProdType: " << mergedClusterClusters[0]->hitProdType() << " with cluster at iphi " << iphi_adj
-                        << ", ieta " << ieta_adj << "hitProdType: " << adjCluster->hitProdType() <<  "areBothDirectfromSameTP" << areBothDirectfromSameTP <<
-                         "hasCommonAncestor"  << hasCommonAncestor << " areBothBackscatter: " << areBothBackscatter << " areBothNotBackscatter: " <<
-                        areBothNotBackscatter << "  areBothDirect: " << areBothDirect << " areBothDirectfromSameTP: "<< areBothDirectfromSameTP  << 
-                        " (areBothNotBackscatter && !areBothDirect) :" << (areBothNotBackscatter && !areBothDirect) << std::endl;
-
+                
               }
               
             } else {
@@ -451,10 +441,7 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
                   topology->btlIndex(adjDetId.geographicalId(BTLDetId::CrysLayout::v4).rawId());
               
               LogDebug("MtdSimMergedClusterProducer") << "    Not merging: no common ancestor found";
-              std::cout << "NOT cluster at iphi " << iphi << ", ieta " << ieta << "hitProdType: " << mergedClusterClusters[0]->hitProdType() << " with cluster at iphi " << iphi_adj
-                        << ", ieta " << ieta_adj << " hitProdType: " << adjCluster->hitProdType() <<  "areBothDirectfromSameTP" << areBothDirectfromSameTP <<
-                         "hasCommonAncestor"  << hasCommonAncestor <<  "  areBothDirect: " << areBothDirect << " areBothDirectfromSameTP: "<< areBothDirectfromSameTP  <<  std::endl;
-
+              
             }
           }
         }
