@@ -431,8 +431,7 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
                 
               }
               else {
-                LogDebug("MtdSimMergedClusterProducer") << "    Not merging: different hitProdType and not both direct from the same TP";
-                
+                LogDebug("MtdSimMergedClusterProducer") << "    Not merging: different hitProdType and not both direct from the same TP"; 
               }
               
             } else {
