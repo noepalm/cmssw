@@ -21,6 +21,7 @@
 
   <class name="io_v1::FTLCluster" ClassVersion="3">
     <version ClassVersion="3" checksum="2743481150"/>
+  </class>
   <class name="FTLMergedCluster"/>
   <class name="std::vector<FTLMergedCluster>"/>
   <class name="edmNew::DetSetVector<FTLMergedCluster>"/>
@@ -32,7 +33,6 @@
   <class name="edm::RefVector<FTLMergedClusterCollection>"/>
   <class name="edm::RefProd<FTLMergedClusterCollection>"/>
 
-  </class>
   <class name="std::vector<io_v1::FTLCluster>"/>
   <class name="FTLClusterCollection"/>
   <class name="edm::Wrapper<FTLClusterCollection>" />

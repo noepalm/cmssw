@@ -29,18 +29,11 @@ namespace io_v1 {
   MTDTrackingRecHit(const LocalPoint& p, const LocalError& e, const GeomDet& idet, const FTLMergedClusterRef& objref)
       : TrackerSingleRecHit(p, e, idet, trackerHitRTTI::mipTiming, objref) {}
 
-  int dimension() const final { return 2; }
 
   //specific timing stuff
   float energy() const { return omniCluster().mtdMergedCluster().energy(); }
   float time() const { return omniCluster().mtdMergedCluster().time(); }
   float timeError() const { return omniCluster().mtdMergedCluster().timeError(); }
-};
-
-    //specific timing stuff
-    float energy() const { return omniCluster().mtdCluster().energy(); }
-    float time() const { return omniCluster().mtdCluster().time(); }
-    float timeError() const { return omniCluster().mtdCluster().timeError(); }
   };
 }  // namespace io_v1
 using MTDTrackingRecHit = io_v1::MTDTrackingRecHit;
