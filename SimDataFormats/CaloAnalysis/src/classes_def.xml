@@ -66,6 +66,14 @@
 
   <class name="io_v1::SimTauCPLink" ClassVersion="3">
    <version ClassVersion="3" checksum="308068769"/>
+  <class name="MtdSimMergedCluster"/>
+  <class name="MtdSimMergedClusterCollection"/>
+  <class name="edm::Wrapper<MtdSimMergedClusterCollection>"/>
+  <class name="MtdSimMergedClusterRef"/>
+  <class name="MtdSimMergedClusterRefVector"/>
+  <class name="MtdSimMergedClusterRefProd"/>
+  <class name="MtdSimMergedClusterContainer"/>
+
   </class>
   <class name="std::vector<io_v1::SimTauCPLink>"/>
   <class name="edm::Wrapper<std::vector<io_v1::SimTauCPLink> >" />
