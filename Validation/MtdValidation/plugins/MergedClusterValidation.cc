@@ -1080,16 +1080,20 @@ void MergedClusterValidation::analyze(const edm::Event& iEvent, const edm::Event
     } 
     // Access individual clusters from the mergedcluster
     for (const auto& cluster_ref : simmc.clusters()) {
+        
       const auto& cluster = *cluster_ref;
-
+      
       // Get detId from first hit (following MtdSimMergedClusterProducer pattern)
       if (cluster.detIds_and_rows().empty())
         continue;
+      if (MTDDetId(cluster.detIds_and_rows()[0].first).mtdSubDetector()==2)
+        continue;  // Skip clusters from ETL
+      
       BTLDetId clusterDetId(cluster.detIds_and_rows()[0].first);
 
       // Get topology indices for this cluster
       std::pair<uint32_t, uint32_t> cluster_indices =
-          topology->btlIndex(clusterDetId.geographicalId(BTLDetId::CrysLayout::v3).rawId());
+          topology->btlIndex(clusterDetId.geographicalId(BTLDetId::CrysLayout::v4).rawId());
       iphi_perCluster.push_back(cluster_indices.first);
       ieta_perCluster.push_back(cluster_indices.second);
 
