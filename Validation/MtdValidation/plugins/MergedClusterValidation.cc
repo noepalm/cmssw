@@ -1089,7 +1089,7 @@ void MergedClusterValidation::analyze(const edm::Event& iEvent, const edm::Event
 
       // Get topology indices for this cluster
       std::pair<uint32_t, uint32_t> cluster_indices =
-          topology->btlIndex(clusterDetId.geographicalId(BTLDetId::CrysLayout::v3).rawId());
+          topology->btlIndex(clusterDetId.geographicalId(BTLDetId::CrysLayout::v4).rawId());
       iphi_perCluster.push_back(cluster_indices.first);
       ieta_perCluster.push_back(cluster_indices.second);
 

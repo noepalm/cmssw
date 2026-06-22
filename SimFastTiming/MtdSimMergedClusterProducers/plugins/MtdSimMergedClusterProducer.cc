@@ -510,7 +510,11 @@ void MtdSimMergedClusterProducer::produce(edm::Event& iEvent, const edm::EventSe
       // Convert back to local coordinates of the seed cluster
       if (!mergedClusterClusters.empty()) {
         DetId seedDetId = mergedClusterClusters.front()->detIds_and_rows()[0].first;
-        const GeomDet* seedDet = geom.idToDetUnit(seedDetId);
+        BTLDetId seedBTL(seedDetId);
+        DetId seedGeoId = seedBTL.geographicalId(BTLDetId::CrysLayout::v4);
+
+        const GeomDet* seedDet = geom.idToDetUnit(seedGeoId);
+        
         if (seedDet) {
           LocalPoint lp = seedDet->surface().toLocal(avgGlobal);
           simMergedCluster.setSimPos(lp);
