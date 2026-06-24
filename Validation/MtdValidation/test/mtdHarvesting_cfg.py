@@ -18,7 +18,16 @@ process.MessageLogger.cerr.FwkReport  = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("DQMRootSource",
-    fileNames = cms.untracked.vstring('file:step3_inDQM.root')
+    # fileNames = cms.untracked.vstring('file:step3_inDQM.root')
+    # fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD/MTD_mergedCluster_validation/CMSSW_20_0_0_pre1/src/step3_inDQM.root')
+    # # EDITED, pions
+    # fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD/MTD_mergedCluster_validation/samples/CMSSW_20_0_0_pre1_mergedClusters/singlepi_0PU/step3_inDQM_pions.root')
+    # EDITED, ttbar
+    fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD/MTD_mergedCluster_validation/samples/CMSSW_20_0_0_pre1_mergedClusters/ttbar_200PU/step3_inDQM.root')
+    # # CLEAN, pions
+    # fileNames = cms.untracked.vstring('file:/eos/home-n/npalmeri/MTD/MTD_mergedCluster_validation/samples/CMSSW_20_0_0_pre1_vanilla/singlepi_0PU/step3_inDQM_pions.root')
+    # # CLEAN, ttbar
+    # fileNames = cms.untracked.vstring('file:/eos/user/t/tipaulet/MTDTask/mergedCluster/noemicleaned/latest/vanilla/CMSSW_20_0_0_pre1/sample/ttbarPU/step3_inDQM.root')
 )
 
 # Path and EndPath definitions
